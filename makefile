@@ -1,4 +1,4 @@
-NAME = Square
+NAME = anura
 
 ifeq ($(OS),Windows_NT)
 	EXE := $(NAME).exe
