@@ -1,5 +1,6 @@
 use std::io;
 
+// read line from stdin and then should interpret it but doesn't do that yet
 pub fn uci_main() {
     let mut command = String::new();
 

@@ -14,3 +14,9 @@ debug:
 
 clean: 
 	rm -rf $(EXE) $(NAME).pdb target
+
+run: all
+	./$(EXE)
+
+debug-run: debug
+	./$(EXE)

@@ -1,5 +1,7 @@
 pub mod uci;
+pub mod board;
 
+use crate::board::Board;
 use crate::uci::uci_main;
 
 fn main() {
