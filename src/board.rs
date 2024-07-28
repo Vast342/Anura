@@ -48,11 +48,11 @@ pub struct Board {
 
 impl Board {
     pub fn new() -> Self {
-        Self {states: vec![BoardState::empty(); 128]}
+        Self {states: vec![BoardState::empty(); 256]}
     }
     pub fn load_fen(mut self, _fen: String) {
         let /*mut*/ state: BoardState = BoardState::empty();
-
+        
         self.states.push(state);
     }
 }
