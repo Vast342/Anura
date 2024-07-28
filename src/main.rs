@@ -1,7 +1,10 @@
+#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
+
 pub mod uci;
 pub mod board;
+pub mod types;
 
-use crate::board::Board;
+//use crate::board::BoardState;
 use crate::uci::uci_main;
 
 fn main() {

@@ -8,17 +8,16 @@ pub static SQUARE_NAMES: [&str; 64] = [
     "a7","b7","c7","d7","e7","f7","g7","h7",
     "a8","b8","c8","d8","e8","f8","g8","h8",
 ];
-pub enum Piece {
-    Pawn, Knight, Bishop, Rook, Queen, King, None
-}
-pub const BLACK: u8 = 0;
-pub const WHITE: u8 = 8;
 
+use crate::types::bitboard::Bitboard;
+use crate::types::piece::Piece;
+//use std::vec;
+
+#[derive(Debug, Copy, Clone)]
 pub struct BoardState {
-    fn null_state()
-    colors:   [u64; 2],
-    pieces:   [u64; 6],
-    mailbox:  [u8; 64],
+    colors:   [Bitboard; 2],
+    pieces:   [Bitboard; 6],
+    mailbox:  [Piece; 64],
     zobrist:   u64,
     king_sqs: [u8; 2],
     ep_index:  u8,
@@ -26,20 +25,34 @@ pub struct BoardState {
     castling:  u8,
 }
 
-pub struct Board {
+impl BoardState {
+    pub fn empty() -> Self {
+        let c: [Bitboard; 2] = [Bitboard(0); 2];
+        let p: [Bitboard; 6] = [Bitboard(0); 6];
+        let m: [Piece; 64] = [Piece(0); 64];
+        let z: u64 = 0;
+        let k: [u8; 2] = [0; 2];
+        let e: u8 = 0;
+        let h: u8 = 0;
+        let ca: u8 = 0;
 
+        Self {colors: c, pieces: p, mailbox: m, zobrist: z, king_sqs: k, ep_index: e, hm_clock: h, castling: ca}
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Board {
+    states: Vec<BoardState>,
 }
 
 
 impl Board {
-    fn from_fen(&self, fen: String) -> Board {
-        let mut colors:   [u64; 2];
-        let mut pieces:   [u64; 6];
-        let mut mailbox:  [u8; 64];
-        let mut zobrist:   u64;
-        let mut king_sqs: [u8; 2];
-        let mut ep_index:  u8;
-        let mut hm_clock:  u8;
-        let mut castling:  u8;
+    pub fn new() -> Self {
+        Self {states: vec![BoardState::empty(); 128]}
+    }
+    pub fn load_fen(mut self, _fen: String) {
+        let /*mut*/ state: BoardState = BoardState::empty();
+
+        self.states.push(state);
     }
 }
