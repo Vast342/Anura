@@ -3,6 +3,7 @@
 pub mod uci;
 pub mod board;
 pub mod types;
+pub mod eval;
 
 //use crate::board::BoardState;
 use crate::uci::uci_main;
