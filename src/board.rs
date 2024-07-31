@@ -42,7 +42,7 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    eval::PIECE_WEIGHTS, movegen::{others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, types::{
+    eval::PIECE_WEIGHTS, movegen::{others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
@@ -243,50 +243,68 @@ impl Board {
             } 
         }
         while us != Bitboard(0) {
-            let index = Square(us.pop_lsb());
-            let piece = state.piece_on_square(index);
+            let index = us.pop_lsb();
+            let piece = state.piece_on_square(Square(index));
             let mut current_attack: Bitboard = match piece.piece() {
                 // pawns (we do them setwise later)
                 0 => Bitboard(0),
                 // knights
                 1 => {
-                    get_knight_attacks(index)
+                    get_knight_attacks(Square(index))
                 },
                 // bishops
                 2 => {
-                    get_bishop_attacks(index, occ)
+                    get_bishop_attacks(Square(index), occ)
                 },
                 // rooks
                 3 => {
-                    get_rook_attacks(index, occ)
+                    get_rook_attacks(Square(index), occ)
                 },
                 // queens
                 4 => {
-                    get_bishop_attacks(index, occ) | get_rook_attacks(index, occ)
+                    get_bishop_attacks(Square(index), occ) | get_rook_attacks(Square(index), occ)
                 },
                 // kings
                 5 => {
-                    get_king_attacks(index)
+                    get_king_attacks(Square(index))
                 },
                 _ => panic!("invalid piece, value of {}", piece.piece()),
             };
             // make sure you can't capture your own pieces
             current_attack ^= current_attack & state.colors[1 - self.ctm as usize];
             // convert it into moves
-            /*while current_attack != Bitboard(0) {
-                
-            }*/
+            while current_attack != Bitboard(0) {
+                let end = current_attack.pop_lsb();
+                list.push(Move::new_unchecked(index, end, Flag::Normal as u8));
+            }
             
         }
-        let mut pawn_pushes = get_pawn_pushes_setwise(state.pieces[Types::Pawn as usize], empties, self.ctm);
-        while pawn_pushes.0 != Bitboard(0) {
-            let index = pawn_pushes.0.pop_lsb();
+        // setwise pawns
+        let pawns = state.pieces[Types::Pawn as usize];
+        let (mut single_pushes, mut double_pushes) = get_pawn_pushes_setwise(pawns, empties, self.ctm);
+        // identify promotions
+        let mut pawn_push_promotions = single_pushes & Bitboard::from_rank(7 * self.ctm);
+        single_pushes ^= pawn_push_promotions;
+        while single_pushes != Bitboard(0) {
+            let index = single_pushes.pop_lsb();
             list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, Flag::Normal as u8));
         }
-        while pawn_pushes.1 != Bitboard(0) {
-            let index = pawn_pushes.1.pop_lsb();
-            list.push(Move::new_unchecked(if self.ctm == 0 {index + 16} else {index - 16}, index, Flag::Normal as u8));
+        while double_pushes != Bitboard(0) {
+            let index = double_pushes.pop_lsb();
+            list.push(Move::new_unchecked(if self.ctm == 0 {index + 16} else {index - 16}, index, Flag::DoublePush as u8));
         }
+        while pawn_push_promotions != Bitboard(0) {
+            let index = pawn_push_promotions.pop_lsb();
+            for i in 7..11 {
+                list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, i));
+            }
+        }
+
+        let capturable: Bitboard = state.colors[1 - self.ctm as usize];
+        let (mut left_captures, mut right_captures) = get_pawn_attacks_setwise(pawns, capturable, self.ctm);
+        //let mut left_capture_promotions  = 
+        //let mut right_capture_promotions =
+
     }
     #[must_use] pub fn in_check(&self) -> bool {
         self.square_attacked(self.states.last().expect("no state").king_sqs[self.ctm as usize])

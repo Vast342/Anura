@@ -34,9 +34,13 @@ use super::lookups::PAWN_ATTACKS;
 
 // input: pawn bitboard, opponent bitboard, and ctm
 // output: tuple of left and right pawn pushes
-#[must_use] pub const fn get_pawn_attacks_setwise() -> (Bitboard, Bitboard) {
-    let left_attacks = Bitboard(0);
-    let right_attacks= Bitboard(0);
+#[must_use] pub fn get_pawn_attacks_setwise(pawns: Bitboard, capturable: Bitboard, ctm: u8) -> (Bitboard, Bitboard) {
+    let mut left_attacks = if ctm == 0 { pawns >> 9 } else { pawns << 7 };
+    let mut right_attacks= if ctm == 0 { pawns >> 7 } else { pawns << 9 };
+    left_attacks  &= !Bitboard::from_file(7);
+    right_attacks &= !Bitboard::from_file(0);
+    left_attacks  &= capturable;
+    right_attacks &= capturable;
     (left_attacks, right_attacks)
 }
 

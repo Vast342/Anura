@@ -21,6 +21,7 @@ use std::ops::AddAssign;
 pub struct Square(pub u8);
 
 impl Square {
+    pub const INVALID: Self = Self(64);
     pub fn flip(&mut self) {
         self.0 ^= 56;
     }

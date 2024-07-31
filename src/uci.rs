@@ -71,7 +71,7 @@ impl Manager {
             "isready" => CommandTypes::IsReady,
             "position" => CommandTypes::Position,
             "quit" => CommandTypes::Quit,
-            "printstate" | "show" => CommandTypes::PrintState,
+            "printstate" | "show" | "print" => CommandTypes::PrintState,
             "evaluate" => CommandTypes::Evaluate,
             _ => CommandTypes::Invalid,
         }

@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::{BitXorAssign, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not};
+use std::ops::{BitXorAssign, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -116,5 +116,11 @@ impl Not for Bitboard {
 
     fn not(self) -> Self::Output {
         Self(!self.0)
+    }
+}
+
+impl BitAndAssign for Bitboard {
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.0 &= rhs.0;
     }
 }
