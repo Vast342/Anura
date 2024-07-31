@@ -1,3 +1,4 @@
 pub mod pawns;
 pub mod slideys;
-pub mod all_else;
+pub mod others;
+pub mod movegen_lookups;

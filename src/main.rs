@@ -5,8 +5,8 @@ pub mod board;
 pub mod types;
 pub mod eval;
 pub mod movegen;
+pub mod search;
 
-//use crate::board::BoardState;
 use crate::uci::UciManager;
 use std::env;
 
