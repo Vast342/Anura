@@ -1,4 +1,23 @@
+/*
+    Anura
+    Copyright (C) 2024 Joseph Pasfield
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 use std::ops::{BitXorAssign, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not};
+
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct Bitboard(pub u64);
@@ -6,29 +25,29 @@ pub struct Bitboard(pub u64);
 use super::square::Square;
 
 // a mask for a single file on the board
-pub const FILEMASK: u64 = 0b100000001000000010000000100000001000000010000000100000001;
+pub const FILEMASK: u64 = 0b1_0000_0001_0000_0001_0000_0001_0000_0001_0000_0001_0000_0001_0000_0001;
 // a mask for a single rank on the board
-pub const RANKMASK: u64 = 0b11111111;
+pub const RANKMASK: u64 = 0b1111_1111;
 
 impl Bitboard {
 
     pub const EMPTY: Self = Self(0);
 
-    pub fn from_square(sq: Square) -> Self {
-        Self{0: 1 << sq.0 as u64}
+    #[must_use] pub fn from_square(sq: Square) -> Self {
+        Self(1 << u64::from(sq.0))
     }
-    pub fn from_rank(rank: u8) -> Self {
+    #[must_use] pub const fn from_rank(rank: u8) -> Self {
         Self(RANKMASK << (8 * rank))
     }
-    pub fn from_file(file: u8) -> Self {
+    #[must_use] pub const fn from_file(file: u8) -> Self {
         Self(FILEMASK << file)
     }
 
-    pub const fn lsb(&self) -> u8 {
+    #[must_use] #[allow(clippy::cast_possible_truncation)] pub const fn lsb(&self) -> u8 {
         debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
         self.0.trailing_zeros() as u8
     }
-    pub const fn msb(&self) -> u8 {
+    #[must_use] #[allow(clippy::cast_possible_truncation)] pub const fn msb(&self) -> u8 {
         debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
         self.0.leading_zeros() as u8
     }
@@ -37,13 +56,13 @@ impl Bitboard {
         self.0 &= self.0 - 1;
         lsb
     }
-    pub const fn popcount(&self) -> u32 {
+    #[must_use] pub const fn popcount(&self) -> u32 {
         self.0.count_ones()
     }
-    pub const fn is_empty(&self) -> bool {
+    #[must_use] pub const fn is_empty(&self) -> bool {
         self.0 == 0
     }
-    pub const fn has_bits(&self) -> bool {
+    #[must_use] pub const fn has_bits(&self) -> bool {
         self.0 != 0
     }
 }

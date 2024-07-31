@@ -1,3 +1,21 @@
+/*
+    Anura
+    Copyright (C) 2024 Joseph Pasfield
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 use std::io;
 
 use crate::board::Board;
@@ -14,14 +32,20 @@ pub enum CommandTypes {
     Quit,
 }
 
-pub struct UciManager {
+pub struct Manager {
     board: Board,
     // engine: Engine (SOON)
     // TT
 }
 
-impl UciManager {
-    pub fn new() -> Self {
+impl Default for Manager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Manager {
+    #[must_use] pub fn new() -> Self {
         let mut b: Board = Board::new();
         b.load_fen("8/8/8/8/8/8/8/8 w - - 0 1");
         Self{board: b}
@@ -35,27 +59,19 @@ impl UciManager {
             .expect("failed to read from stdin");
 
         let (command, _new_line) = buffer.split_at(buffer.len() - 1);
-        if self.uci_interpret_command(command) {
-            true
-        } else {
-            false
-        }
+        self.uci_interpret_command(command)
     }
 
-    pub fn parse(&mut self, command: &str) -> CommandTypes {
+    #[must_use] pub fn parse(&self, command: &str) -> CommandTypes {
         let mut command_split = command.split_ascii_whitespace();
-        let first_token = match command_split.next() {
-            Some(string) => string,
-            None => return CommandTypes::Empty,
-        };
+        let Some(first_token) = command_split.next() else { return CommandTypes::Empty };
 
         match first_token {
             "uci" => CommandTypes::Uci,
             "isready" => CommandTypes::IsReady,
             "position" => CommandTypes::Position,
             "quit" => CommandTypes::Quit,
-            "printstate" => CommandTypes::PrintState,
-            "show" => CommandTypes::PrintState,
+            "printstate" | "show" => CommandTypes::PrintState,
             "evaluate" => CommandTypes::Evaluate,
             _ => CommandTypes::Invalid,
         }
@@ -72,7 +88,7 @@ impl UciManager {
             CommandTypes::PrintState => self.board.print_state(),
             CommandTypes::Evaluate => println!("evaluation {}", self.board.evaluate()),
             CommandTypes::Quit => return false,
-            _ => assert!(false),
+            _ => panic!("invalid command type"),
         }
         true
     }
@@ -93,15 +109,10 @@ impl UciManager {
                 + command_split.next().expect("not enough tokens") + " " 
                 + command_split.next().expect("not enough tokens") + " ";
             let next_token = command_split.next();
-            match next_token {
-                Some(string) => if string != "moves" {
-                    fen += &(string.to_owned() + " "
-                        + command_split.next().expect("not enough tokens"));
-                },
-                None => {
-                    ()
-                },
-            };
+            if let Some(string) = next_token { if string != "moves" {
+                fen += &(string.to_owned() + " "
+                     + command_split.next().expect("not enough tokens"));
+            } }
         }
         self.board = Board::new();
         self.board.load_fen(&fen);

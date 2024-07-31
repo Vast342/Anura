@@ -1,4 +1,20 @@
+/*
+    Anura
+    Copyright (C) 2024 Joseph Pasfield
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 pub static SQUARE_NAMES: [&str; 64] = [
     "a1","b1","c1","d1","e1","f1","g1","h1",
@@ -36,7 +52,7 @@ use crate::{
 //use std::vec;
 
 #[derive(Debug, Copy, Clone)]
-pub struct BoardState {
+pub struct Position {
     colors:   [Bitboard; 2],
     pieces:   [Bitboard; 6],
     mailbox:  [Piece; 64],
@@ -47,52 +63,52 @@ pub struct BoardState {
     castling:  u8,
 }
 
-impl BoardState {
-    pub fn empty() -> Self {
-        let c: [Bitboard; 2] = [Bitboard(0); 2];
-        let p: [Bitboard; 6] = [Bitboard(0); 6];
-        let m: [Piece; 64] = [Piece(Types::None as u8); 64];
-        let k: [Square; 2] = [Square(64); 2];
-        let e: Square = Square(64);
-        let h: u8 = 0;
+impl Position {
+    #[must_use] pub const fn empty() -> Self {
+        let col: [Bitboard; 2] = [Bitboard(0); 2];
+        let pcs: [Bitboard; 6] = [Bitboard(0); 6];
+        let mail: [Piece; 64] = [Piece(Types::None as u8); 64];
+        let ksqs: [Square; 2] = [Square(64); 2];
+        let epsq: Square = Square(64);
+        let hmc: u8 = 0;
         let ca: u8 = 0;
         let ev: i32 = 0;
 
-        Self {colors: c, pieces: p, mailbox: m, king_sqs: k, ep_index: e, hm_clock: h, castling: ca, eval: ev}
+        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev}
     }
     pub fn add_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = piece;
-        self.eval += PIECE_WEIGHTS[piece.piece() as usize] * (-1 + (piece.color() as i32) * 2);
+        self.eval += PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i32::from(piece.color()) * 2);
     }
     pub fn remove_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = Piece(Types::None as u8);
-        self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + (piece.color() as i32) * 2);
+        self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i32::from(piece.color()) * 2);
     }
-    pub fn piece_on_square(&self, sq: Square) -> Piece {
+    #[must_use] pub const fn piece_on_square(&self, sq: Square) -> Piece {
         self.mailbox[sq.as_usize()]
     }
-    pub fn occupied(&self) -> Bitboard {
+    #[must_use] pub fn occupied(&self) -> Bitboard {
         self.colors[0] & self.colors[1]
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Board {
-    states: Vec<BoardState>,
+    states: Vec<Position>,
     ctm: u8,
     ply: i16,
     // phase: i8
 }
 
 impl Board {
-    pub fn new() -> Self {
-        Self {states: vec![BoardState::empty(); 256], ctm: 0, ply: 0}
+    #[must_use] pub fn new() -> Self {
+        Self {states: vec![Position::empty(); 256], ctm: 0, ply: 0}
     }
     pub fn print_state(&self) {
         for i in (0..8).rev() {
@@ -102,12 +118,12 @@ impl Board {
             println!();
         }
     }
-    pub fn load_fen(&mut self, fen: &str) {
-        let mut state: BoardState = BoardState::empty();
+    #[allow(clippy::cast_possible_truncation)] pub fn load_fen(&mut self, fen: &str) {
+        let mut state: Position = Position::empty();
         let mut fen_split = fen.split_ascii_whitespace();
         // first token: position
         let mut token = fen_split.next().expect("no position?");
-        let mut ranks = token.rsplit("/");
+        let mut ranks = token.rsplit('/');
         let mut i: Square = Square(0);
         for rank in ranks.by_ref() {
             for c in rank.chars() {
@@ -169,7 +185,7 @@ impl Board {
 
         // second token: color to move
         token = fen_split.next().expect("no ctm?"); 
-        self.ctm = if token == "w" { 1 } else { 0 };
+        self.ctm = u8::from(token == "w");
 
         // third token: castling rights
         token = fen_split.next().expect("no castling rights?");
@@ -179,9 +195,8 @@ impl Board {
                 'Q' => state.castling |= 2,
                 'k' => state.castling |= 4,
                 'q' => state.castling |= 8,
-                '-' => (),
-                ' ' => (),
-                _ => assert!(false, "invalid castling rights (Anura doesn't support frc), you gave {}", c),
+                '-' | ' ' => (),
+                _ => panic!("invalid castling rights (Anura doesn't support frc), you gave {c}"),
             }
         } 
 
@@ -199,7 +214,7 @@ impl Board {
         // here on out is optional:
         // fifth token: half move clock
         let mut token_option = fen_split.next(); 
-        if token_option != None {
+        if token_option.is_some() {
             state.hm_clock = 0;
             // sixth token: ply count
             token_option = fen_split.next(); 
@@ -213,26 +228,24 @@ impl Board {
         let occ: Bitboard = state.occupied();
         let empties: Bitboard = !occ;
         let mut us: Bitboard = state.colors[self.ctm as usize];
-        if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 {
-            if !self.in_check() {
-                if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard(0)) && !self.square_attacked(Square(5)) {
-                    list.push(Move::new_unchecked(4, 6, Flag::WKCastle as u8))
-                }
-                if (state.castling & 2) != 0 && (occ & Bitboard(0xE) == Bitboard(0)) && !self.square_attacked(Square(3)) {
-                    list.push(Move::new_unchecked(4, 2, Flag::WQCastle as u8))
-                }
-                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000000000000000) == Bitboard(0)) && !self.square_attacked(Square(61)) {
-                    list.push(Move::new_unchecked(60, 62, Flag::BKCastle as u8))
-                }
-                if (state.castling & 8) != 0 && (occ & Bitboard(0xE00000000000000) == Bitboard(0)) && !self.square_attacked(Square(59)) {
-                    list.push(Move::new_unchecked(60, 58, Flag::BQCastle as u8))
-                } 
+        if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && !self.in_check() {
+            if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard(0)) && !self.square_attacked(Square(5)) {
+                list.push(Move::new_unchecked(4, 6, Flag::WKCastle as u8));
             }
+            if (state.castling & 2) != 0 && (occ & Bitboard(0xE) == Bitboard(0)) && !self.square_attacked(Square(3)) {
+                list.push(Move::new_unchecked(4, 2, Flag::WQCastle as u8));
+            }
+            if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000) == Bitboard(0)) && !self.square_attacked(Square(61)) {
+                list.push(Move::new_unchecked(60, 62, Flag::BKCastle as u8));
+            }
+            if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000) == Bitboard(0)) && !self.square_attacked(Square(59)) {
+                list.push(Move::new_unchecked(60, 58, Flag::BQCastle as u8));
+            } 
         }
         while us != Bitboard(0) {
             let index = Square(us.pop_lsb());
             let piece = state.piece_on_square(index);
-            let current_attack: Bitboard = match piece.piece() {
+            let mut current_attack: Bitboard = match piece.piece() {
                 // pawns (we do them setwise later)
                 0 => Bitboard(0),
                 // knights
@@ -256,29 +269,29 @@ impl Board {
                     get_king_attacks(index)
                 },
                 _ => panic!("invalid piece, value of {}", piece.piece()),
-            }
+            };
             // make sure you can't capture your own pieces
-
+            current_attack ^= current_attack & state.colors[1 - self.ctm as usize];
             // convert it into moves
-            while current_attack != Bitboard(0) {
+            /*while current_attack != Bitboard(0) {
                 
-            }
+            }*/
             
         }
         let mut pawn_pushes = get_pawn_pushes_setwise(state.pieces[Types::Pawn as usize], empties, self.ctm);
         while pawn_pushes.0 != Bitboard(0) {
             let index = pawn_pushes.0.pop_lsb();
-            list.push(Move::new_unchecked(if self.ctm == 0 {} else {}, index, Flag::Normal as u8));
+            list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, Flag::Normal as u8));
         }
         while pawn_pushes.1 != Bitboard(0) {
             let index = pawn_pushes.1.pop_lsb();
-            list.push(Move::new_unchecked(if self.ctm == 0 {} else {}, index, Flag::Normal as u8));
+            list.push(Move::new_unchecked(if self.ctm == 0 {index + 16} else {index - 16}, index, Flag::Normal as u8));
         }
     }
-    pub fn in_check(&self) -> bool {
+    #[must_use] pub fn in_check(&self) -> bool {
         self.square_attacked(self.states.last().expect("no state").king_sqs[self.ctm as usize])
     }
-    pub fn square_attacked(&self, sq: Square) -> bool {
+    #[must_use] pub fn square_attacked(&self, sq: Square) -> bool {
         let opp = 1 - self.ctm as usize;
 
         let state = self.states.last().expect("no state");
@@ -312,7 +325,7 @@ impl Board {
 
         false
     }
-    pub fn evaluate(&self) -> i32 {
-        self.states.last().expect("no state").eval * (-1 + (self.ctm as i32) * 2)
+    #[must_use] pub fn evaluate(&self) -> i32 {
+        self.states.last().expect("no state").eval * (-1 + i32::from(self.ctm) * 2)
     }
 }

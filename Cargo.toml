@@ -2,6 +2,10 @@
 name = "anura"
 version = "0.1.0"
 edition = "2021"
-
+description = "Soon to be a UCI Chess Engine"
+repository = "https://github.com/Vast342/Anura"
+readme = "README.md"
+license = "GPL v3"
+keywords = ["rust", "chess-engine", "chess", "uci", "uci-chess-engine", "engine-development"]
 [dependencies]
 arrayvec = "0.7.4"
