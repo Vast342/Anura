@@ -58,27 +58,30 @@ impl Flag {
 }
 
 impl Move {
-    #[must_use] pub fn new_unchecked(start: u8, end: u8, flag: u8) -> Self {
-        debug_assert!(start < 63, "invalid start square");
-        debug_assert!(end < 63, "invalid end square");
-        Self((u16::from(flag) << 12) | (u16::from(end) << 6) | u16::from(start))
+    #[must_use] pub fn new_unchecked(from: u8, to: u8, flag: u8) -> Self {
+        debug_assert!(from <= 63, "invalid from square {}", from);
+        debug_assert!(to <= 63, "invalid to square {}", to);
+        Self((u16::from(flag) << 12) | (u16::from(to) << 6) | u16::from(from))
     }
-    #[must_use] pub const fn start(&self) -> u8 {
+    #[must_use] pub const fn from(&self) -> u8 {
         (self.0 & 0b11_1111) as u8
     }
-    #[must_use] pub const fn end(&self) -> u8 {
+    #[must_use] pub const fn to(&self) -> u8 {
         ((self.0 >> 6) & 0b11_1111) as u8
     }
     #[must_use] pub fn flag(&self) -> Flag {
         Flag::from_u8((self.0 >> 12) as u8)
     }
     // next: convert text format to move (look to board's ep index decoding)
+    /*pub fn from_text(text: &str) -> Self {
+        Self(0)
+    }*/
 }
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut c: String = SQUARE_NAMES[self.start() as usize].to_owned();
-        c += SQUARE_NAMES[self.end() as usize];
+        let mut c: String = SQUARE_NAMES[self.from() as usize].to_owned();
+        c += SQUARE_NAMES[self.to() as usize];
         c += match self.flag() {
             Flag::KnightPromo => "n",
             Flag::BishopPromo => "b",

@@ -42,7 +42,7 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    eval::PIECE_WEIGHTS, movegen::{others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, types::{
+    eval::PIECE_WEIGHTS, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
@@ -89,6 +89,13 @@ impl Position {
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = Piece(Types::None as u8);
         self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i32::from(piece.color()) * 2);
+    }
+    pub fn move_piece(&mut self, from: Square, piece: Piece, to: Square, victim: Piece) {
+        if victim.piece() != Types::None as u8 {
+            self.remove_piece(to, victim);
+        }
+        self.remove_piece(from, piece);
+        self.add_piece(to, piece);
     }
     #[must_use] pub const fn piece_on_square(&self, sq: Square) -> Piece {
         self.mailbox[sq.as_usize()]
@@ -228,7 +235,6 @@ impl Board {
         let occ: Bitboard = state.occupied();
         let empties: Bitboard = !occ;
         let mut us: Bitboard = state.colors[self.ctm as usize];
-        println!("{}", self.square_attacked(Square(5)));
         if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && !self.in_check() {
             if self.ctm == 1 {
                 if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard(0)) && !self.square_attacked(Square(5)) {
@@ -278,8 +284,8 @@ impl Board {
             current_attack ^= current_attack & state.colors[self.ctm as usize];
             // convert it into moves
             while current_attack != Bitboard(0) {
-                let end = current_attack.pop_lsb();
-                list.push(Move::new_unchecked(index, end, Flag::Normal as u8));
+                let to = current_attack.pop_lsb();
+                list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
             }
             
         }
@@ -309,28 +315,111 @@ impl Board {
             capturable |= Bitboard::from_square(state.ep_index);
         }
         let (mut left_captures, mut right_captures) = get_pawn_attacks_setwise(pawns, capturable, self.ctm);
-        let left_capture_promotions  = left_captures & Bitboard::from_rank(7 * self.ctm);
+        let mut left_capture_promotions  = left_captures & Bitboard::from_rank(7 * self.ctm);
         left_captures ^= left_capture_promotions;
-        let right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
+        let mut right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
         right_captures ^= right_capture_promotions;
 
         while left_captures != Bitboard(0) {
             let index = left_captures.pop_lsb();
             let start_square = if self.ctm == 0 {index + 9} else {index - 7};
-            list.push(Move::new_unchecked(start_square, index, Flag::Normal as u8));
+            let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
+            list.push(Move::new_unchecked(start_square, index, flag));
         }
         while right_captures != Bitboard(0) {
             let index = right_captures.pop_lsb();
             let start_square = if self.ctm == 0 {index + 7} else {index - 9};
-            list.push(Move::new_unchecked(start_square, index, Flag::DoublePush as u8));
+            let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
+            list.push(Move::new_unchecked(start_square, index, flag));
         }
-        /*while pawn_push_promotions != Bitboard(0) {
-            let index = pawn_push_promotions.pop_lsb();
+        while left_capture_promotions != Bitboard(0) {
+            let index = left_capture_promotions.pop_lsb();
+            let start_square = if self.ctm == 0 {index + 9} else {index - 7};
             for i in 7..11 {
-                list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, i));
+                list.push(Move::new_unchecked(start_square, index, i));
             }
-        }*/
+        }
+        while right_capture_promotions != Bitboard(0) {
+            let index = right_capture_promotions.pop_lsb();
+            let start_square = if self.ctm == 0 {index + 7} else {index - 9};
+            for i in 7..11 {
+                list.push(Move::new_unchecked(start_square, index, i));
+            }
+        }
+    }
+    pub fn make_move(&mut self, mov: Move) -> bool {
+        self.states.push(*self.states.last().expect("no position?"));
+        let state = self.states.last_mut().expect("no position");
 
+        let from = mov.from();
+        let from_square = Square(from);
+        let to = mov.to();
+        let to_square = Square(to);
+        let piece = state.piece_on_square(from_square);
+        let victim = state.piece_on_square(to_square);
+        let flag = mov.flag();
+        let is_capture = victim.piece() != Types::None as u8;
+
+        state.hm_clock += 1;
+        if is_capture || piece.piece() == Types::Pawn as u8 {
+            state.hm_clock = 0;
+        }
+
+        if piece.piece() == Types::King as u8 {
+            state.king_sqs[self.ctm as usize] = to_square;
+        }
+
+        if state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize] != 0 {
+            match piece.piece() {
+                3 => state.castling &= ROOK_RIGHT_MASKS[from as usize],
+                5 => state.castling &= KING_RIGHT_MASKS[self.ctm as usize],
+                _ => (),
+            }
+        }
+
+        if victim.piece() == Types::Rook as u8 {
+            state.castling &= ROOK_RIGHT_MASKS[to as usize];
+        }
+
+        state.ep_index = Square::INVALID;
+
+        // pretty much inlined state.move_piece so that I can save an add+remove+add shenanigan for promotions
+        if is_capture {
+            state.remove_piece(to_square, victim);
+        }
+        state.remove_piece(from_square, piece);
+        if flag < Flag::KnightPromo {
+            state.add_piece(to_square, piece);
+        }
+
+        match flag {
+            Flag::WKCastle => state.move_piece(Square(7), Piece::new_unchecked(Types::Rook as u8, Colors::White as u8), Square(5), Piece(Types::None as u8)),
+            Flag::WQCastle => state.move_piece(Square(0), Piece::new_unchecked(Types::Rook as u8, Colors::White as u8), Square(3), Piece(Types::None as u8)),
+            Flag::BKCastle => state.move_piece(Square(63), Piece::new_unchecked(Types::Rook as u8, Colors::Black as u8), Square(61), Piece(Types::None as u8)),
+            Flag::BQCastle => state.move_piece(Square(56), Piece::new_unchecked(Types::Rook as u8, Colors::Black as u8), Square(59), Piece(Types::None as u8)),
+            Flag::DoublePush => state.ep_index = Square((to as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8),
+            Flag::EnPassant => state.remove_piece(Square((to as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8), Piece::new_unchecked(Types::Pawn as u8, 1 - self.ctm)),
+            Flag::KnightPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Knight as u8, self.ctm)),
+            Flag::BishopPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Bishop as u8, self.ctm)),
+            Flag::RookPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Rook as u8, self.ctm)),
+            Flag::QueenPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Queen as u8, self.ctm)),
+            _ => (),
+        }
+
+        self.ply += 1;
+        if self.in_check() {
+            self.undo_move();
+            self.ctm = 1 - self.ctm;
+            false
+        } else {
+            self.ctm = 1 - self.ctm;
+            true
+        }
+    }
+    pub fn undo_move(&mut self) {
+        self.states.pop();
+        self.ply -= 1;
+        self.ctm = 1 - self.ctm;
     }
     #[must_use] pub fn in_check(&self) -> bool {
         self.square_attacked(self.states.last().expect("no state").king_sqs[self.ctm as usize])

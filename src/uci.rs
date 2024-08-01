@@ -19,7 +19,7 @@
 use std::io;
 use std::time::Instant;
 
-use crate::{board::Board, types::MoveList};
+use crate::{board::Board, perft::perft, types::MoveList};
 
 pub enum CommandTypes {
     Uci,
@@ -29,6 +29,8 @@ pub enum CommandTypes {
     PrintState,
     Evaluate,
     Perft,
+    SplitPerft,
+    MakeMove,
     Empty,
     Invalid,
     Quit,
@@ -76,6 +78,8 @@ impl Manager {
             "printstate" | "show" | "print" => CommandTypes::PrintState,
             "evaluate" => CommandTypes::Evaluate,
             "perft" => CommandTypes::Perft,
+            "splitperft" => CommandTypes::SplitPerft,
+            "makemove" => CommandTypes::MakeMove,
             _ => CommandTypes::Invalid,
         }
     }
@@ -90,22 +94,55 @@ impl Manager {
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
             CommandTypes::Evaluate => println!("evaluation {}", self.board.evaluate()),
-            CommandTypes::Perft => self.perft(),
+            CommandTypes::Perft => self.perft(command_text),
+            CommandTypes::SplitPerft => self.split_perft(command_text),
+            CommandTypes::MakeMove => self.make_move(command_text),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
         true
     }
-    // cursed depth 1 perft for some instant testing
-    pub fn perft(&self) {
-        let mut list: MoveList = MoveList::new();
+
+    pub fn perft(&mut self, command_text: &str) {
+        let mut command_split = command_text.split_ascii_whitespace();
+        let _first_token = command_split.next().expect("not enough tokens");
+        let second_token = command_split.next().expect("not enough tokens");
         let start = Instant::now();
-        self.board.get_moves(&mut list);
+        let nodes = perft(&mut self.board, second_token.parse().expect("invalid perft depth"));
         let duration = start.elapsed();
-        println!("{} nodes {} nps", list.len(), list.len() as f32/duration.as_secs_f32());
-        for thing in list {
-            println!("{thing}: 1");
+        println!("{} nodes {} nps", nodes, nodes as f32/duration.as_secs_f32());
+    }
+
+    pub fn split_perft(&mut self, command_text: &str) {
+        let mut command_split = command_text.split_ascii_whitespace();
+        let _first_token = command_split.next().expect("not enough tokens");
+        let second_token = command_split.next().expect("not enough tokens");
+        let depth: u8 = second_token.parse::<u8>().expect("invalid perft depth") - 1;
+        let mut list: MoveList = MoveList::new();
+        self.board.get_moves(&mut list);
+        let mut total: u64 = 0;
+        let start = Instant::now();
+        for mov in list {
+            if self.board.make_move(mov) {
+                let nodes = perft(&mut self.board, depth);
+                total += nodes;
+                self.board.undo_move();
+                println!("{}: {}", mov, nodes);
+            }
         }
+        let duration = start.elapsed();
+        println!("total: ");
+        println!("{} nodes {} nps", total, total as f32/duration.as_secs_f32());
+    }
+
+    pub fn make_move(&mut self, command_text: &str) {
+        let mut command_split = command_text.split_ascii_whitespace();
+        let _first_token = command_split.next().expect("not enough tokens");
+        let second_token = command_split.next().expect("not enough tokens");
+        let index: usize = second_token.parse::<usize>().expect("invalid index");
+        let mut list: MoveList = MoveList::new();
+        self.board.get_moves(&mut list);
+        self.board.make_move(list[index]);
     }
 
     pub fn position(&mut self, command_text: &str) {

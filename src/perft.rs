@@ -15,3 +15,19 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+use crate::{board::Board, types::MoveList};
+
+pub fn perft(board: &mut Board, depth: u8) -> u64 {
+    if depth == 0 { return 1 };
+    let mut list: MoveList = MoveList::new();
+    board.get_moves(&mut list);
+    let mut result: u64 = 0;
+    for mov in list {
+        if board.make_move(mov) {
+            result += perft(board, depth - 1);
+            board.undo_move();
+        }
+    }
+    result
+}
