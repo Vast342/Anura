@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::fmt;
 use std::ops::{BitXorAssign, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
 
 
@@ -122,5 +123,11 @@ impl Not for Bitboard {
 impl BitAndAssign for Bitboard {
     fn bitand_assign(&mut self, rhs: Self) {
         self.0 &= rhs.0;
+    }
+}
+
+impl fmt::Display for Bitboard {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }

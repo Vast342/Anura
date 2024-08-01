@@ -17,8 +17,9 @@
 */
 
 use std::io;
+use std::time::Instant;
 
-use crate::board::Board;
+use crate::{board::Board, types::MoveList};
 
 pub enum CommandTypes {
     Uci,
@@ -27,6 +28,7 @@ pub enum CommandTypes {
     NewGame,
     PrintState,
     Evaluate,
+    Perft,
     Empty,
     Invalid,
     Quit,
@@ -73,6 +75,7 @@ impl Manager {
             "quit" => CommandTypes::Quit,
             "printstate" | "show" | "print" => CommandTypes::PrintState,
             "evaluate" => CommandTypes::Evaluate,
+            "perft" => CommandTypes::Perft,
             _ => CommandTypes::Invalid,
         }
     }
@@ -87,10 +90,22 @@ impl Manager {
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
             CommandTypes::Evaluate => println!("evaluation {}", self.board.evaluate()),
+            CommandTypes::Perft => self.perft(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
         true
+    }
+    // cursed depth 1 perft for some instant testing
+    pub fn perft(&self) {
+        let mut list: MoveList = MoveList::new();
+        let start = Instant::now();
+        self.board.get_moves(&mut list);
+        let duration = start.elapsed();
+        println!("{} nodes {} nps", list.len(), list.len() as f32/duration.as_secs_f32());
+        for thing in list {
+            println!("{thing}: 1");
+        }
     }
 
     pub fn position(&mut self, command_text: &str) {

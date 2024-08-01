@@ -28,10 +28,13 @@ use super::lookups::SLIDEY_PIECE_RAYS;
     let mut total_attacks: Bitboard = Bitboard(0);
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().take(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
-        if (dir & 1) == 0 {
-            current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
-        } else {
-            current_attack ^= Bitboard(item[63 - (current_attack & occupied).msb() as usize]);
+        
+        if (current_attack & occupied) != Bitboard(0) {
+            if (dir & 1) == 0 {
+                current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
+            } else {
+                current_attack ^= Bitboard(item[63 - (current_attack & occupied).msb() as usize]);
+            }
         }
         total_attacks |= current_attack;
     }
@@ -47,10 +50,13 @@ use super::lookups::SLIDEY_PIECE_RAYS;
     let mut total_attacks: Bitboard = Bitboard(0);
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().skip(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
-        if (dir & 1) == 0 {
-            current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
-        } else {
-            current_attack ^= Bitboard(item[63 - (current_attack & occupied).msb() as usize]);
+    
+        if (current_attack & occupied) != Bitboard(0) {
+            if (dir & 1) == 0 {
+                current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
+            } else {
+                current_attack ^= Bitboard(item[63 - (current_attack & occupied).msb() as usize]);
+            }
         }
         total_attacks |= current_attack;
     }

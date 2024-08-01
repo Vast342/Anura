@@ -15,29 +15,3 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-
-#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
-#![allow(clippy::missing_panics_doc, clippy::cargo_common_metadata)]
-
-pub mod uci;
-pub mod board;
-pub mod types;
-pub mod eval;
-pub mod movegen;
-pub mod perft;
-
-use crate::uci::Manager;
-use std::env;
-
-fn main() {
-    // initialize();
-    env::set_var("RUST_BACKTRACE", "1");
-    let mut manager: Manager = Manager::new();
-    loop {
-        if !manager.get_command() {
-            break;
-        }
-    }
-}
-
-// pext is _pext_u64

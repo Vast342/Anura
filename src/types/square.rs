@@ -17,7 +17,7 @@
 */
 use std::ops::AddAssign;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Square(pub u8);
 
 impl Square {
