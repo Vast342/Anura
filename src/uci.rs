@@ -19,7 +19,7 @@
 use std::io;
 use std::time::Instant;
 
-use crate::{board::Board, perft::perft, types::MoveList};
+use crate::{board::Board, perft::{perft, run_perft_suite}, types::MoveList};
 
 pub enum CommandTypes {
     Uci,
@@ -30,6 +30,7 @@ pub enum CommandTypes {
     Evaluate,
     Perft,
     SplitPerft,
+    PerftSuite,
     MakeMove,
     Empty,
     Invalid,
@@ -79,6 +80,7 @@ impl Manager {
             "evaluate" => CommandTypes::Evaluate,
             "perft" => CommandTypes::Perft,
             "splitperft" => CommandTypes::SplitPerft,
+            "perftsuite" => CommandTypes::PerftSuite,
             "makemove" => CommandTypes::MakeMove,
             _ => CommandTypes::Invalid,
         }
@@ -97,6 +99,7 @@ impl Manager {
             CommandTypes::Perft => self.perft(command_text),
             CommandTypes::SplitPerft => self.split_perft(command_text),
             CommandTypes::MakeMove => self.make_move(command_text),
+            CommandTypes::PerftSuite => self.perft_suite(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
@@ -110,7 +113,7 @@ impl Manager {
         let start = Instant::now();
         let nodes = perft(&mut self.board, second_token.parse().expect("invalid perft depth"));
         let duration = start.elapsed();
-        println!("{} nodes {} nps", nodes, nodes as f32/duration.as_secs_f32());
+        println!("{} nodes {} nps", nodes, nodes as f64/duration.as_secs_f64());
     }
 
     pub fn split_perft(&mut self, command_text: &str) {
@@ -127,12 +130,16 @@ impl Manager {
                 let nodes = perft(&mut self.board, depth);
                 total += nodes;
                 self.board.undo_move();
-                println!("{}: {}", mov, nodes);
+                println!("{mov}: {nodes}");
             }
         }
         let duration = start.elapsed();
         println!("total: ");
-        println!("{} nodes {} nps", total, total as f32/duration.as_secs_f32());
+        println!("{} nodes {} nps", total, total as f64/duration.as_secs_f64());
+    }
+
+    pub fn perft_suite(&self) {
+        run_perft_suite();
     }
 
     pub fn make_move(&mut self, command_text: &str) {
