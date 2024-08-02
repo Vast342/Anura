@@ -19,13 +19,14 @@
 use std::io;
 use std::time::Instant;
 
-use crate::{board::Board, perft::{perft, run_perft_suite}, types::MoveList};
+use crate::{board::Board, perft::{perft, run_perft_suite}, search::random, types::{moves::Move, MoveList}};
 
 pub enum CommandTypes {
     Uci,
     IsReady,
     Position,
     NewGame,
+    Go,
     PrintState,
     Evaluate,
     Perft,
@@ -75,6 +76,7 @@ impl Manager {
             "uci" => CommandTypes::Uci,
             "isready" => CommandTypes::IsReady,
             "position" => CommandTypes::Position,
+            "go" => CommandTypes::Go,
             "quit" => CommandTypes::Quit,
             "printstate" | "show" | "print" => CommandTypes::PrintState,
             "evaluate" => CommandTypes::Evaluate,
@@ -93,6 +95,7 @@ impl Manager {
             CommandTypes::Uci => self.uci_uci(),
             CommandTypes::IsReady => println!("readyok"),
             CommandTypes::Position => self.position(command_text),
+            CommandTypes::Go => self.go(command_text),
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
             CommandTypes::Evaluate => println!("evaluation {}", self.board.evaluate()),
@@ -104,6 +107,10 @@ impl Manager {
             _ => panic!("invalid command type"),
         }
         true
+    }
+
+    pub fn go(&self, _command_text: &str) {
+        println!("bestmove {}", random(self.board.clone()));
     }
 
     pub fn perft(&mut self, command_text: &str) {
@@ -175,7 +182,14 @@ impl Manager {
         }
         self.board = Board::new();
         self.board.load_fen(&fen);
-        // parse moves
+        // if there are moves 
+        if let Some(_moves_token) = command_split.next() {
+            // loop through the rest of the moves
+            for move_text in command_split {
+                let mov: Move = Move::from_text(move_text, &self.board);
+                self.board.make_move(mov);
+            }
+        }
     }
 
     // identify itself

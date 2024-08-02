@@ -42,7 +42,6 @@ unsafe fn generate_pext_lookups() {
             BISH_MOVES[i][j] = get_bishop_attacks_old(Square(i as u8), blockers).as_u64();
         }
     }
-
 }
 
 pub static mut ROOK_MOVES: [[u64; 4096]; 64] = [[0; 4096]; 64];

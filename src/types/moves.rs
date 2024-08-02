@@ -17,7 +17,9 @@
 */
 use std::fmt;
 
-use crate::board::SQUARE_NAMES;
+use crate::board::{Board, SQUARE_NAMES};
+
+use super::{piece::Types, square::Square};
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct Move(pub u16);
@@ -73,9 +75,51 @@ impl Move {
         Flag::from_u8((self.0 >> 12) as u8)
     }
     // next: convert text format to move (look to board's ep index decoding)
-    /*pub fn from_text(text: &str) -> Self {
-        Self(0)
-    }*/
+    pub fn from_text(text: &str, board: &Board) -> Self {
+        let from_text = text[..2].to_owned();
+        let to_text = text[2..4].to_owned();
+        let mut from: u8 = 0;
+        let mut to: u8 = 0;
+        let mut flag: Flag = Flag::Normal;
+        for i in 0..63 {
+            if from_text == SQUARE_NAMES[i as usize] { 
+                from = i; 
+                break;
+            };
+        }
+        for i in 0..63 {
+            if to_text == SQUARE_NAMES[i as usize] { 
+                to = i; 
+                break;
+            };
+        }
+        if text.chars().count() > 4 {
+            flag = match text.chars().last().expect("what") {
+                'n' => Flag::KnightPromo,
+                'b' => Flag::BishopPromo,
+                'r' => Flag::RookPromo,
+                'q' => Flag::QueenPromo, 
+                _ => panic!("no promotion but length is over 4"),
+            }
+        } else {
+            let castling = board.states.last().expect("no state").castling;
+            if (castling & 1) != 0 && text == "e1g1" {
+                flag = Flag::WKCastle;
+            } else if (castling & 2) != 0 && text == "e1c1" {
+                flag = Flag::WQCastle;
+            } else if (castling & 4) != 0 && text == "e8g8" {
+                flag = Flag::BKCastle;
+            } else if (castling & 8) != 0 && text == "e8c8" {
+                flag = Flag::BQCastle;
+            } else if Square(to) == board.states.last().expect("no state").ep_index {
+                flag = Flag::EnPassant;
+            } else if board.states.last().expect("no state").piece_on_square(Square(to)).piece() == Types::Pawn as u8 && from.abs_diff(to) == 16{
+                flag = Flag::DoublePush;
+            }
+        }
+
+        Self::new_unchecked(from, to, flag as u8)
+    }
 }
 
 impl fmt::Display for Move {

@@ -15,32 +15,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use rand::Rng;
 
-#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
-#![allow(clippy::missing_panics_doc, clippy::cargo_common_metadata, clippy::cast_possible_truncation)]
+use crate::{board::Board, types::{moves::Move, MoveList}};
 
-pub mod uci;
-pub mod board;
-pub mod types;
-pub mod eval;
-pub mod movegen;
-pub mod perft;
-pub mod search;
-
-use movegen::lookups::initialize;
-
-use crate::uci::Manager;
-use std::env;
-
-fn main() {
-    initialize();
-    env::set_var("RUST_BACKTRACE", "1");
-    let mut manager: Manager = Manager::new();
+pub fn random(mut board: Board) -> Move {
+    let mut list: MoveList = MoveList::new();
+    board.get_moves(&mut list);
     loop {
-        if !manager.get_command() {
-            break;
+        let index = rand::thread_rng().gen_range(0..list.len());
+        if board.make_move(list[index]) {
+            board.undo_move();
+            return list[index]
         }
     }
 }
-
-// pext is _pext_u64

@@ -66,7 +66,7 @@ impl Bitboard {
     #[must_use] pub const fn has_bits(&self) -> bool {
         self.0 != 0
     }
-    pub const fn as_u64(&self) -> u64 {
+    #[must_use] pub const fn as_u64(&self) -> u64 {
         self.0
     }
 }

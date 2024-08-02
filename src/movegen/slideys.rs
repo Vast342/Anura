@@ -42,7 +42,7 @@ use super::lookups::{BISHOP_MASKS, BISH_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PI
     }
     total_attacks
 }
-pub fn get_rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+#[must_use] pub fn get_rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
     unsafe { Bitboard(ROOK_MOVES[sq.as_usize()][get_rook_index_pext(sq, occupied)]) }
 }
 fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
@@ -66,7 +66,7 @@ fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
     }
     total_attacks
 }
-pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+#[must_use] pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
     unsafe { Bitboard(BISH_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
 }
 fn get_bishop_index_pext(sq: Square, occupied: Bitboard) -> usize {

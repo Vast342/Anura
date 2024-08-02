@@ -58,9 +58,9 @@ pub struct Position {
     mailbox:  [Piece; 64],
     eval: i32,
     king_sqs: [Square; 2],
-    ep_index:  Square,
+    pub ep_index:  Square,
     hm_clock:  u8,
-    castling:  u8,
+    pub castling:  u8,
 }
 
 impl Position {
@@ -107,8 +107,8 @@ impl Position {
 
 #[derive(Debug, Clone, Default)]
 pub struct Board {
-    states: Vec<Position>,
-    ctm: u8,
+    pub states: Vec<Position>,
+    pub ctm: u8,
     ply: i16,
     // phase: i8
 }
