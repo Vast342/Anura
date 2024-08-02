@@ -19,7 +19,7 @@
 use std::io;
 use std::time::Instant;
 
-use crate::{board::Board, perft::{perft, run_perft_suite}, search::random, types::{moves::Move, MoveList}};
+use crate::{board::Board, perft::{perft, run_perft_suite}, search::Engine, types::{moves::Move, MoveList}};
 
 pub enum CommandTypes {
     Uci,
@@ -40,7 +40,7 @@ pub enum CommandTypes {
 
 pub struct Manager {
     board: Board,
-    // engine: Engine (SOON)
+    engine: Engine,
     // TT
 }
 
@@ -54,7 +54,8 @@ impl Manager {
     #[must_use] pub fn new() -> Self {
         let mut b: Board = Board::new();
         b.load_fen("8/8/8/8/8/8/8/8 w - - 0 1");
-        Self{board: b}
+        let e: Engine = Engine::new();
+        Self{board: b, engine: e}
     }
     // read line from stdin and then interpret it
     pub fn get_command(&mut self) -> bool{
@@ -109,9 +110,13 @@ impl Manager {
         true
     }
 
-    pub fn go(&self, _command_text: &str) {
-        println!("bestmove {}", random(self.board.clone()));
+    pub fn go(&mut self, command_text: &str) {
+        let mut command_split = command_text.split_ascii_whitespace();
+        let time: u128 = command_split.nth(4 - 2 * self.board.ctm as usize).expect("no time?").parse::<u128>().expect("invalid time");
+        let best_move: Move = self.engine.iteratively_deepen(self.board.clone(), time);
+        println!("bestmove {}", best_move);
     }
+
 
     pub fn perft(&mut self, command_text: &str) {
         let mut command_split = command_text.split_ascii_whitespace();
@@ -198,5 +203,6 @@ impl Manager {
         println!("id author Vast");
         println!("option name Hash type spin default 0 min 0 max 0");
         println!("option name Threads type spin default 1 min 1 max 1");
+        println!("uciok")
     }
 }
