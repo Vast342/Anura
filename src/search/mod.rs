@@ -36,7 +36,7 @@ impl Engine {
         self.root_best_move = Move::new_unchecked(0, 0, 0);
         let mut prev_best: Move = self.root_best_move;
         self.start = Instant::now();
-        self.hard_limit = time / 2;
+        self.hard_limit = time / 10;
         self.time_out = false;
 
         for depth in 1..100 {
@@ -53,7 +53,7 @@ impl Engine {
                 break
             }
 
-            if duration >= time / 25 {
+            if duration >= time / 30 {
                 break
             }
             prev_best = self.root_best_move;
@@ -70,17 +70,28 @@ impl Engine {
         let mut list: MoveList = MoveList::new();
         board.get_moves(&mut list);
         let mut best_score: i16 = -32000;
+        let mut legal_moves: i16 = 0;
         for mov in list {
             if !board.make_move(mov) { continue; }
             self.nodes += 1;
+            legal_moves += 1;
 
             let score = -self.negamax(board, depth - 1, ply + 1);
 
             board.undo_move();
 
+            if self.time_out { return 0 }
+
             if score >= best_score {
                 if ply == 0 { self.root_best_move = mov }
                 best_score = score;
+            }
+        }
+        if legal_moves == 0 {
+            if board.in_check() {
+                return -32000 + ply
+            } else {
+                return 0
             }
         }
         best_score
