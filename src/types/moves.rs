@@ -81,17 +81,17 @@ impl Move {
         let mut from: u8 = 0;
         let mut to: u8 = 0;
         let mut flag: Flag = Flag::Normal;
-        for i in 0..63 {
+        for i in 0..64 {
             if from_text == SQUARE_NAMES[i as usize] { 
                 from = i; 
                 break;
-            };
+            }
         }
-        for i in 0..63 {
+        for i in 0..64 {
             if to_text == SQUARE_NAMES[i as usize] { 
                 to = i; 
                 break;
-            };
+            }
         }
         if text.chars().count() > 4 {
             flag = match text.chars().last().expect("what") {
@@ -111,9 +111,9 @@ impl Move {
                 flag = Flag::BKCastle;
             } else if (castling & 8) != 0 && text == "e8c8" {
                 flag = Flag::BQCastle;
-            } else if Square(to) == board.states.last().expect("no state").ep_index {
+            } else if board.states.last().expect("no state").piece_on_square(Square(from)).piece() == Types::Pawn as u8 && Square(to) == board.states.last().expect("no state").ep_index {
                 flag = Flag::EnPassant;
-            } else if board.states.last().expect("no state").piece_on_square(Square(to)).piece() == Types::Pawn as u8 && from.abs_diff(to) == 16{
+            } else if board.states.last().expect("no state").piece_on_square(Square(from)).piece() == Types::Pawn as u8 && from.abs_diff(to) == 16{
                 flag = Flag::DoublePush;
             }
         }

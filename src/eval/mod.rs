@@ -16,4 +16,4 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // Material Values for the Pieces    P     Kn   B    R    Q   Ki
-pub const PIECE_WEIGHTS: [i32; 6] = [100, 310, 330, 500, 900, 0];
+pub const PIECE_WEIGHTS: [i16; 6] = [100, 310, 330, 500, 900, 0];

@@ -56,7 +56,7 @@ pub struct Position {
     colors:   [Bitboard; 2],
     pieces:   [Bitboard; 6],
     mailbox:  [Piece; 64],
-    eval: i32,
+    eval: i16,
     king_sqs: [Square; 2],
     pub ep_index:  Square,
     hm_clock:  u8,
@@ -72,7 +72,7 @@ impl Position {
         let epsq: Square = Square(64);
         let hmc: u8 = 0;
         let ca: u8 = 0;
-        let ev: i32 = 0;
+        let ev: i16 = 0;
 
         Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev}
     }
@@ -81,14 +81,14 @@ impl Position {
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = piece;
-        self.eval += PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i32::from(piece.color()) * 2);
+        self.eval += PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i16::from(piece.color()) * 2);
     }
     pub fn remove_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = Piece(Types::None as u8);
-        self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i32::from(piece.color()) * 2);
+        self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i16::from(piece.color()) * 2);
     }
     pub fn move_piece(&mut self, from: Square, piece: Piece, to: Square, victim: Piece) {
         if victim.piece() != Types::None as u8 {
@@ -458,7 +458,7 @@ impl Board {
 
         false
     }
-    #[must_use] pub fn evaluate(&self) -> i32 {
-        self.states.last().expect("no state").eval * (-1 + i32::from(self.ctm) * 2)
+    #[must_use] pub fn evaluate(&self) -> i16 {
+        self.states.last().expect("no state").eval * (-1 + i16::from(self.ctm) * 2)
     }
 }

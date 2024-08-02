@@ -54,7 +54,7 @@ impl fmt::Display for Piece {
             3 => 'r',
             4 => 'q',
             5 => 'k',
-            _ => ' ',
+            _ => '.',
         };
         if self.color() == 1 {
             c = c.to_ascii_uppercase();
