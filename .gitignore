@@ -1,4 +1,7 @@
 target
 anura.exe
 anura.pdb
+anura-main.exe
+anura-main.pdb
 .vscode
+command.txt
