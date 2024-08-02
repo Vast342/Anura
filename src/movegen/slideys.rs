@@ -1,3 +1,5 @@
+use std::arch::x86_64::_pext_u64;
+
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -18,13 +20,13 @@
 use crate::types::bitboard::Bitboard;
 use crate::types::square::Square;
 
-use super::lookups::SLIDEY_PIECE_RAYS;
+use super::lookups::{BISHOP_MASKS, BISH_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PIECE_RAYS};
 
 // slidey pieces
 
 // Rooks
 // Classical Approach
-#[must_use] pub fn get_rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+#[must_use] pub fn get_rook_attacks_old(sq: Square, occupied: Bitboard) -> Bitboard {
     let mut total_attacks: Bitboard = Bitboard(0);
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().take(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
@@ -40,13 +42,15 @@ use super::lookups::SLIDEY_PIECE_RAYS;
     }
     total_attacks
 }
-// Magics
-
-// Pext?
-
+pub fn get_rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+    unsafe { Bitboard(ROOK_MOVES[sq.as_usize()][get_rook_index_pext(sq, occupied)]) }
+}
+fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
+    unsafe { _pext_u64(occupied.as_u64(), ROOK_MASKS[sq.as_usize()]) as usize }
+}
 // Bishops
 // Classical Approach
-#[must_use] pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+#[must_use] pub fn get_bishop_attacks_old(sq: Square, occupied: Bitboard) -> Bitboard {
     let mut total_attacks: Bitboard = Bitboard(0);
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().skip(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
@@ -62,6 +66,9 @@ use super::lookups::SLIDEY_PIECE_RAYS;
     }
     total_attacks
 }
-// Magics
-
-// Pext?
+pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
+    unsafe { Bitboard(BISH_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
+}
+fn get_bishop_index_pext(sq: Square, occupied: Bitboard) -> usize {
+    unsafe { _pext_u64(occupied.as_u64(), BISHOP_MASKS[sq.as_usize()]) as usize }
+}

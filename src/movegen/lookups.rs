@@ -1,3 +1,9 @@
+use std::arch::x86_64::_pdep_u64;
+
+use crate::types::{bitboard::Bitboard, square::Square};
+
+use super::slideys::{get_bishop_attacks_old, get_rook_attacks_old};
+
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -16,9 +22,31 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // initialize the lookups on startup as needed
-/*pub fn initialize() [
+pub fn initialize() {
+    unsafe { generate_pext_lookups() };
+}
 
-]*/
+unsafe fn generate_pext_lookups() {
+    for i in 0..64 {
+        let rook_patterns = 1 << ROOK_MASKS[i].count_ones();
+
+        for j in 0..rook_patterns {
+            let blockers = Bitboard(_pdep_u64(j as u64, ROOK_MASKS[i]));
+            ROOK_MOVES[i][j] = get_rook_attacks_old(Square(i as u8), blockers).as_u64();
+        }
+
+        let bish_patterns = 1 << BISHOP_MASKS[i].count_ones();
+
+        for j in 0..bish_patterns {
+            let blockers = Bitboard(_pdep_u64(j as u64, BISHOP_MASKS[i]));
+            BISH_MOVES[i][j] = get_bishop_attacks_old(Square(i as u8), blockers).as_u64();
+        }
+    }
+
+}
+
+pub static mut ROOK_MOVES: [[u64; 4096]; 64] = [[0; 4096]; 64];
+pub static mut BISH_MOVES: [[u64; 512 ]; 64] = [[0; 512 ]; 64];
 
 // Lookups from C++larity which got them from C#larity which got them from Homura
 pub const KNIGHT_ATTACKS: [u64; 64] = [

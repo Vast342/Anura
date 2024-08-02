@@ -26,11 +26,13 @@ pub mod eval;
 pub mod movegen;
 pub mod perft;
 
+use movegen::lookups::initialize;
+
 use crate::uci::Manager;
 use std::env;
 
 fn main() {
-    // initialize();
+    initialize();
     env::set_var("RUST_BACKTRACE", "1");
     let mut manager: Manager = Manager::new();
     loop {

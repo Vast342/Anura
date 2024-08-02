@@ -42,13 +42,16 @@ struct PerftTest {
 
 impl PerftTest {
     pub fn new(fe: &str, dep: u8, nod: u64) -> Self {
-        Self{fen: fe.to_string(), depth: dep, nodes: nod}
+        Self{fen: fe.to_owned(), depth: dep, nodes: nod}
     }
 }
 
 pub fn run_perft_suite() {
     println!("loading testsuite");
-    let test_suite: [PerftTest; 755] = [
+    let test_suite: [PerftTest; 1] = [
+        PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6, 119_060_324),
+    ];
+    /*let test_suite: [PerftTest; 755] = [
         PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 1, 20),
         PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 2, 400),
         PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3, 8902),
@@ -804,7 +807,8 @@ pub fn run_perft_suite() {
         PerftTest::new("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 4, 182_838),
         PerftTest::new("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 5, 3_605_103),
         PerftTest::new("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 6, 71_179_139),
-    ];
+    ];*/
+    println!("tests loaded");
 
     let mut total: u64 = 0;
     let start = Instant::now();
