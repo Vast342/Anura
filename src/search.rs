@@ -40,7 +40,7 @@ impl Engine {
         self.time_out = false;
 
         for depth in 1..100 {
-            let score = self.negamax(&mut board, depth, 0);
+            let score = self.negamax(&mut board, -32000, 32000, depth, 0);
             let duration = self.start.elapsed().as_millis();
             let nps = if duration == 0 {
                 0
@@ -60,7 +60,7 @@ impl Engine {
         }
         self.root_best_move
     }
-    pub fn negamax(&mut self, board: &mut Board, depth: u8, ply: u8) -> i16 {
+    pub fn negamax(&mut self, board: &mut Board, mut alpha: i16, beta: i16, depth: u8, ply: u8) -> i16 {
         if depth <= 0 { return board.evaluate() }
         if self.nodes % 4096 == 0 && (self.time_out || self.start.elapsed().as_millis() >= self.hard_limit) { 
             self.time_out = true;
@@ -76,15 +76,21 @@ impl Engine {
             legal_moves += 1;
             self.nodes += 1;
 
-            let score = -self.negamax(board, depth - 1, ply + 1);
-            
-            if self.time_out { return 0 }
+            let score = -self.negamax(board, -beta, -alpha, depth - 1, ply + 1);
 
             board.undo_move();
 
-            if score >= best_score {
-                if ply == 0 { self.root_best_move = mov }
+            if self.time_out { return 0 }
+
+            if score > best_score {
                 best_score = score;
+                if score > alpha {
+                    if ply == 0 { self.root_best_move = mov }
+                    alpha = score;
+                }
+                if score >= beta {
+                    break;
+                }
             }
         }
         if legal_moves == 0 {
