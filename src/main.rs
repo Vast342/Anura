@@ -37,7 +37,7 @@ fn main() {
     initialize();
     let args: Vec<String> = env::args().collect();
     let mut manager: Manager = Manager::new();
-    if args[1] == "bench" {
+    if args.len() > 1 && args[1] == "bench" {
         manager.bench();
     } else {
         loop {
