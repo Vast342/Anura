@@ -19,7 +19,7 @@
 use std::io;
 use std::time::Instant;
 
-use crate::{board::Board, perft::{perft, run_perft_suite}, search::Engine, types::{moves::Move, MoveList}};
+use crate::{board::Board, movegen::lookups::BENCH_FENS, perft::{perft, run_perft_suite}, search::Engine, types::{moves::Move, MoveList}};
 
 pub enum CommandTypes {
     Uci,
@@ -33,6 +33,7 @@ pub enum CommandTypes {
     SplitPerft,
     PerftSuite,
     MakeMove,
+    Bench,
     Empty,
     Invalid,
     Quit,
@@ -85,6 +86,7 @@ impl Manager {
             "splitperft" => CommandTypes::SplitPerft,
             "perftsuite" => CommandTypes::PerftSuite,
             "makemove" => CommandTypes::MakeMove,
+            "bench" => CommandTypes::Bench,
             _ => CommandTypes::Invalid,
         }
     }
@@ -104,17 +106,31 @@ impl Manager {
             CommandTypes::SplitPerft => self.split_perft(command_text),
             CommandTypes::MakeMove => self.make_move(command_text),
             CommandTypes::PerftSuite => self.perft_suite(),
+            CommandTypes::Bench => self.bench(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
         true
     }
 
+    pub fn bench(&mut self) {
+        let mut total = 0;
+        let start = Instant::now();
+        let mut board: Board = Board::new();
+        for string in BENCH_FENS {
+            board.load_fen(string);
+            self.engine.iteratively_deepen(board.clone(), 10000000, 4, false);
+            total += self.engine.nodes;
+        }
+        let duration = start.elapsed();
+        println!("{} nodes {} nps", total, (total as f64/duration.as_secs_f64()) as u64);
+    }
+
     pub fn go(&mut self, command_text: &str) {
         let mut command_split = command_text.split_ascii_whitespace();
         let time: u128 = command_split.nth(4 - 2 * self.board.ctm as usize).expect("no time?").parse::<u128>().expect("invalid time");
-        let best_move: Move = self.engine.iteratively_deepen(self.board.clone(), time);
-        println!("bestmove {}", best_move);
+        let best_move: Move = self.engine.iteratively_deepen(self.board.clone(), time, 100, true);
+        println!("bestmove {best_move}");
     }
 
 
@@ -203,6 +219,6 @@ impl Manager {
         println!("id author Vast");
         println!("option name Hash type spin default 0 min 0 max 0");
         println!("option name Threads type spin default 1 min 1 max 1");
-        println!("uciok")
+        println!("uciok");
     }
 }

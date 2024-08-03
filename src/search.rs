@@ -20,7 +20,7 @@ use std::time::Instant;
 use crate::{board::Board, types::{moves::Move, MoveList}};
 
 pub struct Engine {
-    nodes: u128,
+    pub nodes: u128,
     root_best_move: Move,
     start: Instant,
     hard_limit: u128,
@@ -28,10 +28,10 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self{nodes: 0, root_best_move: Move::new_unchecked(0, 0, 0), start: Instant::now(), hard_limit: 0, time_out: false}
     }
-    pub fn iteratively_deepen(&mut self, mut board: Board, time: u128) -> Move {
+    pub fn iteratively_deepen(&mut self, mut board: Board, time: u128, depth: i8, info: bool) -> Move {
         self.nodes = 0;
         self.root_best_move = Move::new_unchecked(0, 0, 0);
         let mut prev_best: Move = self.root_best_move;
@@ -39,15 +39,17 @@ impl Engine {
         self.hard_limit = time / 10;
         self.time_out = false;
 
-        for depth in 1..100 {
+        for depth in 1..depth + 1 {
             let score = self.negamax(&mut board, -32000, 32000, depth, 0);
             let duration = self.start.elapsed().as_millis();
-            let nps = if duration == 0 {
-                0
-            } else {
-                self.nodes * 1000 / duration
-            };
-            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", depth, self.nodes, duration, nps, score, self.root_best_move);
+            if info {
+                let nps = if duration == 0 {
+                    0
+                } else {
+                    self.nodes * 1000 / duration
+                };
+                println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", depth, self.nodes, duration, nps, score, self.root_best_move);
+            }
             if self.time_out {
                 self.root_best_move = prev_best;
                 break
@@ -60,7 +62,7 @@ impl Engine {
         }
         self.root_best_move
     }
-    pub fn negamax(&mut self, board: &mut Board, mut alpha: i16, beta: i16, depth: u8, ply: u8) -> i16 {
+    pub fn negamax(&mut self, board: &mut Board, mut alpha: i16, beta: i16, depth: i8, ply: u8) -> i16 {
         if depth <= 0 { return board.evaluate() }
         if self.nodes % 4096 == 0 && (self.time_out || self.start.elapsed().as_millis() >= self.hard_limit) { 
             self.time_out = true;
@@ -95,11 +97,16 @@ impl Engine {
         }
         if legal_moves == 0 {
             if board.in_check() {
-                return -32000 + ply as i16
-            } else {
-                return 0
-            }
+                return -32000 + i16::from(ply)
+            } 
+            return 0
         }
         best_score
+    }
+}
+
+impl Default for Engine {
+    fn default() -> Self {
+        Self::new()
     }
 }

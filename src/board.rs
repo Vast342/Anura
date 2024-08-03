@@ -393,6 +393,7 @@ impl Board {
         }
 
         match flag {
+            Flag::Normal => (),
             Flag::WKCastle => state.move_piece(Square(7), Piece::new_unchecked(Types::Rook as u8, Colors::White as u8), Square(5), Piece(Types::None as u8)),
             Flag::WQCastle => state.move_piece(Square(0), Piece::new_unchecked(Types::Rook as u8, Colors::White as u8), Square(3), Piece(Types::None as u8)),
             Flag::BKCastle => state.move_piece(Square(63), Piece::new_unchecked(Types::Rook as u8, Colors::Black as u8), Square(61), Piece(Types::None as u8)),
@@ -403,7 +404,6 @@ impl Board {
             Flag::BishopPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Bishop as u8, self.ctm)),
             Flag::RookPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Rook as u8, self.ctm)),
             Flag::QueenPromo => state.add_piece(to_square, Piece::new_unchecked(Types::Queen as u8, self.ctm)),
-            _ => (),
         }
 
         self.ply += 1;

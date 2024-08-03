@@ -75,7 +75,7 @@ impl Move {
         Flag::from_u8((self.0 >> 12) as u8)
     }
     // next: convert text format to move (look to board's ep index decoding)
-    pub fn from_text(text: &str, board: &Board) -> Self {
+    #[must_use] pub fn from_text(text: &str, board: &Board) -> Self {
         let from_text = text[..2].to_owned();
         let to_text = text[2..4].to_owned();
         let mut from: u8 = 0;

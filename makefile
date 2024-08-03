@@ -20,3 +20,6 @@ run: all
 
 debug-run: debug
 	./$(EXE)
+
+bench: all
+	./$(EXE) bench
