@@ -1,9 +1,7 @@
-NAME = anura
+EXE = anura
 
 ifeq ($(OS),Windows_NT)
-	EXE := $(NAME).exe
-else
-	EXE := $(NAME)
+    override EXE := $(EXE).exe
 endif
 
 all:
@@ -13,7 +11,7 @@ debug:
 	cargo rustc -- -C target-cpu=native --emit link=$(EXE)
 
 clean: 
-	rm -rf $(EXE) $(NAME).pdb target
+	rm -rf $(EXE) target
 
 run: all
 	./$(EXE)
