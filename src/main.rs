@@ -26,7 +26,10 @@ pub mod eval;
 pub mod movegen;
 pub mod perft;
 pub mod search;
+pub mod datagen;
 
+#[cfg(feature = "datagen")]
+use datagen::datagen_main;
 use movegen::lookups::initialize;
 
 use crate::uci::Manager;
@@ -37,8 +40,13 @@ fn main() {
     initialize();
     let args: Vec<String> = env::args().collect();
     let mut manager: Manager = Manager::new();
-    if args.len() > 1 && args[1] == "bench" {
-        manager.bench();
+    if args.len() > 1 {
+        if args[1] == "bench" {
+            manager.bench();
+        } else if args[1] == "datagen" {
+            #[cfg(feature = "datagen")]
+            datagen_main(args);
+        }
     } else {
         loop {
             if !manager.get_command() {

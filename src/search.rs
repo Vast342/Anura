@@ -19,6 +19,8 @@ use std::time::Instant;
 */
 use crate::{board::Board, types::{moves::Move, MoveList}};
 
+const MATE_SCORE: i16 = 32000;
+
 pub struct Engine {
     pub nodes: u128,
     root_best_move: Move,
@@ -40,7 +42,7 @@ impl Engine {
         self.time_out = false;
 
         for depth in 1..depth + 1 {
-            let score = self.negamax(&mut board, -32000, 32000, depth, 0);
+            let score = self.negamax(&mut board, -MATE_SCORE, MATE_SCORE, depth, 0);
             let duration = self.start.elapsed().as_millis();
             if info {
                 let nps = if duration == 0 {
@@ -71,7 +73,7 @@ impl Engine {
 
         let mut list: MoveList = MoveList::new();
         board.get_moves(&mut list);
-        let mut best_score: i16 = -32000;
+        let mut best_score: i16 = -MATE_SCORE;
         let mut legal_moves = 0;
         for mov in list {
             if !board.make_move(mov) { continue; }
@@ -97,7 +99,7 @@ impl Engine {
         }
         if legal_moves == 0 {
             if board.in_check() {
-                return -32000 + i16::from(ply)
+                return -MATE_SCORE + i16::from(ply)
             } 
             return 0
         }

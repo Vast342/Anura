@@ -10,6 +10,9 @@ all:
 debug:
 	cargo rustc -- -C target-cpu=native --emit link=$(EXE)
 
+datagen:
+	cargo rustc --release --features "datagen" -- -C target-cpu=native --emit link=$(EXE)
+
 clean: 
 	rm -rf $(EXE) target
 

@@ -1,0 +1,156 @@
+/*
+    Anura
+    Copyright (C) 2024 Joseph Pasfield
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+#[cfg(feature = "datagen")]
+use std::{fs::File, io::{BufWriter, Write}, sync::{atomic::{AtomicU64, Ordering}, Arc}, thread::{self}, time::Instant};
+#[cfg(feature = "datagen")]
+use crate::{board::Board, search::Engine, types::{moves::Move, MoveList}};
+#[cfg(feature = "datagen")]
+use rand::Rng;
+
+
+#[cfg(feature = "datagen")]
+pub fn datagen_main(args: Vec<String>) {
+    let thread_count: usize = args[2].parse().expect("invalid thread count");
+    let game_count = Arc::new(AtomicU64::new(0));
+    let pos_count = Arc::new(AtomicU64::new(0));
+    let start = Instant::now();
+    let mut threads = Vec::new();
+    for _i in 0..thread_count {
+        let game_count_clone = Arc::clone(&game_count);
+        let pos_count_clone = Arc::clone(&pos_count);
+        let value = thread_function(args[3].clone(), 1 + _i as u8, &game_count_clone, &pos_count_clone, start);
+        threads.push(thread::spawn(move || {
+            value
+        }));
+    }
+    for thread in threads {
+        thread.join().unwrap();
+    }
+}
+
+#[cfg(feature = "datagen")]
+fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, position_count: &AtomicU64, start: Instant) {
+    let mut board: Board = Board::new();
+    board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    let this_directory = directory + "thread" + &thread_id.to_string() + ".txt";
+    let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));
+    loop {
+        let mut data: Vec<String> = vec![];
+        let result = run_game(&mut data, board.clone());
+        if result != 3 {
+            dump_to_file(data, &mut writer, game_count, position_count, start, result);
+        }
+    }
+}
+
+#[cfg(feature = "datagen")]
+// 0 if black won, 1 if draw, 2 if white won, 3 if error
+fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
+    // 8 random moves
+    for _ in 0..8 {
+        // generate the moves
+        let mut pl_list: MoveList = MoveList::new();
+        board.get_moves(&mut pl_list);
+        let mut list: MoveList = MoveList::new();
+
+        // make sure they're all legal
+        for mov in pl_list {
+            if board.make_move(mov) {
+                list.push(mov);
+                board.undo_move();
+            }
+        }
+
+        // checkmate or stalemate, doesn't matter which
+        // reset
+        if list.len() == 0 {
+            return 3
+        }
+
+        let index = rand::thread_rng().gen_range(0..list.len());
+        if !board.make_move(list[index]) {
+            panic!("generated illegal move");
+        }
+    }
+    let mut engine: Engine = Engine::new();
+    // the rest of the moves
+    for _ in 0..1000 {
+        // draw
+        if board.states.last().expect("no position bruhhhh").hm_clock >= 100 { return 1 }
+        // maybe i should check for material draws here too
+        
+        // checkmate check
+        // this is more efficient than it is in clarity lol
+        // generate the moves
+        let mut pl_list: MoveList = MoveList::new();
+        board.get_moves(&mut pl_list);
+        let mut legal_moves = 0;
+
+        // make sure they're all legal
+        for mov in pl_list {
+            if board.make_move(mov) {
+                legal_moves += 1;
+                board.undo_move();
+                break;
+            }
+        }
+
+        // checkmate or stalemate
+        if legal_moves == 0 {
+            if board.in_check() {
+                // checkmate opponnent wins
+                return 2 - 2 * board.ctm;
+            } else {
+                return 1
+            }
+        }
+
+        let mov: Move = engine.iteratively_deepen(board.clone(), 100, 5, false);
+        let to = mov.to();
+        let state = board.states.last().expect("bruh");
+        let occ = state.occupied();
+        let flag = mov.flag();
+        let is_capture: bool = 
+        board.make_move(mov);
+    }
+    0
+}
+
+#[cfg(feature = "datagen")]
+fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: &AtomicU64, position_count: &AtomicU64, start: Instant, result: u8) {
+    game_count.fetch_add(1, Ordering::Relaxed);
+    position_count.fetch_add(strings.len() as u64, Ordering::Relaxed);
+
+    // check stuff in game_count and print stuff if necessary
+    let games = game_count.load(Ordering::Relaxed);
+    if games % 128 == 0 {
+        if games % 1024 == 0 {
+            let positions = position_count.load(Ordering::Relaxed);
+            println!("games: {games}");
+            println!("positions: {}", positions);
+            println!("pos/sec: {}", positions / start.elapsed().as_secs());
+        }
+        println!("finished with {games} games");
+    }
+
+    // push it to a file
+    for mut line in strings {
+        line += &(result as f64 / 2.0).to_string();
+        writer.write_all(line.as_bytes()).expect("failed to write to file");
+    }
+}

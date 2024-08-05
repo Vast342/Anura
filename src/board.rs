@@ -59,7 +59,7 @@ pub struct Position {
     eval: i16,
     king_sqs: [Square; 2],
     pub ep_index:  Square,
-    hm_clock:  u8,
+    pub hm_clock:  u8,
     pub castling:  u8,
 }
 
