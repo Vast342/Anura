@@ -347,6 +347,114 @@ impl Board {
             }
         }
     }
+    pub fn get_moves_qs(&self, list: &mut MoveList) {
+        let state = self.states.last().expect("no state");
+        let occ: Bitboard = state.occupied();
+        let empties: Bitboard = !occ;
+        let mut us: Bitboard = state.colors[self.ctm as usize];
+        if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && !self.in_check() {
+            if self.ctm == 1 {
+                if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard(0)) && !self.square_attacked(Square(5)) {
+                    list.push(Move::new_unchecked(4, 6, Flag::WKCastle as u8));
+                }
+                if (state.castling & 2) != 0 && (occ & Bitboard(0xE) == Bitboard(0)) && !self.square_attacked(Square(3)) {
+                    list.push(Move::new_unchecked(4, 2, Flag::WQCastle as u8));
+                }
+            } else {
+                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000) == Bitboard(0)) && !self.square_attacked(Square(61)) {
+                    list.push(Move::new_unchecked(60, 62, Flag::BKCastle as u8));
+                }
+                if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000) == Bitboard(0)) && !self.square_attacked(Square(59)) {
+                    list.push(Move::new_unchecked(60, 58, Flag::BQCastle as u8));
+                } 
+            }
+        }
+        while us != Bitboard(0) {
+            let index = us.pop_lsb();
+            let piece = state.piece_on_square(Square(index));
+            let mut current_attack: Bitboard = match piece.piece() {
+                // pawns (we do them setwise later)
+                0 => Bitboard(0),
+                // knights
+                1 => {
+                    get_knight_attacks(Square(index))
+                },
+                // bishops
+                2 => {
+                    get_bishop_attacks(Square(index), occ)
+                },
+                // rooks
+                3 => {
+                    get_rook_attacks(Square(index), occ)
+                },
+                // queens
+                4 => {
+                    get_bishop_attacks(Square(index), occ) | get_rook_attacks(Square(index), occ)
+                },
+                // kings
+                5 => {
+                    get_king_attacks(Square(index))
+                },
+                _ => panic!("invalid piece, value of {}", piece.piece()),
+            };
+            // make sure it's just captures
+            current_attack &= state.colors[1 - self.ctm as usize];
+            // convert it into moves
+            while current_attack != Bitboard(0) {
+                let to = current_attack.pop_lsb();
+                list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
+            }
+            
+        }
+        // setwise pawns
+        let pawns = state.pieces[Types::Pawn as usize] & state.colors[self.ctm as usize];
+        let (single_pushes, _double_pushes) = get_pawn_pushes_setwise(pawns, empties, self.ctm);
+        // identify promotions
+        let mut pawn_push_promotions = single_pushes & Bitboard::from_rank(7 * self.ctm);
+        while pawn_push_promotions != Bitboard(0) {
+            let index = pawn_push_promotions.pop_lsb();
+            for i in 7..11 {
+                list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, i));
+            }
+        }
+
+        let mut capturable: Bitboard = state.colors[1 - self.ctm as usize];
+        if state.ep_index != Square::INVALID {
+            capturable |= Bitboard::from_square(state.ep_index);
+        }
+        let (mut left_captures, mut right_captures) = get_pawn_attacks_setwise(pawns, capturable, self.ctm);
+        let mut left_capture_promotions  = left_captures & Bitboard::from_rank(7 * self.ctm);
+        left_captures ^= left_capture_promotions;
+        let mut right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
+        right_captures ^= right_capture_promotions;
+
+        while left_captures != Bitboard(0) {
+            let index = left_captures.pop_lsb();
+            let start_square = if self.ctm == 0 {index + 9} else {index - 7};
+            let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
+            list.push(Move::new_unchecked(start_square, index, flag));
+        }
+        while right_captures != Bitboard(0) {
+            let index = right_captures.pop_lsb();
+            let start_square = if self.ctm == 0 {index + 7} else {index - 9};
+            let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
+            list.push(Move::new_unchecked(start_square, index, flag));
+        }
+        while left_capture_promotions != Bitboard(0) {
+            let index = left_capture_promotions.pop_lsb();
+            let start_square = if self.ctm == 0 {index + 9} else {index - 7};
+            for i in 7..11 {
+                list.push(Move::new_unchecked(start_square, index, i));
+            }
+        }
+        while right_capture_promotions != Bitboard(0) {
+            let index = right_capture_promotions.pop_lsb();
+            let start_square = if self.ctm == 0 {index + 7} else {index - 9};
+            for i in 7..11 {
+                list.push(Move::new_unchecked(start_square, index, i));
+            }
+        }
+    }
     pub fn make_move(&mut self, mov: Move) -> bool {
         self.states.push(*self.states.last().expect("no position?"));
         let state = self.states.last_mut().expect("no position");

@@ -23,6 +23,7 @@ const MATE_SCORE: i16 = 32000;
 
 pub struct Engine {
     pub nodes: u128,
+    seldepth: u8,
     root_best_move: Move,
     start: Instant,
     hard_limit: u128,
@@ -31,7 +32,7 @@ pub struct Engine {
 
 impl Engine {
     #[must_use] pub fn new() -> Self {
-        Self{nodes: 0, root_best_move: Move::new_unchecked(0, 0, 0), start: Instant::now(), hard_limit: 0, time_out: false}
+        Self{nodes: 0, root_best_move: Move::new_unchecked(0, 0, 0), start: Instant::now(), hard_limit: 0, time_out: false, seldepth: 0}
     }
     pub fn iteratively_deepen(&mut self, mut board: Board, time: u128, depth: i8, info: bool) -> Move {
         self.nodes = 0;
@@ -40,6 +41,7 @@ impl Engine {
         self.start = Instant::now();
         self.hard_limit = time / 10;
         self.time_out = false;
+        self.seldepth = 0;
 
         for depth in 1..depth + 1 {
             let score = self.negamax(&mut board, -MATE_SCORE, MATE_SCORE, depth, 0);
@@ -50,7 +52,7 @@ impl Engine {
                 } else {
                     self.nodes * 1000 / duration
                 };
-                println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", depth, self.nodes, duration, nps, score, self.root_best_move);
+                println!("info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv {}", depth, self.seldepth, self.nodes, duration, nps, score, self.root_best_move);
             }
             if self.time_out {
                 self.root_best_move = prev_best;
@@ -65,14 +67,16 @@ impl Engine {
         self.root_best_move
     }
     pub fn negamax(&mut self, board: &mut Board, mut alpha: i16, beta: i16, depth: i8, ply: u8) -> i16 {
-        if depth <= 0 { return board.evaluate() }
+        if depth <= 0 { return board.evaluate()}
         if self.nodes % 4096 == 0 && (self.time_out || self.start.elapsed().as_millis() >= self.hard_limit) { 
             self.time_out = true;
             return 0 
         }
+        if ply + 1 > self.seldepth { self.seldepth = ply + 1 }
 
         let mut list: MoveList = MoveList::new();
         board.get_moves(&mut list);
+        
         let mut best_score: i16 = -MATE_SCORE;
         let mut legal_moves = 0;
         for mov in list {
@@ -105,6 +109,42 @@ impl Engine {
         }
         best_score
     }
+    /*pub fn qsearch(&mut self, board: &mut Board, mut alpha: i16, beta: i16, ply: u8) -> i16 {
+        if self.nodes % 4096 == 0 && (self.time_out || self.start.elapsed().as_millis() >= self.hard_limit) { 
+            self.time_out = true;
+            return 0 
+        }
+        if ply > self.seldepth { self.seldepth = ply }
+
+        // stand pat shenanigans
+        let mut best_score: i16 = board.evaluate();
+        if best_score >= beta { return best_score  }
+        if alpha < best_score { alpha = best_score }
+
+        let mut list: MoveList = MoveList::new();
+        board.get_moves_qs(&mut list);
+        for mov in list {
+            if !board.make_move(mov) { continue; }
+            self.nodes += 1;
+
+            let score = -self.qsearch(board, -beta, -alpha, ply + 1);
+
+            board.undo_move();
+
+            if self.time_out { return 0 }
+
+            if score > best_score {
+                best_score = score;
+                if score > alpha {
+                    alpha = score;
+                }
+                if score >= beta {
+                    break;
+                }
+            }
+        }
+        best_score
+    }*/
 }
 
 impl Default for Engine {
