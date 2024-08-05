@@ -26,16 +26,19 @@ use rand::Rng;
 #[cfg(feature = "datagen")]
 pub fn datagen_main(args: Vec<String>) {
     let thread_count: usize = args[2].parse().expect("invalid thread count");
+    println!("generating data on {thread_count} threads");
+    let draw_count = Arc::new(AtomicU64::new(0));
     let game_count = Arc::new(AtomicU64::new(0));
     let pos_count = Arc::new(AtomicU64::new(0));
     let start = Instant::now();
     let mut threads = Vec::new();
-    for _i in 0..thread_count {
+    for i in 0..thread_count {
         let game_count_clone = Arc::clone(&game_count);
         let pos_count_clone = Arc::clone(&pos_count);
-        let value = thread_function(args[3].clone(), 1 + _i as u8, &game_count_clone, &pos_count_clone, start);
+        let draw_count_clone = Arc::clone(&draw_count);
+        let value = args[3].clone();
         threads.push(thread::spawn(move || {
-            value
+            thread_function(value, 1 + i as u8, &game_count_clone, &pos_count_clone, &draw_count_clone, start)
         }));
     }
     for thread in threads {
@@ -44,7 +47,7 @@ pub fn datagen_main(args: Vec<String>) {
 }
 
 #[cfg(feature = "datagen")]
-fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, position_count: &AtomicU64, start: Instant) {
+fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant) {
     let mut board: Board = Board::new();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let this_directory = directory + "thread" + &thread_id.to_string() + ".txt";
@@ -53,8 +56,8 @@ fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, pos
         let mut data: Vec<String> = vec![];
         let result = run_game(&mut data, board.clone());
         if result != 3 {
-            dump_to_file(data, &mut writer, game_count, position_count, start, result);
-        }
+            dump_to_file(data, &mut writer, game_count, position_count, draw_count, start, result);
+        } else { println!("error"); }
     }
 }
 
@@ -79,6 +82,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
         // checkmate or stalemate, doesn't matter which
         // reset
         if list.len() == 0 {
+            println!("mate in random moves");
             return 3
         }
 
@@ -89,9 +93,11 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
     }
     let mut engine: Engine = Engine::new();
     // the rest of the moves
-    for _ in 0..1000 {
+    for _ in 0..250 {
         // draw
         if board.states.last().expect("no position bruhhhh").hm_clock >= 100 { return 1 }
+        // almost checking for material draws here, not quite
+        if board.states.last().expect("no position bruhhhh").occupied().popcount() < 4 { return 1 }
         // maybe i should check for material draws here too
         
         // checkmate check
@@ -120,7 +126,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             }
         }
 
-        let mov: Move = engine.iteratively_deepen(board.clone(), 100, 4, false);
+        let mov: Move = engine.iteratively_deepen(board.clone(), 75, 6, false);
         let to = mov.to();
         let state = board.states.last().expect("bruh");
         let occ = state.occupied();
@@ -134,12 +140,14 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             strings.push(board.get_fen() + " ");
         }
     }
-    0
+    let score = board.evaluate();
+    if score < 0 { return 0 } else if score > 0 { return 2 } else { return 1 }
 }
 
 #[cfg(feature = "datagen")]
-fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: &AtomicU64, position_count: &AtomicU64, start: Instant, result: u8) {
+fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant, result: u8) {
     game_count.fetch_add(1, Ordering::Relaxed);
+    if result == 1 { draw_count.fetch_add(1, Ordering::Relaxed); }
     position_count.fetch_add(strings.len() as u64, Ordering::Relaxed);
 
     // check stuff in game_count and print stuff if necessary
@@ -148,6 +156,7 @@ fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: 
         if games % 1024 == 0 {
             let positions = position_count.load(Ordering::Relaxed);
             println!("games: {games}");
+            println!("draws: {}", draw_count.load(Ordering::Relaxed));
             println!("positions: {}", positions);
             println!("pos/sec: {}", positions / start.elapsed().as_secs());
         }
