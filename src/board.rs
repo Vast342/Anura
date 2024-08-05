@@ -461,4 +461,81 @@ impl Board {
     #[must_use] pub fn evaluate(&self) -> i16 {
         self.states.last().expect("no state").eval * (-1 + i16::from(self.ctm) * 2)
     }
+    pub fn get_fen(&self) -> String {
+        let mut fen: String = String::new();
+        let state = self.states.last().expect("the unexpected"); // thanks yoshie
+        for rank in (0..8).rev() {
+            let mut num_empty_files = 0;
+            for file in 0..8 {
+                let piece = state.piece_on_square(Square(8 * rank + file));
+                if piece != Piece(Types::None as u8) {
+                    if num_empty_files != 0 {
+                        fen += &num_empty_files.to_string();
+                        num_empty_files = 0;
+                    }
+                    let is_white = piece.color() == 1;
+                    let piece_type = piece.piece();
+                    let mut piece_char: String = match piece_type {
+                        0 => "p".to_owned(),
+                        1 => "n".to_owned(),
+                        2 => "b".to_owned(),
+                        3 => "r".to_owned(),
+                        4 => "q".to_owned(),
+                        5 => "k".to_owned(),
+                        _ => panic!("invalid piece type"),
+                    };
+                    if is_white { piece_char = piece_char.to_uppercase() }
+                    fen += &piece_char;
+                }
+                else {
+                    num_empty_files += 1;
+                }
+    
+            }
+            if num_empty_files != 0 {
+                fen += &num_empty_files.to_string();
+            }
+            if rank != 0 {
+                fen += "/";
+            }
+        }
+    
+        // color to move
+        fen += " ";
+        fen += match self.ctm {
+            0 => "b",
+            1 => "w",
+            _ => panic!("invalid ctm")   
+        };
+        // castling rights
+        fen += " ";
+        let mut thing_added = false;
+        if(state.castling & 1) != 0 {
+            fen += "K"; 
+            thing_added = true;
+        }
+        if(state.castling & 2) != 0 {
+            fen += "Q"; 
+            thing_added = true;
+        }
+        if(state.castling & 4) != 0 {
+            fen += "k"; 
+            thing_added = true;
+        }
+        if(state.castling & 8) != 0 {
+            fen += "q"; 
+            thing_added = true;
+        }
+        if thing_added == false { fen += "-" }
+
+        // en passant square
+        fen += " ";
+        if state.ep_index == Square::INVALID {
+            fen += "-";
+        } else {
+            fen += SQUARE_NAMES[state.ep_index.0 as usize];
+        }
+        // nobody cares about 50mr or the other thing right???
+        fen
+    }
 }

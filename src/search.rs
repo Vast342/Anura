@@ -19,7 +19,7 @@ use std::time::Instant;
 */
 use crate::{board::Board, types::{moves::Move, MoveList}};
 
-const MATE_SCORE: i16 = 32000;
+pub const MATE_SCORE: i16 = 32000;
 
 pub struct Engine {
     pub nodes: u128,

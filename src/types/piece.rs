@@ -17,7 +17,7 @@
 */
 use std::fmt;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct Piece(pub u8);
 
 #[derive(PartialEq, PartialOrd, Eq, Ord)]

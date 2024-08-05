@@ -18,7 +18,7 @@
 #[cfg(feature = "datagen")]
 use std::{fs::File, io::{BufWriter, Write}, sync::{atomic::{AtomicU64, Ordering}, Arc}, thread::{self}, time::Instant};
 #[cfg(feature = "datagen")]
-use crate::{board::Board, search::Engine, types::{moves::Move, MoveList}};
+use crate::{board::Board, search::Engine, types::{bitboard::Bitboard, moves::{Flag, Move}, square::Square, MoveList}};
 #[cfg(feature = "datagen")]
 use rand::Rng;
 
@@ -120,13 +120,19 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             }
         }
 
-        let mov: Move = engine.iteratively_deepen(board.clone(), 100, 5, false);
+        let mov: Move = engine.iteratively_deepen(board.clone(), 100, 4, false);
         let to = mov.to();
         let state = board.states.last().expect("bruh");
         let occ = state.occupied();
         let flag = mov.flag();
-        let is_capture: bool = 
-        board.make_move(mov);
+        let is_capture: bool = Bitboard::from_square(Square(to)) & occ != Bitboard(0) || flag == Flag::EnPassant;
+        if !board.make_move(mov) {
+            panic!("engine made an illegal move");
+        }
+
+        if !is_capture && !board.in_check() && rand::thread_rng().gen_range(0..7) == 2 {
+            strings.push(board.get_fen() + " ");
+        }
     }
     0
 }
@@ -151,6 +157,7 @@ fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: 
     // push it to a file
     for mut line in strings {
         line += &(result as f64 / 2.0).to_string();
+        line += "\n";
         writer.write_all(line.as_bytes()).expect("failed to write to file");
     }
 }
