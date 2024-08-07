@@ -154,12 +154,11 @@ impl Manager {
         let mut total: u64 = 0;
         let start = Instant::now();
         for mov in list {
-            if self.board.make_move(mov) {
-                let nodes = perft(&mut self.board, depth);
-                total += nodes;
-                self.board.undo_move();
-                println!("{mov}: {nodes}");
-            }
+            self.board.make_move(mov);
+            let nodes = perft(&mut self.board, depth);
+            total += nodes;
+            self.board.undo_move();
+            println!("{mov}: {nodes}");
         }
         let duration = start.elapsed();
         println!("total: ");

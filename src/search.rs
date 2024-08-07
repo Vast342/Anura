@@ -73,10 +73,14 @@ impl Engine {
         let mut list: MoveList = MoveList::new();
         board.get_moves(&mut list);
         let mut best_score: i16 = -MATE_SCORE;
-        let mut legal_moves = 0;
+        if list.len() == 0 {
+            if board.in_check() {
+                return -MATE_SCORE + i16::from(ply)
+            } 
+            return 0
+        }
         for mov in list {
-            if !board.make_move(mov) { continue; }
-            legal_moves += 1;
+            board.make_move(mov);
             self.nodes += 1;
 
             let score = -self.negamax(board, -beta, -alpha, depth - 1, ply + 1);
@@ -95,12 +99,6 @@ impl Engine {
                     break;
                 }
             }
-        }
-        if legal_moves == 0 {
-            if board.in_check() {
-                return -MATE_SCORE + i16::from(ply)
-            } 
-            return 0
         }
         best_score
     }

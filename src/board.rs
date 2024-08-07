@@ -354,7 +354,7 @@ impl Board {
             }
         }
     }
-    pub fn make_move(&mut self, mov: Move) -> bool {
+    pub fn make_move(&mut self, mov: Move) {
         self.states.push(*self.states.last().expect("no position?"));
         let state = self.states.last_mut().expect("no position");
 
@@ -414,14 +414,7 @@ impl Board {
         }
 
         self.ply += 1;
-        if self.in_check() {
-            self.undo_move();
-            self.ctm = 1 - self.ctm;
-            false
-        } else {
-            self.ctm = 1 - self.ctm;
-            true
-        }
+        self.ctm = 1 - self.ctm;
     }
     pub fn undo_move(&mut self) {
         self.states.pop();

@@ -26,10 +26,9 @@ pub fn perft(board: &mut Board, depth: u8) -> u64 {
     board.get_moves(&mut list);
     let mut result: u64 = 0;
     for mov in list {
-        if board.make_move(mov) {
-            result += perft(board, depth - 1);
-            board.undo_move();
-        }
+        board.make_move(mov);
+        result += perft(board, depth - 1);
+        board.undo_move();
     }
     result
 }
