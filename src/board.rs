@@ -49,8 +49,6 @@ use crate::{
     }
 };
 
-//use std::vec;
-
 #[derive(Debug, Copy, Clone)]
 pub struct Position {
     colors:   [Bitboard; 2],
@@ -102,6 +100,9 @@ impl Position {
     }
     #[must_use] pub fn occupied(&self) -> Bitboard {
         self.colors[0] | self.colors[1]
+    }
+    #[must_use] pub fn colored_piece(&self, piece: u8, color: u8) -> Bitboard {
+        self.colors[color as usize] & self.pieces[piece as usize]
     }
 }
 
@@ -233,8 +234,14 @@ impl Board {
     pub fn get_moves(&self, list: &mut MoveList) {
         let state = self.states.last().expect("no state");
         let occ: Bitboard = state.occupied();
+        let checkers: Bitboard = self.get_attackers(state.king_sqs[self.ctm as usize]);
+        let mut us: Bitboard = if checkers.popcount() == 2 {
+            state.colored_piece(5, self.ctm)
+        } else {
+            state.colors[self.ctm as usize]
+        };
         let empties: Bitboard = !occ;
-        let mut us: Bitboard = state.colors[self.ctm as usize];
+        
         if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && !self.in_check() {
             if self.ctm == 1 {
                 if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard(0)) && !self.square_attacked(Square(5)) {
@@ -461,7 +468,7 @@ impl Board {
     #[must_use] pub fn evaluate(&self) -> i16 {
         self.states.last().expect("no state").eval * (-1 + i16::from(self.ctm) * 2)
     }
-    pub fn get_fen(&self) -> String {
+    #[must_use] pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();
         let state = self.states.last().expect("the unexpected"); // thanks yoshie
         for rank in (0..8).rev() {
@@ -526,7 +533,7 @@ impl Board {
             fen += "q"; 
             thing_added = true;
         }
-        if thing_added == false { fen += "-" }
+        if !thing_added { fen += "-" }
 
         // en passant square
         fen += " ";
@@ -537,5 +544,16 @@ impl Board {
         }
         // nobody cares about 50mr or the other thing right???
         fen
+    }
+    fn get_attackers(&self, sq: Square) -> Bitboard {
+        let state = self.states.last().expect("the spanish inquisition");
+        let occupied = state.occupied();
+        let opp = 1 - self.ctm;
+        let opp_queens = state.colored_piece(4, opp);
+        (get_pawn_attacks_lookup(sq, self.ctm) & state.colored_piece(0, opp))
+            | (get_knight_attacks(sq) & state.colored_piece(1, opp))
+            | (get_bishop_attacks(sq, occupied) & (state.colored_piece(2, opp) | opp_queens))
+            | (get_rook_attacks(sq, occupied) & (state.colored_piece(3, opp) | opp_queens))
+            | (get_king_attacks(sq) & state.colored_piece(5, opp))
     }
 }

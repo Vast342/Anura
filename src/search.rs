@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -18,6 +16,7 @@ use std::time::Instant;
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 use crate::{board::Board, types::{moves::Move, MoveList}};
+use std::time::Instant;
 
 pub const MATE_SCORE: i16 = 32000;
 
@@ -41,7 +40,7 @@ impl Engine {
         self.hard_limit = time / 10;
         self.time_out = false;
 
-        for depth in 1..depth + 1 {
+        for depth in 1..=depth {
             let score = self.negamax(&mut board, -MATE_SCORE, MATE_SCORE, depth, 0);
             let duration = self.start.elapsed().as_millis();
             if info {

@@ -119,7 +119,7 @@ impl Manager {
         let mut board: Board = Board::new();
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine.iteratively_deepen(board.clone(), 10000000, 4, false);
+            self.engine.iteratively_deepen(board.clone(), 10_000_000, 4, false);
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
