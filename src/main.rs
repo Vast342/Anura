@@ -27,6 +27,7 @@ pub mod movegen;
 pub mod perft;
 pub mod search;
 pub mod datagen;
+pub mod rays;
 
 #[cfg(feature = "datagen")]
 use datagen::datagen_main;

@@ -59,12 +59,15 @@ pub struct Position {
     pub ep_index:  Square,
     pub hm_clock:  u8,
     pub castling:  u8,
+    checkers: Bitboard,
+    diag_pin_mask: Bitboard,
+    ortho_pin_mask: Bitboard,
 }
 
 impl Position {
     #[must_use] pub const fn empty() -> Self {
-        let col: [Bitboard; 2] = [Bitboard(0); 2];
-        let pcs: [Bitboard; 6] = [Bitboard(0); 6];
+        let col: [Bitboard; 2] = [Bitboard::EMPTY; 2];
+        let pcs: [Bitboard; 6] = [Bitboard::EMPTY; 6];
         let mail: [Piece; 64] = [Piece(Types::None as u8); 64];
         let ksqs: [Square; 2] = [Square(64); 2];
         let epsq: Square = Square(64);
@@ -244,27 +247,27 @@ impl Board {
         
         if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && !self.in_check() {
             if self.ctm == 1 {
-                if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard(0)) && !self.square_attacked(Square(5)) {
+                if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard::EMPTY) && !self.square_attacked(Square(5)) {
                     list.push(Move::new_unchecked(4, 6, Flag::WKCastle as u8));
                 }
-                if (state.castling & 2) != 0 && (occ & Bitboard(0xE) == Bitboard(0)) && !self.square_attacked(Square(3)) {
+                if (state.castling & 2) != 0 && (occ & Bitboard(0xE) == Bitboard::EMPTY) && !self.square_attacked(Square(3)) {
                     list.push(Move::new_unchecked(4, 2, Flag::WQCastle as u8));
                 }
             } else {
-                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000) == Bitboard(0)) && !self.square_attacked(Square(61)) {
+                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000) == Bitboard::EMPTY) && !self.square_attacked(Square(61)) {
                     list.push(Move::new_unchecked(60, 62, Flag::BKCastle as u8));
                 }
-                if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000) == Bitboard(0)) && !self.square_attacked(Square(59)) {
+                if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000) == Bitboard::EMPTY) && !self.square_attacked(Square(59)) {
                     list.push(Move::new_unchecked(60, 58, Flag::BQCastle as u8));
                 } 
             }
         }
-        while us != Bitboard(0) {
+        while us != Bitboard::EMPTY {
             let index = us.pop_lsb();
             let piece = state.piece_on_square(Square(index));
             let mut current_attack: Bitboard = match piece.piece() {
                 // pawns (we do them setwise later)
-                0 => Bitboard(0),
+                0 => Bitboard::EMPTY,
                 // knights
                 1 => {
                     get_knight_attacks(Square(index))
@@ -290,7 +293,7 @@ impl Board {
             // make sure you can't capture your own pieces
             current_attack ^= current_attack & state.colors[self.ctm as usize];
             // convert it into moves
-            while current_attack != Bitboard(0) {
+            while current_attack != Bitboard::EMPTY {
                 let to = current_attack.pop_lsb();
                 list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
             }
@@ -302,15 +305,15 @@ impl Board {
         // identify promotions
         let mut pawn_push_promotions = single_pushes & Bitboard::from_rank(7 * self.ctm);
         single_pushes ^= pawn_push_promotions;
-        while single_pushes != Bitboard(0) {
+        while single_pushes != Bitboard::EMPTY {
             let index = single_pushes.pop_lsb();
             list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, Flag::Normal as u8));
         }
-        while double_pushes != Bitboard(0) {
+        while double_pushes != Bitboard::EMPTY {
             let index = double_pushes.pop_lsb();
             list.push(Move::new_unchecked(if self.ctm == 0 {index + 16} else {index - 16}, index, Flag::DoublePush as u8));
         }
-        while pawn_push_promotions != Bitboard(0) {
+        while pawn_push_promotions != Bitboard::EMPTY {
             let index = pawn_push_promotions.pop_lsb();
             for i in 7..11 {
                 list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, i));
@@ -327,26 +330,26 @@ impl Board {
         let mut right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
         right_captures ^= right_capture_promotions;
 
-        while left_captures != Bitboard(0) {
+        while left_captures != Bitboard::EMPTY {
             let index = left_captures.pop_lsb();
             let start_square = if self.ctm == 0 {index + 9} else {index - 7};
             let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
             list.push(Move::new_unchecked(start_square, index, flag));
         }
-        while right_captures != Bitboard(0) {
+        while right_captures != Bitboard::EMPTY {
             let index = right_captures.pop_lsb();
             let start_square = if self.ctm == 0 {index + 7} else {index - 9};
             let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
             list.push(Move::new_unchecked(start_square, index, flag));
         }
-        while left_capture_promotions != Bitboard(0) {
+        while left_capture_promotions != Bitboard::EMPTY {
             let index = left_capture_promotions.pop_lsb();
             let start_square = if self.ctm == 0 {index + 9} else {index - 7};
             for i in 7..11 {
                 list.push(Move::new_unchecked(start_square, index, i));
             }
         }
-        while right_capture_promotions != Bitboard(0) {
+        while right_capture_promotions != Bitboard::EMPTY {
             let index = right_capture_promotions.pop_lsb();
             let start_square = if self.ctm == 0 {index + 7} else {index - 9};
             for i in 7..11 {
@@ -432,27 +435,27 @@ impl Board {
         let opp_queens: Bitboard = state.pieces[Types::Queen as usize] & state.colors[opp];
 
         let mut mask: Bitboard = get_rook_attacks(sq, occ) & (opp_queens | (state.pieces[Types::Rook as usize] & state.colors[opp]));
-        if mask != Bitboard(0) {
+        if mask != Bitboard::EMPTY {
             return true
         }
 
         mask = get_bishop_attacks(sq, occ) & (opp_queens | (state.pieces[Types::Bishop as usize] & state.colors[opp]));
-        if mask != Bitboard(0) {
+        if mask != Bitboard::EMPTY {
             return true
         }
 
         mask = get_knight_attacks(sq) & (state.pieces[Types::Knight as usize] & state.colors[opp]);
-        if mask != Bitboard(0) {
+        if mask != Bitboard::EMPTY {
             return true
         }
 
         mask = get_pawn_attacks_lookup(sq, self.ctm) & (state.pieces[Types::Pawn as usize] & state.colors[opp]);
-        if mask != Bitboard(0) {
+        if mask != Bitboard::EMPTY {
             return true
         }
 
         mask = get_king_attacks(sq) & (state.pieces[Types::King as usize] & state.colors[opp]);
-        if mask != Bitboard(0) {
+        if mask != Bitboard::EMPTY {
             return true
         }
 

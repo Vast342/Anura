@@ -73,7 +73,7 @@ impl Engine {
         let mut list: MoveList = MoveList::new();
         board.get_moves(&mut list);
         let mut best_score: i16 = -MATE_SCORE;
-        if list.len() == 0 {
+        if list.is_empty() {
             if board.in_check() {
                 return -MATE_SCORE + i16::from(ply)
             } 

@@ -1,6 +1,6 @@
 use std::arch::x86_64::_pdep_u64;
 
-use crate::types::{bitboard::Bitboard, square::Square};
+use crate::{rays::init_between, types::{bitboard::Bitboard, square::Square}};
 
 use super::slideys::{get_bishop_attacks_old, get_rook_attacks_old};
 
@@ -24,6 +24,7 @@ use super::slideys::{get_bishop_attacks_old, get_rook_attacks_old};
 // initialize the lookups on startup as needed
 pub fn initialize() {
     unsafe { generate_pext_lookups() };
+    init_between();
 }
 
 unsafe fn generate_pext_lookups() {

@@ -34,8 +34,8 @@ impl Bitboard {
 
     pub const EMPTY: Self = Self(0);
 
-    #[must_use] pub fn from_square(sq: Square) -> Self {
-        Self(1 << u64::from(sq.0))
+    #[must_use] pub const fn from_square(sq: Square) -> Self {
+        Self(1 << sq.0)
     }
     #[must_use] pub const fn from_rank(rank: u8) -> Self {
         Self(RANKMASK << (8 * rank))
