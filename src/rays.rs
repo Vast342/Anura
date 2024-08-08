@@ -18,18 +18,18 @@ pub fn init_between() {
         let bishop_attacks = get_bishop_attacks(src, Bitboard::EMPTY);
         unsafe {
             for dst_idx in 0..64 {
-                if src_idx == dst_idx {
-                    BETWEEN_RAYS[src_idx][dst_idx] = Bitboard::EMPTY;
+                BETWEEN_RAYS[src_idx][dst_idx] = if src_idx == dst_idx {
+                    Bitboard::EMPTY
                 } else {
                     let dst = Square(dst_idx as u8);
                     let dst_mask = Bitboard::from_square(dst);
 
-                    if rook_attacks & dst_mask != Bitboard::EMPTY {
-                        BETWEEN_RAYS[src_idx][dst_idx] = get_rook_attacks(src, dst_mask) & get_rook_attacks(dst, src_mask);
-                    } else if bishop_attacks & dst_mask != Bitboard::EMPTY {
-                        BETWEEN_RAYS[src_idx][dst_idx] = get_bishop_attacks(src, dst_mask) & get_rook_attacks(dst, src_mask);
+                    if (rook_attacks & dst_mask).is_not_empty() {
+                        get_rook_attacks(src, dst_mask) & get_rook_attacks(dst, src_mask)
+                    } else if (bishop_attacks & dst_mask).is_not_empty() {
+                        get_bishop_attacks(src, dst_mask) & get_rook_attacks(dst, src_mask)
                     } else {
-                        BETWEEN_RAYS[src_idx][dst_idx] = Bitboard::EMPTY;
+                        Bitboard::EMPTY
                     }
                 }
             }
@@ -40,37 +40,38 @@ pub fn init_between() {
     unsafe { BETWEEN_RAYS[a.as_usize()][b.as_usize()] }
 }
 
-/*
-const INTERSECTING_RAYS: [[Bitboard; 64]; 64] = array_init!(|src_idx, 64| {
-    let src = Square::from_raw(src_idx as u8);
-    let src_mask = src.bit();
+static mut INTERSECTING_RAYS: [[Bitboard; 64]; 64] = [[Bitboard::EMPTY; 64]; 64];
 
-    let rook_attacks = attacks::rook_attacks(src, Bitboard::EMPTY);
-    let bishop_attacks = attacks::bishop_attacks(src, Bitboard::EMPTY);
+pub fn init_intersection() {
+    for src_idx in 0..64 {
+        let src = Square(src_idx as u8);
+        let src_mask = Bitboard::from_square(src);
 
-    array_init!(|dst_idx, 64| {
-        if src_idx == dst_idx {
-            Bitboard::EMPTY
-        } else {
-            let dst = Square::from_raw(dst_idx as u8);
-            let dst_mask = dst.bit();
+        let rook_attacks = get_rook_attacks(src, Bitboard::EMPTY);
+        let bishop_attacks = get_bishop_attacks(src, Bitboard::EMPTY);
+        unsafe {
+            for dst_idx in 0..64 {
+                INTERSECTING_RAYS[src_idx][dst_idx] = if src_idx == dst_idx {
+                    Bitboard::EMPTY
+                } else {
+                    let dst = Square(dst_idx as u8);
+                    let dst_mask = Bitboard::from_square(dst);
 
-            if rook_attacks.get(dst) {
-                src_mask
-                    .or(attacks::rook_attacks(src, Bitboard::EMPTY))
-                    .and(dst_mask.or(attacks::rook_attacks(dst, Bitboard::EMPTY)))
-            } else if bishop_attacks.get(dst) {
-                src_mask
-                    .or(attacks::bishop_attacks(src, Bitboard::EMPTY))
-                    .and(dst_mask.or(attacks::bishop_attacks(dst, Bitboard::EMPTY)))
-            } else {
-                Bitboard::EMPTY
+                    if (rook_attacks & dst_mask).is_not_empty() {
+                        src_mask | get_rook_attacks(src, Bitboard::EMPTY)
+                         & (dst_mask | get_rook_attacks(dst, Bitboard::EMPTY))
+                    } else if (bishop_attacks & dst_mask).is_not_empty()  {
+                        src_mask | get_bishop_attacks(src, Bitboard::EMPTY)
+                         & (dst_mask | get_bishop_attacks(dst, Bitboard::EMPTY))
+                    } else {
+                        Bitboard::EMPTY
+                    }
+                }
             }
         }
-    })
-});
-
-pub const fn ray_intersecting(a: Square, b: Square) -> Bitboard {
-    INTERSECTING_RAYS[a.as_usize()][b.as_usize()]
+    }
 }
-*/
+
+pub fn ray_intersecting(a: Square, b: Square) -> Bitboard {
+    unsafe { INTERSECTING_RAYS[a.as_usize()][b.as_usize()] }
+}

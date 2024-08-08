@@ -63,6 +63,9 @@ impl Bitboard {
     #[must_use] pub const fn is_empty(&self) -> bool {
         self.0 == 0
     }
+    #[must_use] pub const fn is_not_empty(&self) -> bool {
+        self.0 != 0
+    }
     #[must_use] pub const fn has_bits(&self) -> bool {
         self.0 != 0
     }

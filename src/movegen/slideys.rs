@@ -31,7 +31,7 @@ use super::lookups::{BISHOP_MASKS, BISHOP_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().take(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
         
-        if (current_attack & occupied) != Bitboard::EMPTY {
+        if (current_attack & occupied).is_not_empty() {
             if (dir & 1) == 0 {
                 current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
             } else {
@@ -55,7 +55,7 @@ fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().skip(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
     
-        if (current_attack & occupied) != Bitboard::EMPTY {
+        if (current_attack & occupied).is_not_empty() {
             if (dir & 1) == 0 {
                 current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
             } else {
