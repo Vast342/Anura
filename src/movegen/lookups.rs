@@ -40,13 +40,13 @@ unsafe fn generate_pext_lookups() {
 
         for j in 0..bish_patterns {
             let blockers = Bitboard(_pdep_u64(j as u64, BISHOP_MASKS[i]));
-            BISH_MOVES[i][j] = get_bishop_attacks_old(Square(i as u8), blockers).as_u64();
+            BISHOP_MOVES[i][j] = get_bishop_attacks_old(Square(i as u8), blockers).as_u64();
         }
     }
 }
 
 pub static mut ROOK_MOVES: [[u64; 4096]; 64] = [[0; 4096]; 64];
-pub static mut BISH_MOVES: [[u64; 512 ]; 64] = [[0; 512 ]; 64];
+pub static mut BISHOP_MOVES: [[u64; 512 ]; 64] = [[0; 512 ]; 64];
 
 pub static BENCH_FENS: [&str; 53] = [
     "r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14",

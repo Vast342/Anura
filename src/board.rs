@@ -42,7 +42,7 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    eval::PIECE_WEIGHTS, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, types::{
+    eval::PIECE_WEIGHTS, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::ray_between, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
@@ -60,7 +60,7 @@ pub struct Position {
     pub hm_clock:  u8,
     pub castling:  u8,
     checkers: Bitboard,
-    diag_pin_mask: Bitboard,
+    diago_pin_mask: Bitboard,
     ortho_pin_mask: Bitboard,
 }
 
@@ -75,7 +75,7 @@ impl Position {
         let ca: u8 = 0;
         let ev: i16 = 0;
 
-        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev}
+        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev, checkers: Bitboard::EMPTY, diago_pin_mask: Bitboard::EMPTY, ortho_pin_mask: Bitboard::EMPTY}
     }
     pub fn add_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
@@ -233,19 +233,22 @@ impl Board {
         }
 
         self.states.push(state);
+        self.update_pins_and_checkers();
     }
     pub fn get_moves(&self, list: &mut MoveList) {
         let state = self.states.last().expect("no state");
         let occ: Bitboard = state.occupied();
-        let checkers: Bitboard = self.get_attackers(state.king_sqs[self.ctm as usize]);
-        let mut us: Bitboard = if checkers.popcount() == 2 {
+        let checkers: Bitboard = state.checkers;
+        let total_pin_mask = state.diago_pin_mask | state.ortho_pin_mask;
+        let num_checkers = checkers.popcount();
+        let mut us: Bitboard = if num_checkers == 2 {
             state.colored_piece(5, self.ctm)
         } else {
             state.colors[self.ctm as usize]
         };
         let empties: Bitboard = !occ;
         
-        if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && !self.in_check() {
+        if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && num_checkers == 0 {
             if self.ctm == 1 {
                 if (state.castling & 1) != 0 && (occ & Bitboard(0x60) == Bitboard::EMPTY) && !self.square_attacked(Square(5)) {
                     list.push(Move::new_unchecked(4, 6, Flag::WKCastle as u8));
@@ -265,6 +268,9 @@ impl Board {
         while us != Bitboard::EMPTY {
             let index = us.pop_lsb();
             let piece = state.piece_on_square(Square(index));
+            let is_pinned = total_pin_mask & Bitboard::from_square(Square(index)) != Bitboard::EMPTY;
+            // prevent knights from moving if pinned
+            if piece.piece() == 1 && is_pinned { break }
             let mut current_attack: Bitboard = match piece.piece() {
                 // pawns (we do them setwise later)
                 0 => Bitboard::EMPTY,
@@ -297,7 +303,6 @@ impl Board {
                 let to = current_attack.pop_lsb();
                 list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
             }
-            
         }
         // setwise pawns
         let pawns = state.pieces[Types::Pawn as usize] & state.colors[self.ctm as usize];
@@ -418,6 +423,7 @@ impl Board {
 
         self.ply += 1;
         self.ctm = 1 - self.ctm;
+        self.update_pins_and_checkers();
     }
     pub fn undo_move(&mut self) {
         self.states.pop();
@@ -425,7 +431,7 @@ impl Board {
         self.ctm = 1 - self.ctm;
     }
     #[must_use] pub fn in_check(&self) -> bool {
-        self.square_attacked(self.states.last().expect("no state").king_sqs[self.ctm as usize])
+        !self.states.last().expect("ahahahahah you messed up now").checkers.is_empty()
     }
     #[must_use] pub fn square_attacked(&self, sq: Square) -> bool {
         let opp = 1 - self.ctm as usize;
@@ -551,5 +557,47 @@ impl Board {
             | (get_bishop_attacks(sq, occupied) & (state.colored_piece(2, opp) | opp_queens))
             | (get_rook_attacks(sq, occupied) & (state.colored_piece(3, opp) | opp_queens))
             | (get_king_attacks(sq) & state.colored_piece(5, opp))
+    }
+    fn update_pins_and_checkers(&mut self) {
+        // info gathering
+        let us_idx = self.ctm as usize;
+        let opp = 1 - self.ctm;
+        let opp_idx = opp as usize;
+        let state = self.states.last().expect("teehee 1");
+        let king = state.king_sqs[us_idx];
+
+        // while the other engines were playing chess, ANURA WAS PLAYING CHECKERS
+        let checkers = self.get_attackers(king);
+        let state = self.states.last_mut().expect("teehee 2");
+        state.checkers = checkers;
+
+        // more info gathering
+        // the ordering above was chosen because it fixes shenanigans with mutability vs immutability
+        let us = state.colors[us_idx];
+        let them = state.colors[opp_idx];
+        let opp_queens = state.colored_piece(4, opp);
+        let opp_diago = opp_queens | state.colored_piece(2, opp);
+        let opp_ortho = opp_queens | state.colored_piece(3, opp);
+        let mut potential_diago_pinners = opp_diago & get_bishop_attacks(king, them);
+        let mut potential_ortho_pinners = opp_ortho & get_rook_attacks(king, them);
+
+        state.diago_pin_mask = Bitboard::EMPTY;
+        state.ortho_pin_mask = Bitboard::EMPTY;
+
+        while potential_diago_pinners != Bitboard::EMPTY {
+            let pinner = Square(potential_diago_pinners.pop_lsb())  ;
+            let potentially_pinned = ray_between(king, pinner) | Bitboard::from_square(pinner);
+            if (potentially_pinned & us).contains_one() {
+                state.diago_pin_mask |= potentially_pinned;
+            }
+        }
+
+        while potential_ortho_pinners != Bitboard::EMPTY {
+            let pinner = Square(potential_ortho_pinners.pop_lsb());
+            let potentially_pinned = ray_between(king, pinner) | Bitboard::from_square(pinner);
+            if (potentially_pinned & us).contains_one() {
+                state.ortho_pin_mask |= potentially_pinned;
+            }
+        }
     }
 }

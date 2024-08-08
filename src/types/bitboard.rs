@@ -69,6 +69,14 @@ impl Bitboard {
     #[must_use] pub const fn as_u64(&self) -> u64 {
         self.0
     }
+    #[must_use]
+    pub const fn contains_multiple(self) -> bool {
+        (self.0 & self.0.wrapping_sub(1)) != 0
+    }
+    #[must_use]
+    pub const fn contains_one(self) -> bool {
+        !self.is_empty() && !self.contains_multiple()
+    }
 }
 
 impl BitXorAssign for Bitboard {

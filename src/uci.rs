@@ -53,8 +53,7 @@ impl Default for Manager {
 
 impl Manager {
     #[must_use] pub fn new() -> Self {
-        let mut b: Board = Board::new();
-        b.load_fen("8/8/8/8/8/8/8/8 w - - 0 1");
+        let b: Board = Board::new();
         let e: Engine = Engine::new();
         Self{board: b, engine: e}
     }

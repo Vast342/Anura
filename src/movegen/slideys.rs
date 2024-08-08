@@ -20,7 +20,7 @@ use std::arch::x86_64::_pext_u64;
 use crate::types::bitboard::Bitboard;
 use crate::types::square::Square;
 
-use super::lookups::{BISHOP_MASKS, BISH_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PIECE_RAYS};
+use super::lookups::{BISHOP_MASKS, BISHOP_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PIECE_RAYS};
 
 // slidey pieces
 
@@ -67,7 +67,7 @@ fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
     total_attacks
 }
 #[must_use] pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
-    unsafe { Bitboard(BISH_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
+    unsafe { Bitboard(BISHOP_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
 }
 fn get_bishop_index_pext(sq: Square, occupied: Bitboard) -> usize {
     unsafe { _pext_u64(occupied.as_u64(), BISHOP_MASKS[sq.as_usize()]) as usize }
