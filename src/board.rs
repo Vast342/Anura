@@ -309,7 +309,10 @@ impl Board {
                         let checker = Square(checkers_clone.pop_lsb());
                         let checker_piece = state.piece_on_square(checker).piece();
                         match checker_piece {
-                            2 | 3 | 4 => potential_moves &= !ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker),
+                            2 | 3 | 4 => {
+                                potential_moves &= !ray_intersecting(Square(index), checker);
+                                potential_moves &= !Bitboard::from_square(checker);
+                            },
                             _ => (),
                         }
                     }
