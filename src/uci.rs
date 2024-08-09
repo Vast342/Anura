@@ -172,10 +172,7 @@ impl Manager {
         let mut command_split = command_text.split_ascii_whitespace();
         let _first_token = command_split.next().expect("not enough tokens");
         let second_token = command_split.next().expect("not enough tokens");
-        let index: usize = second_token.parse::<usize>().expect("invalid index");
-        let mut list: MoveList = MoveList::new();
-        self.board.get_moves(&mut list);
-        self.board.make_move(list[index]);
+        self.board.make_move(Move::from_text(second_token, &self.board));
     }
 
     pub fn position(&mut self, command_text: &str) {

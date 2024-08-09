@@ -108,7 +108,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
         let state = board.states.last().expect("bruh");
         let occ = state.occupied();
         let flag = mov.flag();
-        let is_capture: bool = Bitboard::from_square(Square(to)) & occ.is_not_empty() || flag == Flag::EnPassant;
+        let is_capture: bool = (Bitboard::from_square(Square(to)) & occ).is_not_empty() || flag == Flag::EnPassant;
         board.make_move(mov);
 
         if !is_capture && !board.in_check() && rand::thread_rng().gen_range(0..7) == 2 {

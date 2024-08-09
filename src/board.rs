@@ -42,7 +42,7 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    eval::PIECE_WEIGHTS, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::ray_between, types::{
+    eval::PIECE_WEIGHTS, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::{ray_intersecting, ray_between}, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
@@ -269,96 +269,165 @@ impl Board {
             let index = us.pop_lsb();
             let piece = state.piece_on_square(Square(index));
             let is_pinned = (total_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
-            // prevent knights from moving if pinned
-            if piece.piece() == 1 && is_pinned { continue }
             let mut current_attack: Bitboard = match piece.piece() {
                 // pawns (we do them setwise later)
                 0 => Bitboard::EMPTY,
                 // knights
                 1 => {
+                    if is_pinned { continue }
                     get_knight_attacks(Square(index))
                 },
                 // bishops
                 2 => {
-                    get_bishop_attacks(Square(index), occ)
+                    if is_pinned {  
+                        get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
+                    } else {
+                        get_bishop_attacks(Square(index), occ)
+                    }
                 },
                 // rooks
                 3 => {
-                    get_rook_attacks(Square(index), occ)
+                    if is_pinned {
+                        get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                    } else {
+                        get_rook_attacks(Square(index), occ)
+                    }
                 },
                 // queens
                 4 => {
-                    get_bishop_attacks(Square(index), occ) | get_rook_attacks(Square(index), occ)
+                    if is_pinned {
+                        get_bishop_attacks(Square(index), occ) & state.diago_pin_mask | get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                    } else {
+                        get_bishop_attacks(Square(index), occ) | get_rook_attacks(Square(index), occ)
+                    }
                 },
                 // kings
                 5 => {
-                    get_king_attacks(Square(index))
+                    let mut potential_moves = get_king_attacks(Square(index));
+                    let mut checkers_clone = checkers;
+                    while checkers_clone .is_not_empty() {
+                        let checker = Square(checkers_clone.pop_lsb());
+                        let checker_piece = state.piece_on_square(checker).piece();
+                        match checker_piece {
+                            2 | 3 | 4 => potential_moves &= !ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker),
+                            _ => (),
+                        }
+                    }
+                    potential_moves
                 },
                 _ => panic!("invalid piece, value of {}", piece.piece()),
             };
             // make sure you can't capture your own pieces
             current_attack ^= current_attack & state.colors[self.ctm as usize];
-            // convert it into moves
-            while current_attack.is_not_empty() {
-                let to = current_attack.pop_lsb();
-                list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
+            // if not king
+            if piece.piece() != 5 && num_checkers == 1 {
+                let checker = Square(checkers.lsb());
+                // make sure move blocks check properly
+                current_attack &= ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker)
+            }
+            // not kings
+            if piece.piece() != 5 {
+                // convert it into moves
+                while current_attack.is_not_empty() {
+                    let to = current_attack.pop_lsb();
+                    list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
+                }
+            } else {
+                let kingless_occ = occ ^ Bitboard::from_square(Square(index));
+                // convert it into moves
+                while current_attack.is_not_empty() {
+                    let to = current_attack.pop_lsb();
+                    if !self.square_attacked_occ(Square(to), kingless_occ){
+                        list.push(Move::new_unchecked(index, to, Flag::Normal as u8));
+                    }
+                }
             }
         }
-        // setwise pawns
-        let pawns = state.pieces[Types::Pawn as usize] & state.colors[self.ctm as usize];
-        let (mut single_pushes, mut double_pushes) = get_pawn_pushes_setwise(pawns, empties, self.ctm);
-        // identify promotions
-        let mut pawn_push_promotions = single_pushes & Bitboard::from_rank(7 * self.ctm);
-        single_pushes ^= pawn_push_promotions;
-        while single_pushes.is_not_empty() {
-            let index = single_pushes.pop_lsb();
-            list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, Flag::Normal as u8));
-        }
-        while double_pushes.is_not_empty() {
-            let index = double_pushes.pop_lsb();
-            list.push(Move::new_unchecked(if self.ctm == 0 {index + 16} else {index - 16}, index, Flag::DoublePush as u8));
-        }
-        while pawn_push_promotions.is_not_empty() {
-            let index = pawn_push_promotions.pop_lsb();
-            for i in 7..11 {
-                list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, i));
+        if num_checkers != 2 {
+            // setwise pawns
+            let pawns = state.pieces[Types::Pawn as usize] & state.colors[self.ctm as usize];
+            let (mut single_pushes, mut double_pushes) = get_pawn_pushes_setwise(pawns, empties, self.ctm, state.ortho_pin_mask, state.diago_pin_mask);
+            if num_checkers == 1 {
+                let checker = Square(checkers.lsb());
+                // make sure move blocks check properly
+                let mask = ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker);
+                single_pushes &= mask;
+                double_pushes &= mask;
             }
-        }
+            // identify promotions
+            let mut pawn_push_promotions = single_pushes & Bitboard::from_rank(7 * self.ctm);
+            single_pushes ^= pawn_push_promotions;
+            while single_pushes.is_not_empty() {
+                let index = single_pushes.pop_lsb();
+                list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, Flag::Normal as u8));
+            }
+            while double_pushes.is_not_empty() {
+                let index = double_pushes.pop_lsb();
+                list.push(Move::new_unchecked(if self.ctm == 0 {index + 16} else {index - 16}, index, Flag::DoublePush as u8));
+            }
+            while pawn_push_promotions.is_not_empty() {
+                let index = pawn_push_promotions.pop_lsb();
+                for i in 7..11 {
+                    list.push(Move::new_unchecked(if self.ctm == 0 {index + 8} else {index - 8}, index, i));
+                }
+            }
 
-        let mut capturable: Bitboard = state.colors[1 - self.ctm as usize];
-        if state.ep_index != Square::INVALID {
-            capturable |= Bitboard::from_square(state.ep_index);
-        }
-        let (mut left_captures, mut right_captures) = get_pawn_attacks_setwise(pawns, capturable, self.ctm);
-        let mut left_capture_promotions  = left_captures & Bitboard::from_rank(7 * self.ctm);
-        left_captures ^= left_capture_promotions;
-        let mut right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
-        right_captures ^= right_capture_promotions;
-
-        while left_captures.is_not_empty() {
-            let index = left_captures.pop_lsb();
-            let start_square = if self.ctm == 0 {index + 9} else {index - 7};
-            let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
-            list.push(Move::new_unchecked(start_square, index, flag));
-        }
-        while right_captures.is_not_empty() {
-            let index = right_captures.pop_lsb();
-            let start_square = if self.ctm == 0 {index + 7} else {index - 9};
-            let flag = if Square(index) == state.ep_index { Flag::EnPassant as u8 } else { Flag::Normal as u8 };
-            list.push(Move::new_unchecked(start_square, index, flag));
-        }
-        while left_capture_promotions.is_not_empty() {
-            let index = left_capture_promotions.pop_lsb();
-            let start_square = if self.ctm == 0 {index + 9} else {index - 7};
-            for i in 7..11 {
-                list.push(Move::new_unchecked(start_square, index, i));
+            let capturable: Bitboard = state.colors[1 - self.ctm as usize];
+            let (mut left_captures, mut right_captures) = get_pawn_attacks_setwise(pawns, capturable, self.ctm, state.ortho_pin_mask, state.diago_pin_mask);
+            if num_checkers == 1 {
+                let checker = Square(checkers.lsb());
+                // make sure move blocks check properly
+                let mask = ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker);
+                left_captures &= mask;
+                right_captures &= mask;
             }
-        }
-        while right_capture_promotions.is_not_empty() {
-            let index = right_capture_promotions.pop_lsb();
-            let start_square = if self.ctm == 0 {index + 7} else {index - 9};
-            for i in 7..11 {
-                list.push(Move::new_unchecked(start_square, index, i));
+            let mut left_capture_promotions  = left_captures & Bitboard::from_rank(7 * self.ctm);
+            left_captures ^= left_capture_promotions;
+            let mut right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
+            right_captures ^= right_capture_promotions;
+
+            while left_captures.is_not_empty() {
+                let index = left_captures.pop_lsb();
+                let start_square = if self.ctm == 0 {index + 9} else {index - 7};
+                list.push(Move::new_unchecked(start_square, index, Flag::Normal as u8));
+            }
+            while right_captures.is_not_empty() {
+                let index = right_captures.pop_lsb();
+                let start_square = if self.ctm == 0 {index + 7} else {index - 9};
+                list.push(Move::new_unchecked(start_square, index, Flag::Normal as u8));
+            }
+            while left_capture_promotions.is_not_empty() {
+                let index = left_capture_promotions.pop_lsb();
+                let start_square = if self.ctm == 0 {index + 9} else {index - 7};
+                for i in 7..11 {
+                    list.push(Move::new_unchecked(start_square, index, i));
+                }
+            }
+            while right_capture_promotions.is_not_empty() {
+                let index = right_capture_promotions.pop_lsb();
+                let start_square = if self.ctm == 0 {index + 7} else {index - 9};
+                for i in 7..11 {
+                    list.push(Move::new_unchecked(start_square, index, i));
+                }
+            }
+            if state.ep_index != Square::INVALID {
+                let mut en_passanters = get_pawn_attacks_lookup(state.ep_index, 1 - self.ctm) & pawns & !state.ortho_pin_mask;
+                while en_passanters .is_not_empty() {
+                    let passanter = en_passanters.pop_lsb();
+                    let post_ep_occ = occ 
+                        ^ Bitboard::from_square(Square(passanter)) 
+                        ^ Bitboard::from_square(state.ep_index) 
+                        ^ Bitboard::from_square(Square((state.ep_index.0 as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8));
+
+                    let their_queens = state.colored_piece(4, 1 - self.ctm);
+                    let their_rooks = their_queens | state.colored_piece(3, 1 - self.ctm);
+                    let their_bishops = their_queens | state.colored_piece(2, 1 - self.ctm);
+            
+                    if (get_rook_attacks(state.king_sqs[self.ctm as usize], post_ep_occ) & their_rooks).is_empty()
+                        && (get_bishop_attacks(state.king_sqs[self.ctm as usize], post_ep_occ) & their_bishops).is_empty() {
+                            list.push(Move::new_unchecked(passanter, state.ep_index.0, Flag::EnPassant as u8));
+                    }
+                }
             }
         }
     }
@@ -438,6 +507,39 @@ impl Board {
 
         let state = self.states.last().expect("no state");
         let occ = state.occupied();
+        let opp_queens: Bitboard = state.pieces[Types::Queen as usize] & state.colors[opp];
+
+        let mut mask: Bitboard = get_rook_attacks(sq, occ) & (opp_queens | (state.pieces[Types::Rook as usize] & state.colors[opp]));
+        if mask.is_not_empty() {
+            return true
+        }
+
+        mask = get_bishop_attacks(sq, occ) & (opp_queens | (state.pieces[Types::Bishop as usize] & state.colors[opp]));
+        if mask.is_not_empty() {
+            return true
+        }
+
+        mask = get_knight_attacks(sq) & (state.pieces[Types::Knight as usize] & state.colors[opp]);
+        if mask.is_not_empty() {
+            return true
+        }
+
+        mask = get_pawn_attacks_lookup(sq, self.ctm) & (state.pieces[Types::Pawn as usize] & state.colors[opp]);
+        if mask.is_not_empty() {
+            return true
+        }
+
+        mask = get_king_attacks(sq) & (state.pieces[Types::King as usize] & state.colors[opp]);
+        if mask.is_not_empty() {
+            return true
+        }
+
+        false
+    }
+    #[must_use] pub fn square_attacked_occ(&self, sq: Square, occ: Bitboard) -> bool {
+        let opp = 1 - self.ctm as usize;
+
+        let state = self.states.last().expect("no state");
         let opp_queens: Bitboard = state.pieces[Types::Queen as usize] & state.colors[opp];
 
         let mut mask: Bitboard = get_rook_attacks(sq, occ) & (opp_queens | (state.pieces[Types::Rook as usize] & state.colors[opp]));
@@ -580,7 +682,6 @@ impl Board {
         let opp_ortho = opp_queens | state.colored_piece(3, opp);
         let mut potential_diago_pinners = opp_diago & get_bishop_attacks(king, them);
         let mut potential_ortho_pinners = opp_ortho & get_rook_attacks(king, them);
-
         state.diago_pin_mask = Bitboard::EMPTY;
         state.ortho_pin_mask = Bitboard::EMPTY;
 

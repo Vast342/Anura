@@ -21,8 +21,16 @@ use super::lookups::PAWN_ATTACKS;
 
 // input: pawn bitboard, unoccupied bitboard, and ctm
 // output: tuple of single and double pawn pushes
-#[must_use] pub fn get_pawn_pushes_setwise(pawns: Bitboard, empties: Bitboard, ctm: u8) -> (Bitboard, Bitboard) {
-    let single: Bitboard = if ctm == 0 { (pawns >> 8) & empties } else { (pawns << 8) & empties };
+#[must_use] pub fn get_pawn_pushes_setwise(mut pawns: Bitboard, empties: Bitboard, ctm: u8, ortho_pin_mask: Bitboard, diag_pin_mask: Bitboard) -> (Bitboard, Bitboard) {
+    pawns &= !diag_pin_mask;
+    let single: Bitboard = if ctm == 0 {
+        ((pawns & !ortho_pin_mask) >> 8) & empties 
+        | ((pawns & ortho_pin_mask) >> 8) & (empties & ortho_pin_mask) 
+    } else { 
+        ((pawns & !ortho_pin_mask) << 8) & empties 
+        | ((pawns & ortho_pin_mask) << 8) & (empties & ortho_pin_mask) 
+    };
+
     let mut double = single & Bitboard::from_rank(if ctm == 1 { 2 } else { 5 });
     if ctm == 0 {
         double = (double >> 8) & empties;
@@ -34,13 +42,22 @@ use super::lookups::PAWN_ATTACKS;
 
 // input: pawn bitboard, opponent bitboard, and ctm
 // output: tuple of left and right pawn pushes
-#[must_use] pub fn get_pawn_attacks_setwise(pawns: Bitboard, capturable: Bitboard, ctm: u8) -> (Bitboard, Bitboard) {
-    let mut left_attacks = if ctm == 0 { pawns >> 9 } else { pawns << 7 };
-    let mut right_attacks= if ctm == 0 { pawns >> 7 } else { pawns << 9 };
-    left_attacks  &= !Bitboard::from_file(7);
-    right_attacks &= !Bitboard::from_file(0);
-    left_attacks  &= capturable;
-    right_attacks &= capturable;
+#[must_use] pub fn get_pawn_attacks_setwise(mut pawns: Bitboard, capturable: Bitboard, ctm: u8, ortho_pin_mask: Bitboard, diag_pin_mask: Bitboard) -> (Bitboard, Bitboard) {
+    pawns &= !ortho_pin_mask;
+    let left_attacks = if ctm == 0 { 
+        ((pawns & diag_pin_mask) >> 9 & capturable & diag_pin_mask)
+        | ((pawns & !diag_pin_mask) >> 9 & capturable) & !Bitboard::from_file(7)
+    } else { 
+        ((pawns & diag_pin_mask) << 7 & capturable & diag_pin_mask)
+        | ((pawns & !diag_pin_mask) << 7 & capturable) & !Bitboard::from_file(7)
+    };
+    let right_attacks= if ctm == 0 { 
+        ((pawns & diag_pin_mask) >> 7 & capturable & diag_pin_mask)
+        | ((pawns & !diag_pin_mask) >> 7 & capturable) & !Bitboard::from_file(0)
+    } else { 
+        ((pawns & diag_pin_mask) << 9 & capturable & diag_pin_mask)
+        | ((pawns & !diag_pin_mask) << 9 & capturable) & !Bitboard::from_file(0)
+    };
     (left_attacks, right_attacks)
 }
 

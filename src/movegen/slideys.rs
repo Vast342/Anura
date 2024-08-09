@@ -1,5 +1,3 @@
-use std::arch::x86_64::_pext_u64;
-
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -17,6 +15,8 @@ use std::arch::x86_64::_pext_u64;
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use std::arch::x86_64::_pext_u64;
+
 use crate::types::bitboard::Bitboard;
 use crate::types::square::Square;
 

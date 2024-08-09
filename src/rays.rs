@@ -27,7 +27,7 @@ pub fn init_between() {
                     if (rook_attacks & dst_mask).is_not_empty() {
                         get_rook_attacks(src, dst_mask) & get_rook_attacks(dst, src_mask)
                     } else if (bishop_attacks & dst_mask).is_not_empty() {
-                        get_bishop_attacks(src, dst_mask) & get_rook_attacks(dst, src_mask)
+                        get_bishop_attacks(src, dst_mask) & get_bishop_attacks(dst, src_mask)
                     } else {
                         Bitboard::EMPTY
                     }
@@ -35,7 +35,9 @@ pub fn init_between() {
             }
         }
     }
+    //unsafe { dbg!(BETWEEN_RAYS[60][39]) };
 }
+
 #[must_use] pub fn ray_between(a: Square, b: Square) -> Bitboard {
     unsafe { BETWEEN_RAYS[a.as_usize()][b.as_usize()] }
 }

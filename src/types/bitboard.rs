@@ -17,7 +17,7 @@
 */
 
 use std::fmt;
-use std::ops::{BitXorAssign, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
+use std::ops::{BitXorAssign, BitXor, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -85,6 +85,14 @@ impl Bitboard {
 impl BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 ^= rhs.0;
+    }
+}
+
+impl BitXor for Bitboard {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Bitboard) -> Self::Output {
+        Self(self.0 ^ rhs.0)
     }
 }
 

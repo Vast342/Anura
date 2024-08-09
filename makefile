@@ -13,6 +13,9 @@ debug:
 datagen:
 	cargo rustc --release --features "datagen" -- -C target-cpu=native --emit link=$(EXE)
 
+perftsuite:
+	cargo rustc --release --features "perftsuite" -- -C target-cpu=native --emit link=$(EXE)
+
 clean: 
 	rm -rf $(EXE) target
 
