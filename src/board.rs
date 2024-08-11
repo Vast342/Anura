@@ -250,17 +250,17 @@ impl Board {
         
         if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && num_checkers == 0 {
             if self.ctm == 1 {
-                if (state.castling & 1) != 0 && (occ & Bitboard(0x60)).is_empty() && !self.square_attacked(Square(5)) {
+                if (state.castling & 1) != 0 && (occ & Bitboard(0x60)).is_empty() && !self.square_attacked(Square(5)) && !self.square_attacked(Square(6)) {
                     list.push(Move::new_unchecked(4, 6, Flag::WKCastle as u8));
                 }
-                if (state.castling & 2) != 0 && (occ & Bitboard(0xE)).is_empty() && !self.square_attacked(Square(3)) {
+                if (state.castling & 2) != 0 && (occ & Bitboard(0xE)).is_empty() && !self.square_attacked(Square(3)) && !self.square_attacked(Square(2)) {
                     list.push(Move::new_unchecked(4, 2, Flag::WQCastle as u8));
                 }
             } else {
-                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000)).is_empty() && !self.square_attacked(Square(61)) {
+                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000)).is_empty() && !self.square_attacked(Square(61)) && !self.square_attacked(Square(62)) {
                     list.push(Move::new_unchecked(60, 62, Flag::BKCastle as u8));
                 }
-                if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000)).is_empty() && !self.square_attacked(Square(59)) {
+                if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000)).is_empty() && !self.square_attacked(Square(59)) && !self.square_attacked(Square(58)) {
                     list.push(Move::new_unchecked(60, 58, Flag::BQCastle as u8));
                 } 
             }
@@ -309,10 +309,7 @@ impl Board {
                         let checker = Square(checkers_clone.pop_lsb());
                         let checker_piece = state.piece_on_square(checker).piece();
                         match checker_piece {
-                            2 | 3 | 4 => {
-                                potential_moves &= !ray_intersecting(Square(index), checker);
-                                potential_moves &= !Bitboard::from_square(checker);
-                            },
+                            2..=4 => potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)),
                             _ => (),
                         }
                     }
@@ -326,7 +323,7 @@ impl Board {
             if piece.piece() != 5 && num_checkers == 1 {
                 let checker = Square(checkers.lsb());
                 // make sure move blocks check properly
-                current_attack &= ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker)
+                current_attack &= ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker);
             }
             // not kings
             if piece.piece() != 5 {

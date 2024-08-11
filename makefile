@@ -15,6 +15,7 @@ datagen:
 
 perftsuite:
 	cargo rustc --release --features "perftsuite" -- -C target-cpu=native --emit link=$(EXE)
+	./$(EXE) perftsuite
 
 clean: 
 	rm -rf $(EXE) target

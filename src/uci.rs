@@ -34,6 +34,7 @@ pub enum CommandTypes {
     PerftSuite,
     MakeMove,
     Bench,
+    GetFen,
     Empty,
     Invalid,
     Quit,
@@ -90,6 +91,10 @@ impl Manager {
         }
     }
 
+    pub fn get_fen(&self) {
+        println!("{}", self.board.get_fen());
+    }
+
     pub fn uci_interpret_command(&mut self, command_text: &str) -> bool {
         let command = self.parse(command_text);
 
@@ -106,6 +111,7 @@ impl Manager {
             CommandTypes::MakeMove => self.make_move(command_text),
             CommandTypes::PerftSuite => self.perft_suite(),
             CommandTypes::Bench => self.bench(),
+            CommandTypes::GetFen => self.get_fen(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }

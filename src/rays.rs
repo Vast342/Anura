@@ -74,6 +74,6 @@ pub fn init_intersection() {
     }
 }
 
-pub fn ray_intersecting(a: Square, b: Square) -> Bitboard {
+#[must_use] pub fn ray_intersecting(a: Square, b: Square) -> Bitboard {
     unsafe { INTERSECTING_RAYS[a.as_usize()][b.as_usize()] }
 }

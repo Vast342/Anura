@@ -47,6 +47,8 @@ fn main() {
         } else if args[1] == "datagen" {
             #[cfg(feature = "datagen")]
             datagen_main(args);
+        } else if args[1] == "perftsuite" && cfg!(feature = "perftsuite") {
+            manager.perft_suite();
         }
     } else {
         loop {

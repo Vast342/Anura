@@ -91,7 +91,7 @@ impl BitXorAssign for Bitboard {
 impl BitXor for Bitboard {
     type Output = Self;
 
-    fn bitxor(self, rhs: Bitboard) -> Self::Output {
+    fn bitxor(self, rhs: Self) -> Self::Output {
         Self(self.0 ^ rhs.0)
     }
 }
