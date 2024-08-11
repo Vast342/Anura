@@ -296,7 +296,15 @@ impl Board {
                 // queens
                 4 => {
                     if is_pinned {
-                        get_bishop_attacks(Square(index), occ) & state.diago_pin_mask | get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                        let is_diag_pin = (state.diago_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+                        let is_ortho_pin = (state.ortho_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+                        if is_diag_pin {
+                            get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
+                        } else if is_ortho_pin {
+                            get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                        } else {
+                            panic!("invalid pin state")
+                        }
                     } else {
                         get_bishop_attacks(Square(index), occ) | get_rook_attacks(Square(index), occ)
                     }
@@ -430,6 +438,178 @@ impl Board {
                 }
             }
         }
+    }
+    pub fn get_move_count(&self) -> u64 {
+        let mut sum = 0;
+        let state = self.states.last().expect("no state");
+        let occ: Bitboard = state.occupied();
+        let checkers: Bitboard = state.checkers;
+        let total_pin_mask = state.diago_pin_mask | state.ortho_pin_mask;
+        let num_checkers = checkers.popcount();
+        let mut us: Bitboard = if num_checkers == 2 {
+            state.colored_piece(5, self.ctm)
+        } else {
+            state.colors[self.ctm as usize]
+        };
+        let empties: Bitboard = !occ;
+        
+        if (state.castling & KING_RIGHT_MASKS[1 - self.ctm as usize]) != 0 && num_checkers == 0 {
+            if self.ctm == 1 {
+                if (state.castling & 1) != 0 && (occ & Bitboard(0x60)).is_empty() && !self.square_attacked(Square(5)) && !self.square_attacked(Square(6)) {
+                    sum += 1;
+                }
+                if (state.castling & 2) != 0 && (occ & Bitboard(0xE)).is_empty() && !self.square_attacked(Square(3)) && !self.square_attacked(Square(2)) {
+                    sum += 1;
+                }
+            } else {
+                if (state.castling & 4) != 0 && (occ & Bitboard(0x6000_0000_0000_0000)).is_empty() && !self.square_attacked(Square(61)) && !self.square_attacked(Square(62)) {
+                    sum += 1;
+                }
+                if (state.castling & 8) != 0 && (occ & Bitboard(0x0E00_0000_0000_0000)).is_empty() && !self.square_attacked(Square(59)) && !self.square_attacked(Square(58)) {
+                    sum += 1;
+                } 
+            }
+        }
+        while !us.is_empty() {
+            let index = us.pop_lsb();
+            let piece = state.piece_on_square(Square(index));
+            let is_pinned = (total_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+            let mut current_attack: Bitboard = match piece.piece() {
+                // pawns (we do them setwise later)
+                0 => Bitboard::EMPTY,
+                // knights
+                1 => {
+                    if is_pinned { continue }
+                    get_knight_attacks(Square(index))
+                },
+                // bishops
+                2 => {
+                    if is_pinned {  
+                        get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
+                    } else {
+                        get_bishop_attacks(Square(index), occ)
+                    }
+                },
+                // rooks
+                3 => {
+                    if is_pinned {
+                        get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                    } else {
+                        get_rook_attacks(Square(index), occ)
+                    }
+                },
+                // queens
+                4 => {
+                    if is_pinned {
+                        let is_diag_pin = (state.diago_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+                        let is_ortho_pin = (state.ortho_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+                        if is_diag_pin {
+                            get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
+                        } else if is_ortho_pin {
+                            get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                        } else {
+                            panic!("invalid pin state")
+                        }
+                    } else {
+                        get_bishop_attacks(Square(index), occ) | get_rook_attacks(Square(index), occ)
+                    }
+                },
+                // kings
+                5 => {
+                    let mut potential_moves = get_king_attacks(Square(index));
+                    let mut checkers_clone = checkers;
+                    while checkers_clone .is_not_empty() {
+                        let checker = Square(checkers_clone.pop_lsb());
+                        let checker_piece = state.piece_on_square(checker).piece();
+                        match checker_piece {
+                            2..=4 => potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)),
+                            _ => (),
+                        }
+                    }
+                    potential_moves
+                },
+                _ => panic!("invalid piece, value of {}", piece.piece()),
+            };
+            // make sure you can't capture your own pieces
+            current_attack ^= current_attack & state.colors[self.ctm as usize];
+            // if not king
+            if piece.piece() != 5 && num_checkers == 1 {
+                let checker = Square(checkers.lsb());
+                // make sure move blocks check properly
+                current_attack &= ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker);
+            }
+            // not kings
+            if piece.piece() != 5 {
+                sum += current_attack.popcount();
+            } else {
+                let kingless_occ = occ ^ Bitboard::from_square(Square(index));
+                // convert it into moves
+                while current_attack.is_not_empty() {
+                    let to = current_attack.pop_lsb();
+                    if !self.square_attacked_occ(Square(to), kingless_occ){
+                        sum += 1;
+                    }
+                }
+            }
+        }
+        if num_checkers != 2 {
+            // setwise pawns
+            let pawns = state.pieces[Types::Pawn as usize] & state.colors[self.ctm as usize];
+            let (mut single_pushes, mut double_pushes) = get_pawn_pushes_setwise(pawns, empties, self.ctm, state.ortho_pin_mask, state.diago_pin_mask);
+            if num_checkers == 1 {
+                let checker = Square(checkers.lsb());
+                // make sure move blocks check properly
+                let mask = ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker);
+                single_pushes &= mask;
+                double_pushes &= mask;
+            }
+            // identify promotions
+            let pawn_push_promotions = single_pushes & Bitboard::from_rank(7 * self.ctm);
+            single_pushes ^= pawn_push_promotions;
+            sum += single_pushes.popcount();
+            sum += double_pushes.popcount();
+            sum += pawn_push_promotions.popcount() * 4;
+
+            let capturable: Bitboard = state.colors[1 - self.ctm as usize];
+            let (mut left_captures, mut right_captures) = get_pawn_attacks_setwise(pawns, capturable, self.ctm, state.ortho_pin_mask, state.diago_pin_mask);
+            if num_checkers == 1 {
+                let checker = Square(checkers.lsb());
+                // make sure move blocks check properly
+                let mask = ray_between(state.king_sqs[self.ctm as usize], checker) | Bitboard::from_square(checker);
+                left_captures &= mask;
+                right_captures &= mask;
+            }
+            let left_capture_promotions  = left_captures & Bitboard::from_rank(7 * self.ctm);
+            left_captures ^= left_capture_promotions;
+            let right_capture_promotions = right_captures & Bitboard::from_rank(7 * self.ctm);
+            right_captures ^= right_capture_promotions;
+
+            sum += left_captures.popcount();
+            sum += right_captures.popcount();
+            sum += left_capture_promotions.popcount() * 4;
+            sum += right_capture_promotions.popcount() * 4;
+
+            if state.ep_index != Square::INVALID {
+                let mut en_passanters = get_pawn_attacks_lookup(state.ep_index, 1 - self.ctm) & pawns & !state.ortho_pin_mask;
+                while en_passanters.is_not_empty() {
+                    let passanter = en_passanters.pop_lsb();
+                    let post_ep_occ = occ 
+                        ^ Bitboard::from_square(Square(passanter)) 
+                        ^ Bitboard::from_square(state.ep_index) 
+                        ^ Bitboard::from_square(Square((state.ep_index.0 as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8));
+
+                    let their_queens = state.colored_piece(4, 1 - self.ctm);
+                    let their_rooks = their_queens | state.colored_piece(3, 1 - self.ctm);
+                    let their_bishops = their_queens | state.colored_piece(2, 1 - self.ctm);
+            
+                    if (get_rook_attacks(state.king_sqs[self.ctm as usize], post_ep_occ) & their_rooks).is_empty()
+                        && (get_bishop_attacks(state.king_sqs[self.ctm as usize], post_ep_occ) & their_bishops).is_empty() {
+                            sum += 1;
+                    }
+                }
+            }
+        }
+        sum as u64
     }
     pub fn make_move(&mut self, mov: Move) {
         self.states.push(*self.states.last().expect("no position?"));

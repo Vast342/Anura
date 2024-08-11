@@ -22,10 +22,9 @@ use crate::{board::Board, types::MoveList};
 
 pub fn perft(board: &mut Board, depth: u8) -> u64 {
     if depth == 0 { return 1 };
+    if depth == 1 { return board.get_move_count() }
     let mut list: MoveList = MoveList::new();
     board.get_moves(&mut list);
-    if list.is_empty() { return 0 };
-    if depth == 1 { return list.len() as u64 }
     let mut result: u64 = 0;
     for mov in list {
         board.make_move(mov);
