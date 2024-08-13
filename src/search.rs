@@ -15,92 +15,150 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
 use crate::{board::Board, types::{moves::Move, MoveList}};
 use std::time::Instant;
+use std::ops::Range;
 
-pub const MATE_SCORE: i16 = 32000;
+const MATE_SCORE: i16 = 32000;
+const EVAL_SCALE: u16 = 400;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[repr(u8)]
+enum GameResult {
+    Win,
+    Draw,
+    Loss,
+    Ongoing,
+}
+
+impl GameResult {
+    fn floatify(self) -> Option<f32> {
+        match self {
+            GameResult::Win => Some(1.0),
+            GameResult::Draw => Some(0.5),
+            GameResult::Loss => Some(0.0),
+            GameResult::Ongoing => None,
+        }
+    }
+
+    fn is_terminal(self) -> bool {
+        self != Self::Ongoing
+    }
+}
+
+struct Node {
+    parent: u32,
+    mov: Move,
+    first_child: u32,
+    child_count: u8,
+    visits: u32,
+    total_score: f32,
+    result: GameResult,
+}
+
+impl Node {
+    fn new(parent: u32, mov: Move) -> Self {
+        Self {
+            parent,
+            mov,
+            first_child: 0,
+            child_count: 0,
+            visits: 0,
+            total_score: 0.0,
+            result: GameResult::Ongoing,
+        }
+    }
+
+    fn avg(&self) -> f32 {
+        self.total_score / self.visits as f32
+    }
+
+    fn children_range(&self) -> Range<usize> {
+        let start = self.first_child as usize;
+        let end = start + self.child_count as usize;
+        start..end
+    }
+}
 
 pub struct Engine {
+    tree: Vec<Node>,
+    board: Board,
+    depth: u32,
     pub nodes: u128,
-    root_best_move: Move,
     start: Instant,
-    hard_limit: u128,
-    time_out: bool,
 }
 
 impl Engine {
     #[must_use] pub fn new() -> Self {
-        Self{nodes: 0, root_best_move: Move::new_unchecked(0, 0, 0), start: Instant::now(), hard_limit: 0, time_out: false}
+        Self{tree: vec!(), board: Board::new(), depth: 0, nodes: 0, start: Instant::now()}
     }
-    pub fn iteratively_deepen(&mut self, mut board: Board, time: u128, depth: i8, info: bool) -> Move {
+    fn select(&self) -> usize{
+
+        0
+    }
+
+    fn expand(&mut self, node_idx: usize) {
+
+    }
+
+    // using my normal eval as a value net here so it actually just evaluates
+    fn simulate(&self, node_idx: usize) -> f32 {
+        let node = &self.tree[node_idx];
+        node.result.floatify().unwrap_or_else(|| {
+            1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+        })
+    }
+
+    fn backprop(&mut self, mut node_idx: usize, mut result: f32) {
+
+    }
+
+    pub fn search(&mut self, board: Board, time: u128, info: bool) -> Move {
         self.nodes = 0;
-        self.root_best_move = Move::new_unchecked(0, 0, 0);
-        let mut prev_best: Move = self.root_best_move;
-        self.start = Instant::now();
-        self.hard_limit = time / 10;
-        self.time_out = false;
+        let mut seldepth = 0;
+        let mut total_depth = 0;
 
-        for depth in 1..=depth {
-            let score = self.negamax(&mut board, -MATE_SCORE, MATE_SCORE, depth, 0);
-            let duration = self.start.elapsed().as_millis();
-            if info {
-                let nps = if duration == 0 {
-                    0
-                } else {
-                    self.nodes * 1000 / duration
-                };
-                println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", depth, self.nodes, duration, nps, score, self.root_best_move);
-            }
-            if self.time_out {
-                self.root_best_move = prev_best;
-                break
+        while !(self.start.elapsed().as_millis() > time / 20) {
+            self.board = board.clone();
+            self.depth = 1;
+
+            // selection
+            let node_idx = self.select();
+            let node = &self.tree[node_idx];
+
+            // expansion
+            if !node.result.is_terminal() {
+                self.expand(node_idx);
             }
 
-            if duration >= time / 30 {
-                break
-            }
-            prev_best = self.root_best_move;
-        }
-        self.root_best_move
-    }
-    pub fn negamax(&mut self, board: &mut Board, mut alpha: i16, beta: i16, depth: i8, ply: u8) -> i16 {
-        if depth <= 0 { return board.evaluate() }
-        if self.nodes % 4096 == 0 && (self.time_out || self.start.elapsed().as_millis() >= self.hard_limit) { 
-            self.time_out = true;
-            return 0 
-        }
+            // simulation
+            let result = self.simulate(node_idx);
+            // backpropogation
+            self.backprop(node_idx, result);
 
-        let mut list: MoveList = MoveList::new();
-        board.get_moves(&mut list);
-        let mut best_score: i16 = -MATE_SCORE;
-        if list.is_empty() {
-            if board.in_check() {
-                return -MATE_SCORE + i16::from(ply)
-            } 
-            return 0
-        }
-        for mov in list {
-            board.make_move(mov);
-            self.nodes += 1;
 
-            let score = -self.negamax(board, -beta, -alpha, depth - 1, ply + 1);
-
-            board.undo_move();
-
-            if self.time_out { return 0 }
-
-            if score > best_score {
-                best_score = score;
-                if score > alpha {
-                    if ply == 0 { self.root_best_move = mov }
-                    alpha = score;
-                }
-                if score >= beta {
-                    break;
+            total_depth += self.depth;
+            if self.depth > seldepth {
+                seldepth = self.depth;
+                // info
+                let duration = self.start.elapsed().as_millis();
+                if info {
+                    let nps = if duration == 0 {
+                        0
+                    } else {
+                        self.nodes * 1000 / duration
+                    };
+                    println!("info depth {} nodes {} time {} nps {} score cp {}", self.depth, self.nodes, duration, nps, 0);
                 }
             }
+
         }
-        best_score
+
+        self.tree.clear();
+        self.tree.shrink_to_fit();
+
+        Move::new_unchecked(0, 0, 0)
     }
 }
 

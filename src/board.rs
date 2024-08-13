@@ -754,7 +754,7 @@ impl Board {
     }
     #[must_use] pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();
-        let state = self.states.last().expect("the unexpected"); // thanks yoshie
+        let state = self.states.last().expect("the unexpected");
         for rank in (0..8).rev() {
             let mut num_empty_files = 0;
             for file in 0..8 {

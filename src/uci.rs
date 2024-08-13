@@ -124,7 +124,7 @@ impl Manager {
         let mut board: Board = Board::new();
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine.iteratively_deepen(board.clone(), 10_000_000, 4, false);
+            self.engine.search(board.clone(), 10_000_000, false);
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
@@ -134,7 +134,7 @@ impl Manager {
     pub fn go(&mut self, command_text: &str) {
         let mut command_split = command_text.split_ascii_whitespace();
         let time: u128 = command_split.nth(4 - 2 * self.board.ctm as usize).expect("no time?").parse::<u128>().expect("invalid time");
-        let best_move: Move = self.engine.iteratively_deepen(self.board.clone(), time, 100, true);
+        let best_move: Move = self.engine.search(self.board.clone(), time, true);
         println!("bestmove {best_move}");
     }
 
