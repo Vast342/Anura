@@ -88,7 +88,7 @@ pub fn to_cp(score: f32) -> i32 {
     } else if score == 0.0 {
         -MATE_SCORE
     } else {
-        (-400.0 * (1.0 / score - 1.0).ln()) as i32
+        (-(EVAL_SCALE as f32) * (1.0 / score - 1.0).ln()) as i32
     }
 }
 
@@ -240,7 +240,7 @@ impl Engine {
             let node = &self.tree[node_idx];
 
             // expansion
-            if !node.result.is_terminal() {
+            if !node.result.is_terminal() && node.visits != 0 {
                 self.expand(node_idx);
             }
 
