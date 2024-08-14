@@ -208,6 +208,7 @@ impl Board {
         // second token: color to move
         token = fen_split.next().expect("no ctm?"); 
         self.ctm = u8::from(token == "w");
+        if self.ctm == 1 { state.switch_color() };
 
         // third token: castling rights
         token = fen_split.next().expect("no castling rights?");
