@@ -27,6 +27,7 @@ pub mod movegen;
 pub mod perft;
 pub mod search;
 pub mod datagen;
+pub mod rays;
 
 #[cfg(feature = "datagen")]
 use datagen::datagen_main;
@@ -46,6 +47,8 @@ fn main() {
         } else if args[1] == "datagen" {
             #[cfg(feature = "datagen")]
             datagen_main(args);
+        } else if args[1] == "perftsuite" && cfg!(feature = "perftsuite") {
+            manager.perft_suite();
         }
     } else {
         loop {

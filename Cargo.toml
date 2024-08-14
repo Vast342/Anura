@@ -1,6 +1,6 @@
 [package]
 name = "anura"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Soon to be a UCI Chess Engine"
 repository = "https://github.com/Vast342/Anura"
@@ -19,3 +19,4 @@ rand = { version = "0.8.5", optional = true }
 
 [features]
 datagen = ["rand"]
+perftsuite = []

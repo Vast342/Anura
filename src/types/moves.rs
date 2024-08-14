@@ -76,6 +76,7 @@ impl Move {
     }
     // next: convert text format to move (look to board's ep index decoding)
     #[must_use] pub fn from_text(text: &str, board: &Board) -> Self {
+        let state = board.states.last().expect("teehee");
         let from_text = text[..2].to_owned();
         let to_text = text[2..4].to_owned();
         let mut from: u8 = 0;
@@ -102,7 +103,7 @@ impl Move {
                 _ => panic!("no promotion but length is over 4"),
             }
         } else {
-            let castling = board.states.last().expect("no state").castling;
+            let castling = state.castling;
             if (castling & 1) != 0 && text == "e1g1" {
                 flag = Flag::WKCastle;
             } else if (castling & 2) != 0 && text == "e1c1" {
@@ -111,9 +112,9 @@ impl Move {
                 flag = Flag::BKCastle;
             } else if (castling & 8) != 0 && text == "e8c8" {
                 flag = Flag::BQCastle;
-            } else if board.states.last().expect("no state").piece_on_square(Square(from)).piece() == Types::Pawn as u8 && Square(to) == board.states.last().expect("no state").ep_index {
+            } else if state.piece_on_square(Square(from)).piece() == Types::Pawn as u8 && Square(to) == state.ep_index {
                 flag = Flag::EnPassant;
-            } else if board.states.last().expect("no state").piece_on_square(Square(from)).piece() == Types::Pawn as u8 && from.abs_diff(to) == 16{
+            } else if state.piece_on_square(Square(from)).piece() == Types::Pawn as u8 && from.abs_diff(to) == 16{
                 flag = Flag::DoublePush;
             }
         }

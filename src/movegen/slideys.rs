@@ -1,5 +1,3 @@
-use std::arch::x86_64::_pext_u64;
-
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -17,21 +15,23 @@ use std::arch::x86_64::_pext_u64;
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use std::arch::x86_64::_pext_u64;
+
 use crate::types::bitboard::Bitboard;
 use crate::types::square::Square;
 
-use super::lookups::{BISHOP_MASKS, BISH_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PIECE_RAYS};
+use super::lookups::{BISHOP_MASKS, BISHOP_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PIECE_RAYS};
 
 // slidey pieces
 
 // Rooks
 // Classical Approach
 #[must_use] pub fn get_rook_attacks_old(sq: Square, occupied: Bitboard) -> Bitboard {
-    let mut total_attacks: Bitboard = Bitboard(0);
+    let mut total_attacks: Bitboard = Bitboard::EMPTY;
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().take(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
         
-        if (current_attack & occupied) != Bitboard(0) {
+        if (current_attack & occupied).is_not_empty() {
             if (dir & 1) == 0 {
                 current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
             } else {
@@ -51,11 +51,11 @@ fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
 // Bishops
 // Classical Approach
 #[must_use] pub fn get_bishop_attacks_old(sq: Square, occupied: Bitboard) -> Bitboard {
-    let mut total_attacks: Bitboard = Bitboard(0);
+    let mut total_attacks: Bitboard = Bitboard::EMPTY;
     for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().skip(4) {
         let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
     
-        if (current_attack & occupied) != Bitboard(0) {
+        if (current_attack & occupied).is_not_empty() {
             if (dir & 1) == 0 {
                 current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
             } else {
@@ -67,7 +67,7 @@ fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
     total_attacks
 }
 #[must_use] pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
-    unsafe { Bitboard(BISH_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
+    unsafe { Bitboard(BISHOP_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
 }
 fn get_bishop_index_pext(sq: Square, occupied: Bitboard) -> usize {
     unsafe { _pext_u64(occupied.as_u64(), BISHOP_MASKS[sq.as_usize()]) as usize }

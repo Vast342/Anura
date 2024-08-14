@@ -67,29 +67,16 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
     // 8 random moves
     for _ in 0..8 {
         // generate the moves
-        let mut pl_list: MoveList = MoveList::new();
-        board.get_moves(&mut pl_list);
         let mut list: MoveList = MoveList::new();
-
-        // make sure they're all legal
-        for mov in pl_list {
-            if board.make_move(mov) {
-                list.push(mov);
-                board.undo_move();
-            }
-        }
-
+        board.get_moves(&mut list);
         // checkmate or stalemate, doesn't matter which
         // reset
         if list.len() == 0 {
-            println!("mate in random moves");
             return 3
         }
 
         let index = rand::thread_rng().gen_range(0..list.len());
-        if !board.make_move(list[index]) {
-            panic!("generated illegal move");
-        }
+        board.make_move(list[index]);
     }
     let mut engine: Engine = Engine::new();
     // the rest of the moves
@@ -103,21 +90,11 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
         // checkmate check
         // this is more efficient than it is in clarity lol
         // generate the moves
-        let mut pl_list: MoveList = MoveList::new();
-        board.get_moves(&mut pl_list);
-        let mut legal_moves = 0;
-
-        // make sure they're all legal
-        for mov in pl_list {
-            if board.make_move(mov) {
-                legal_moves += 1;
-                board.undo_move();
-                break;
-            }
-        }
+        let mut list: MoveList = MoveList::new();
+        board.get_moves(&mut list);
 
         // checkmate or stalemate
-        if legal_moves == 0 {
+        if list.len() == 0 {
             if board.in_check() {
                 // checkmate opponnent wins
                 return 2 - 2 * board.ctm;
@@ -126,15 +103,13 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             }
         }
 
-        let mov: Move = engine.iteratively_deepen(board.clone(), 75, 6, false);
+        let mov: Move = engine.search(board.clone(), 75, 6, false);
         let to = mov.to();
         let state = board.states.last().expect("bruh");
         let occ = state.occupied();
         let flag = mov.flag();
-        let is_capture: bool = Bitboard::from_square(Square(to)) & occ != Bitboard(0) || flag == Flag::EnPassant;
-        if !board.make_move(mov) {
-            panic!("engine made an illegal move");
-        }
+        let is_capture: bool = (Bitboard::from_square(Square(to)) & occ).is_not_empty() || flag == Flag::EnPassant;
+        board.make_move(mov);
 
         if !is_capture && !board.in_check() && rand::thread_rng().gen_range(0..7) == 2 {
             strings.push(board.get_fen() + " ");

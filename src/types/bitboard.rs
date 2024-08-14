@@ -17,7 +17,7 @@
 */
 
 use std::fmt;
-use std::ops::{BitXorAssign, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
+use std::ops::{BitXorAssign, BitXor, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
 
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
@@ -34,8 +34,8 @@ impl Bitboard {
 
     pub const EMPTY: Self = Self(0);
 
-    #[must_use] pub fn from_square(sq: Square) -> Self {
-        Self(1 << u64::from(sq.0))
+    #[must_use] pub const fn from_square(sq: Square) -> Self {
+        Self(1 << sq.0)
     }
     #[must_use] pub const fn from_rank(rank: u8) -> Self {
         Self(RANKMASK << (8 * rank))
@@ -63,17 +63,36 @@ impl Bitboard {
     #[must_use] pub const fn is_empty(&self) -> bool {
         self.0 == 0
     }
+    #[must_use] pub const fn is_not_empty(&self) -> bool {
+        self.0 != 0
+    }
     #[must_use] pub const fn has_bits(&self) -> bool {
         self.0 != 0
     }
     #[must_use] pub const fn as_u64(&self) -> u64 {
         self.0
     }
+    #[must_use]
+    pub const fn contains_multiple(self) -> bool {
+        (self.0 & self.0.wrapping_sub(1)) != 0
+    }
+    #[must_use]
+    pub const fn contains_one(self) -> bool {
+        !self.is_empty() && !self.contains_multiple()
+    }
 }
 
 impl BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
         self.0 ^= rhs.0;
+    }
+}
+
+impl BitXor for Bitboard {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
     }
 }
 

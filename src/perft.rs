@@ -22,18 +22,19 @@ use crate::{board::Board, types::MoveList};
 
 pub fn perft(board: &mut Board, depth: u8) -> u64 {
     if depth == 0 { return 1 };
+    if depth == 1 { return board.get_move_count() }
     let mut list: MoveList = MoveList::new();
     board.get_moves(&mut list);
     let mut result: u64 = 0;
     for mov in list {
-        if board.make_move(mov) {
-            result += perft(board, depth - 1);
-            board.undo_move();
-        }
+        board.make_move(mov);
+        result += perft(board, depth - 1);
+        board.undo_move();
     }
     result
 }
 
+#[derive(Clone)]
 struct PerftTest {
     fen: String,
     depth: u8,
@@ -48,11 +49,8 @@ impl PerftTest {
 
 pub fn run_perft_suite() {
     println!("loading testsuite");
-    let test_suite: [PerftTest; 1] = [
-        PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6, 119_060_324),
-    ];
-    /*let test_suite: [PerftTest; 755] = [
-        PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 1, 20),
+    let test_suite: Vec<PerftTest> = if cfg!(feature = "perftsuite") {
+        [PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 1, 20),
         PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 2, 400),
         PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3, 8902),
         PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 4, 197_281),
@@ -807,7 +805,15 @@ pub fn run_perft_suite() {
         PerftTest::new("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 4, 182_838),
         PerftTest::new("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 5, 3_605_103),
         PerftTest::new("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1", 6, 71_179_139),
-    ];*/
+        PerftTest::new("r4k1r/p1ppq1b1/bn1Bpnp1/3P4/1p2P3/2N2Q1p/PPP1BPPP/R3K2R b KQ - 1 3", 1, 33),
+        PerftTest::new("r4k1r/p1ppq1b1/bn1Bpnp1/3P4/1p2P3/2N2Q1p/PPP1BPPP/R3K2R b KQ - 1 3", 2, 1420),
+        PerftTest::new("r4k1r/p1ppq1b1/bn1Bpnp1/3P4/1p2P3/2N2Q1p/PPP1BPPP/R3K2R b KQ - 1 3", 3, 48089),
+        PerftTest::new("r4k1r/p1ppq1b1/bn1Bpnp1/3P4/1p2P3/2N2Q1p/PPP1BPPP/R3K2R b KQ - 1 3", 4, 2_052_479),
+        PerftTest::new("r4k1r/p1ppq1b1/bn1Bpnp1/3P4/1p2P3/2N2Q1p/PPP1BPPP/R3K2R b KQ - 1 3", 5, 74_148_519),
+    ].to_vec()
+    } else {
+        [PerftTest::new("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6, 119_060_324)].to_vec()
+    };
     println!("tests loaded");
 
     let mut total: u64 = 0;

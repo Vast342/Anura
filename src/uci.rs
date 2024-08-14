@@ -34,6 +34,7 @@ pub enum CommandTypes {
     PerftSuite,
     MakeMove,
     Bench,
+    GetFen,
     Empty,
     Invalid,
     Quit,
@@ -53,8 +54,7 @@ impl Default for Manager {
 
 impl Manager {
     #[must_use] pub fn new() -> Self {
-        let mut b: Board = Board::new();
-        b.load_fen("8/8/8/8/8/8/8/8 w - - 0 1");
+        let b: Board = Board::new();
         let e: Engine = Engine::new();
         Self{board: b, engine: e}
     }
@@ -91,6 +91,10 @@ impl Manager {
         }
     }
 
+    pub fn get_fen(&self) {
+        println!("{}", self.board.get_fen());
+    }
+
     pub fn uci_interpret_command(&mut self, command_text: &str) -> bool {
         let command = self.parse(command_text);
 
@@ -107,6 +111,7 @@ impl Manager {
             CommandTypes::MakeMove => self.make_move(command_text),
             CommandTypes::PerftSuite => self.perft_suite(),
             CommandTypes::Bench => self.bench(),
+            CommandTypes::GetFen => self.get_fen(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
@@ -119,7 +124,7 @@ impl Manager {
         let mut board: Board = Board::new();
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine.iteratively_deepen(board.clone(), 10000000, 4, false);
+            self.engine.search(board.clone(), 10_000_000, 3, false);
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
@@ -129,7 +134,7 @@ impl Manager {
     pub fn go(&mut self, command_text: &str) {
         let mut command_split = command_text.split_ascii_whitespace();
         let time: u128 = command_split.nth(4 - 2 * self.board.ctm as usize).expect("no time?").parse::<u128>().expect("invalid time");
-        let best_move: Move = self.engine.iteratively_deepen(self.board.clone(), time, 100, true);
+        let best_move: Move = self.engine.search(self.board.clone(), time, 100, true);
         println!("bestmove {best_move}");
     }
 
@@ -154,12 +159,11 @@ impl Manager {
         let mut total: u64 = 0;
         let start = Instant::now();
         for mov in list {
-            if self.board.make_move(mov) {
-                let nodes = perft(&mut self.board, depth);
-                total += nodes;
-                self.board.undo_move();
-                println!("{mov}: {nodes}");
-            }
+            self.board.make_move(mov);
+            let nodes = perft(&mut self.board, depth);
+            total += nodes;
+            self.board.undo_move();
+            println!("{mov}: {nodes}");
         }
         let duration = start.elapsed();
         println!("total: ");
@@ -174,10 +178,7 @@ impl Manager {
         let mut command_split = command_text.split_ascii_whitespace();
         let _first_token = command_split.next().expect("not enough tokens");
         let second_token = command_split.next().expect("not enough tokens");
-        let index: usize = second_token.parse::<usize>().expect("invalid index");
-        let mut list: MoveList = MoveList::new();
-        self.board.get_moves(&mut list);
-        self.board.make_move(list[index]);
+        self.board.make_move(Move::from_text(second_token, &self.board));
     }
 
     pub fn position(&mut self, command_text: &str) {
