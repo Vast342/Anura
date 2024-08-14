@@ -116,20 +116,20 @@ impl Engine {
                 break;
             }
 
-            let log_visits = (node.visits as f32).ln();
+            let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
+            let p = 1.0 / node.child_count as f32;
 
             let mut best_child = None;
             let mut best_child_uct = f32::NEG_INFINITY;
 
             for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
-                let uct = if child.visits == 0 {
-                    f32::INFINITY
+                let avg = if child.visits == 0 {
+                    0.5
                 } else {
-                    let visits = child.visits as f32;
-                    let score = child.total_score / visits;
-                    score + std::f32::consts::SQRT_2 * (log_visits / visits).sqrt()
+                    child.avg()
                 };
-
+                let uct = avg + e * p / (1 + child.visits) as f32; 
+                
                 if uct > best_child_uct {
                     best_child = Some(child_idx);
                     best_child_uct = uct;
