@@ -42,7 +42,7 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    eval::PIECE_WEIGHTS, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::{ray_intersecting, ray_between}, types::{
+    eval::PIECE_WEIGHTS, hash::{zobrist_ctm, zobrist_psq}, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::{ray_between, ray_intersecting}, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
@@ -56,6 +56,7 @@ pub struct Position {
     mailbox:  [Piece; 64],
     eval: i16,
     king_sqs: [Square; 2],
+    hash: u64,
     pub ep_index:  Square,
     pub hm_clock:  u8,
     pub castling:  u8,
@@ -75,7 +76,7 @@ impl Position {
         let ca: u8 = 0;
         let ev: i16 = 0;
 
-        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev, checkers: Bitboard::EMPTY, diago_pin_mask: Bitboard::EMPTY, ortho_pin_mask: Bitboard::EMPTY}
+        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev, checkers: Bitboard::EMPTY, diago_pin_mask: Bitboard::EMPTY, ortho_pin_mask: Bitboard::EMPTY, hash: 0}
     }
     pub fn add_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
@@ -83,6 +84,7 @@ impl Position {
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = piece;
         self.eval += PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i16::from(piece.color()) * 2);
+        self.hash ^= zobrist_psq(piece, sq);
     }
     pub fn remove_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
@@ -90,6 +92,7 @@ impl Position {
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = Piece(Types::None as u8);
         self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i16::from(piece.color()) * 2);
+        self.hash ^= zobrist_psq(piece, sq);
     }
     pub fn move_piece(&mut self, from: Square, piece: Piece, to: Square, victim: Piece) {
         if victim.piece() != Types::None as u8 {
@@ -106,6 +109,9 @@ impl Position {
     }
     #[must_use] pub fn colored_piece(&self, piece: u8, color: u8) -> Bitboard {
         self.colors[color as usize] & self.pieces[piece as usize]
+    }
+    pub fn switch_color(&mut self) {
+        self.hash ^= zobrist_ctm();
     }
 }
 
@@ -677,6 +683,7 @@ impl Board {
 
         self.ply += 1;
         self.ctm = 1 - self.ctm;
+        state.switch_color();
         self.update_pins_and_checkers();
     }
     pub fn undo_move(&mut self) {
@@ -896,6 +903,19 @@ impl Board {
         let occ = state.occupied();
         if (occ.popcount() == 3 && (state.pieces[Types::Queen as usize].popcount() == 0 && state.pieces[Types::Rook as usize].popcount() == 0)) || (occ.popcount() == 2) {
             return true
+        }
+
+        for other_state in self
+            .states
+            .iter()
+            .rev()
+            .take(state.hm_clock as usize + 1)
+            .skip(3)
+            .step_by(2)
+        {
+            if other_state.hash == state.hash {
+                return true;
+            }
         }
 
         false

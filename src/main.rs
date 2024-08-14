@@ -28,6 +28,8 @@ pub mod perft;
 pub mod search;
 pub mod datagen;
 pub mod rays;
+pub mod prng;
+pub mod hash;
 
 #[cfg(feature = "datagen")]
 use datagen::datagen_main;
