@@ -881,4 +881,18 @@ impl Board {
             }
         }
     }
+    pub fn is_drawn(&self) -> bool {
+        let state = self.states.last().expect("lol");
+
+        if state.hm_clock >= 100 {
+            return true
+        }
+
+        let occ = state.occupied();
+        if (occ.popcount() == 3 && (state.pieces[Types::Queen as usize].popcount() == 0 && state.pieces[Types::Rook as usize].popcount() == 0)) || (occ.popcount() == 2) {
+            return true
+        }
+
+        false
+    }
 }

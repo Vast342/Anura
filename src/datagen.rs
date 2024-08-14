@@ -103,7 +103,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             }
         }
 
-        let mov: Move = engine.iteratively_deepen(board.clone(), 75, 6, false);
+        let mov: Move = engine.search(board.clone(), 75, 6, false);
         let to = mov.to();
         let state = board.states.last().expect("bruh");
         let occ = state.occupied();
