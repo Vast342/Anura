@@ -285,7 +285,7 @@ impl Engine {
             } else {
                 self.nodes * 1000 / duration
             };
-            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(thing2), best_move.to_string());
+            println!("info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, seldepth, self.nodes, duration, nps, to_cp(thing2), best_move.to_string());
         }
 
         self.tree.clear();

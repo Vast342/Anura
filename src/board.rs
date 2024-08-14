@@ -901,11 +901,6 @@ impl Board {
             return true
         }
 
-        let occ = state.occupied();
-        if (occ.popcount() == 3 && (state.pieces[Types::Queen as usize].popcount() == 0 && state.pieces[Types::Rook as usize].popcount() == 0)) || (occ.popcount() == 2) {
-            return true
-        }
-
         for other_state in self
             .states
             .iter()
@@ -915,7 +910,8 @@ impl Board {
             .step_by(2)
         {
             if other_state.hash == state.hash {
-                return true;
+                println!("found repetition draw");
+                return true
             }
         }
 
