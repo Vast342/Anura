@@ -121,6 +121,11 @@ impl Board {
     #[must_use] pub fn new() -> Self {
         Self {states: vec![Position::empty(); 256], ctm: 0, ply: 0}
     }
+    pub fn load_state(&mut self, position: &Position,  ctm: u8) {
+        self.states.clear();
+        self.states.push(*position);
+        self.ctm = ctm;
+    }
     pub fn print_state(&self) {
         for i in (0..8).rev() {
             for j in 0..8 {

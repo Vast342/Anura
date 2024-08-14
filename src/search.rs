@@ -228,8 +228,11 @@ impl Engine {
 
         self.tree.push(Node::new(0, Move::new_unchecked(0, 0, 0)));
 
-        while !(self.start.elapsed().as_millis() > time / 20) {
-            self.board = board.clone();
+        let root_state = board.states.last().expect("bruh you gave an empty board");
+        let root_ctm = board.ctm;
+
+        while self.start.elapsed().as_millis() <= time / 20 {
+            self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
             // selection
