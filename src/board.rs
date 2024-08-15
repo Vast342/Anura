@@ -133,12 +133,16 @@ impl Board {
         self.ctm = ctm;
     }
     pub fn print_state(&self) {
+        let state = self.states.last().expect("no state???");
         for i in (0..8).rev() {
             for j in 0..8 {
-                print!("{} ", (self.states.last().expect("no state???").mailbox[i*8+j]));
+                print!("{} ", (state.mailbox[i*8+j]));
             }
             println!();
         }
+        println!("hash: {}", state.hash);
+        println!("ctm: {}", self.ctm);
+        println!("is_drawn: {}", self.is_drawn())
     }
     #[allow(clippy::cast_possible_truncation)] pub fn load_fen(&mut self, fen: &str) {
         let mut state: Position = Position::empty();
@@ -906,11 +910,10 @@ impl Board {
             .iter()
             .rev()
             .take(state.hm_clock as usize + 1)
-            .skip(3)
+            .skip(2)
             .step_by(2)
         {
             if other_state.hash == state.hash {
-                println!("found repetition draw");
                 return true
             }
         }
