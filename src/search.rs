@@ -219,7 +219,7 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn search(&mut self, board: Board, time: u128, depth: u32, info: bool) -> Move {
+    pub fn search(&mut self, board: Board, node_lim: u128, time: u128, depth: u32, info: bool) -> (Move, i32) {
         self.nodes = 0;
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
@@ -250,6 +250,9 @@ impl Engine {
             self.backprop(node_idx, result);
 
             self.nodes += 1;
+            if self.nodes > node_lim {
+                break;
+            }
             total_depth += self.depth as usize;
 
             if self.depth > seldepth {
@@ -285,13 +288,13 @@ impl Engine {
             } else {
                 self.nodes * 1000 / duration
             };
-            println!("info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, seldepth, self.nodes, duration, nps, to_cp(thing2), best_move.to_string());
+            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(thing2), best_move.to_string());
         }
 
         self.tree.clear();
         self.tree.shrink_to_fit();
 
-        best_move
+        (best_move, to_cp(thing2))
     }
 }
 

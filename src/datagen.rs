@@ -18,7 +18,7 @@
 #[cfg(feature = "datagen")]
 use std::{fs::File, io::{BufWriter, Write}, sync::{atomic::{AtomicU64, Ordering}, Arc}, thread::{self}, time::Instant};
 #[cfg(feature = "datagen")]
-use crate::{board::Board, search::Engine, types::{bitboard::Bitboard, moves::{Flag, Move}, square::Square, MoveList}};
+use crate::{board::Board, search::Engine, types::MoveList};
 #[cfg(feature = "datagen")]
 use rand::Rng;
 
@@ -57,7 +57,7 @@ fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, pos
         let result = run_game(&mut data, board.clone());
         if result != 3 {
             dump_to_file(data, &mut writer, game_count, position_count, draw_count, start, result);
-        } else { println!("error"); }
+        }
     }
 }
 
@@ -72,6 +72,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
         // checkmate or stalemate, doesn't matter which
         // reset
         if list.len() == 0 {
+            println!("hit a checkmate or stalemate in opening generation");
             return 3
         }
 
@@ -80,13 +81,10 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
     }
     let mut engine: Engine = Engine::new();
     // the rest of the moves
-    for _ in 0..250 {
-        // draw
-        if board.states.last().expect("no position bruhhhh").hm_clock >= 100 { return 1 }
-        // almost checking for material draws here, not quite
-        if board.states.last().expect("no position bruhhhh").occupied().popcount() < 4 { return 1 }
-        // maybe i should check for material draws here too
-        
+    for _ in 0..300 {
+        if board.is_drawn() {
+            return 1
+        }
         // checkmate check
         // this is more efficient than it is in clarity lol
         // generate the moves
@@ -103,17 +101,9 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             }
         }
 
-        let mov: Move = engine.search(board.clone(), 75, 6, false);
-        let to = mov.to();
-        let state = board.states.last().expect("bruh");
-        let occ = state.occupied();
-        let flag = mov.flag();
-        let is_capture: bool = (Bitboard::from_square(Square(to)) & occ).is_not_empty() || flag == Flag::EnPassant;
+        let (mov, score) = engine.search(board.clone(), 10000, 1000000000, 1000000, false);
         board.make_move(mov);
-
-        if !is_capture && !board.in_check() && rand::thread_rng().gen_range(0..7) == 2 {
-            strings.push(board.get_fen() + " ");
-        }
+        strings.push(format!("{} | {} | ", board.get_fen(), score));
     }
     let score = board.evaluate();
     if score < 0 { return 0 } else if score > 0 { return 2 } else { return 1 }
