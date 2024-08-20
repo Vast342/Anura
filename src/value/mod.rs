@@ -35,17 +35,17 @@ const QAB: i32 = QA * _QB;
 #[derive(Debug)]
 #[repr(C)]
 #[repr(align(64))]
-pub struct Network {
+pub struct ValueNetwork {
     feature_weights: [i16; INPUT_SIZE * HL_SIZE],
     feature_biases:  [i16; HL_SIZE],
     output_weights:  [i16; HL_SIZE],
     output_bias: i16,
 }
 
-pub const NET: Network = unsafe { std::mem::transmute(*include_bytes!("avn_002.vn")) };
+pub const NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn_002.vn")) };
 
 #[derive(Debug, Clone)]
-pub struct NetworkState {
+pub struct ValueNetworkState {
     state: [i16; HL_SIZE],
 }
 
@@ -59,7 +59,7 @@ pub fn activation(x: i16) -> i32 {
     ((x as i32).max(0).min(QA)).pow(2)
 }
 
-impl NetworkState {
+impl ValueNetworkState {
     pub const fn new() -> Self {
         Self{state: NET.feature_biases}
     }
@@ -96,7 +96,7 @@ impl NetworkState {
     }
 }
 
-impl Default for NetworkState {
+impl Default for ValueNetworkState {
     fn default() -> Self {
         Self::new()
     }

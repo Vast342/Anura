@@ -81,7 +81,9 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
     }
     let mut engine: Engine = Engine::new();
     // the rest of the moves
-    for _ in 0..300 {
+    for _ in 0..1000 {
+        let (mov, score) = engine.search(board.clone(), 1000, 1000000000, 1000000, false);
+        board.make_move(mov);
         if board.is_drawn() {
             return 1
         }
@@ -101,9 +103,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
             }
         }
 
-        let (mov, score) = engine.search(board.clone(), 10000, 1000000000, 1000000, false);
-        board.make_move(mov);
-        strings.push(format!("{} | {} | ", board.get_fen(), score));
+        strings.push(format!("{} | {} | ", board.get_fen(), score * (1 - i32::from(board.ctm) * 2)));
     }
     let score = board.evaluate();
     if score < 0 { return 0 } else if score > 0 { return 2 } else { return 1 }

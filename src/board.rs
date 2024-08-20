@@ -763,6 +763,9 @@ impl Board {
     #[must_use] pub fn evaluate(&self) -> i16 {
         self.states.last().expect("no state").eval * (-1 + i16::from(self.ctm) * 2)
     }
+    #[must_use] pub fn evaluate_non_stm(&self) -> i16 {
+        self.states.last().expect("no state").eval
+    }
     #[must_use] pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();
         let state = self.states.last().expect("the unexpected");

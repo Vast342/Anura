@@ -21,7 +21,7 @@ use std::time::Instant;
 use std::ops::Range;
 
 const MATE_SCORE: i32 = 32000;
-const EVAL_SCALE: u16 = 400;
+/*pub */const EVAL_SCALE: u16 = 400;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
@@ -117,7 +117,6 @@ impl Engine {
             }
 
             let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
-            let p = 1.0 / node.child_count as f32;
 
             let mut best_child = None;
             let mut best_child_uct = f32::NEG_INFINITY;
@@ -128,6 +127,7 @@ impl Engine {
                 } else {
                     child.avg()
                 };
+                let p = 1.0 / node.child_count as f32;
                 let uct = avg + e * p / (1 + child.visits) as f32; 
                 
                 if uct > best_child_uct {
