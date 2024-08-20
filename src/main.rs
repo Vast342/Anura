@@ -22,7 +22,7 @@
 pub mod uci;
 pub mod board;
 pub mod types;
-pub mod eval;
+pub mod value;
 pub mod movegen;
 pub mod perft;
 pub mod search;
