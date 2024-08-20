@@ -21,7 +21,7 @@ use std::time::Instant;
 use std::ops::Range;
 
 const MATE_SCORE: i32 = 32000;
-/*pub */const EVAL_SCALE: u16 = 400;
+pub const EVAL_SCALE: u16 = 400;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]

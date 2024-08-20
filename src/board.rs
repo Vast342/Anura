@@ -42,11 +42,11 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    value::PIECE_WEIGHTS, hash::{zobrist_ctm, zobrist_psq}, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::{ray_between, ray_intersecting}, types::{
+    hash::{zobrist_ctm, zobrist_psq}, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::{ray_between, ray_intersecting}, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
-    }
+    }, value::ValueNetworkState
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -54,7 +54,6 @@ pub struct Position {
     colors:   [Bitboard; 2],
     pieces:   [Bitboard; 6],
     mailbox:  [Piece; 64],
-    eval: i16,
     king_sqs: [Square; 2],
     hash: u64,
     pub ep_index:  Square,
@@ -74,16 +73,14 @@ impl Position {
         let epsq: Square = Square(64);
         let hmc: u8 = 0;
         let ca: u8 = 0;
-        let ev: i16 = 0;
 
-        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, eval: ev, checkers: Bitboard::EMPTY, diago_pin_mask: Bitboard::EMPTY, ortho_pin_mask: Bitboard::EMPTY, hash: 0}
+        Self {colors: col, pieces: pcs, mailbox: mail, king_sqs: ksqs, ep_index: epsq, hm_clock: hmc, castling: ca, checkers: Bitboard::EMPTY, diago_pin_mask: Bitboard::EMPTY, ortho_pin_mask: Bitboard::EMPTY, hash: 0}
     }
     pub fn add_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = piece;
-        self.eval += PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i16::from(piece.color()) * 2);
         self.hash ^= zobrist_psq(piece, sq);
     }
     pub fn remove_piece(&mut self, sq: Square, piece: Piece) {
@@ -91,7 +88,6 @@ impl Position {
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
         self.mailbox[sq.as_usize()] = Piece(Types::None as u8);
-        self.eval -= PIECE_WEIGHTS[piece.piece() as usize] * (-1 + i16::from(piece.color()) * 2);
         self.hash ^= zobrist_psq(piece, sq);
     }
     pub fn move_piece(&mut self, from: Square, piece: Piece, to: Square, victim: Piece) {
@@ -760,11 +756,14 @@ impl Board {
 
         false
     }
-    #[must_use] pub fn evaluate(&self) -> i16 {
-        self.states.last().expect("no state").eval * (-1 + i16::from(self.ctm) * 2)
+    #[must_use] pub fn evaluate(&self) -> i32 {
+        let mut net = ValueNetworkState::new();
+        net.evaluate(self.states.last().expect("bruh")) * (-1 + i32::from(self.ctm) * 2)
     }
-    #[must_use] pub fn evaluate_non_stm(&self) -> i16 {
-        self.states.last().expect("no state").eval
+    #[must_use] pub fn evaluate_non_stm(&self) -> i32 {
+        let mut net = ValueNetworkState::new();
+        net.evaluate(self.states.last().expect("bruh"))
+
     }
     #[must_use] pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();
