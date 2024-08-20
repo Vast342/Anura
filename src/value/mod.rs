@@ -17,10 +17,8 @@ use crate::{board::Position, search::EVAL_SCALE, types::{bitboard::Bitboard, pie
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// material counting eval: being used rn but not for long
-//pub const PIECE_WEIGHTS: [i16; 6] = [100, 310, 330, 500, 900, 0];
 // value net:
-// avn_002.vn right now (VERY BAD NET)
+// avn_002.vn
 // 768->32->1 activated by SCReLU
 const INPUT_SIZE: usize = 768;
 const HL_SIZE: usize = 32;
