@@ -15,8 +15,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-
-#![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 #![allow(clippy::missing_panics_doc, clippy::cargo_common_metadata, clippy::cast_possible_truncation)]
 
 pub mod uci;

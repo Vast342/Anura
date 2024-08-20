@@ -332,10 +332,7 @@ impl Board {
                     while checkers_clone .is_not_empty() {
                         let checker = Square(checkers_clone.pop_lsb());
                         let checker_piece = state.piece_on_square(checker).piece();
-                        match checker_piece {
-                            2..=4 => potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)),
-                            _ => (),
-                        }
+                        if let 2..=4 = checker_piece { potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)) }
                     }
                     potential_moves
                 },
@@ -537,10 +534,7 @@ impl Board {
                     while checkers_clone .is_not_empty() {
                         let checker = Square(checkers_clone.pop_lsb());
                         let checker_piece = state.piece_on_square(checker).piece();
-                        match checker_piece {
-                            2..=4 => potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)),
-                            _ => (),
-                        }
+                        if let 2..=4 = checker_piece { potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)) }
                     }
                     potential_moves
                 },

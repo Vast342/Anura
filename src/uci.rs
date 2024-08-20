@@ -134,7 +134,7 @@ impl Manager {
     pub fn go(&mut self, command_text: &str) {
         let mut command_split = command_text.split_ascii_whitespace();
         let time: u128 = command_split.nth(4 - 2 * self.board.ctm as usize).expect("no time?").parse::<u128>().expect("invalid time");
-        let (best_move, _score) = self.engine.search(self.board.clone(), 10_000_00000000000, time, 100, true);
+        let (best_move, _score) = self.engine.search(self.board.clone(), 1_000_000_000_000_000, time, 100, true);
         println!("bestmove {best_move}");
     }
 

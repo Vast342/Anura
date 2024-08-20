@@ -154,7 +154,7 @@ impl Engine {
         self.board.get_moves(&mut moves);
 
         // checkmate or stalemate
-        if moves.len() == 0 {
+        if moves.is_empty() {
             node.result = if self.board.in_check() {
                 GameResult::Loss
             } else {
@@ -288,7 +288,7 @@ impl Engine {
             } else {
                 self.nodes * 1000 / duration
             };
-            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(thing2), best_move.to_string());
+            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(thing2), best_move);
         }
 
         self.tree.clear();
