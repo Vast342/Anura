@@ -220,7 +220,7 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn search(&mut self, board: Board, node_lim: u128, time: u128, depth: u32, info: bool) -> Move {
+    pub fn search(&mut self, board: Board, node_lim: u128, time: u128, inc: u128, depth_limit: u32, info: bool) -> Move {
         self.nodes = 0;
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
@@ -232,7 +232,7 @@ impl Engine {
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
 
-        while self.start.elapsed().as_millis() <= time / 20 {
+        while self.start.elapsed().as_millis() <= time / 20 + inc / 2 {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
@@ -259,9 +259,10 @@ impl Engine {
             if self.depth > seldepth {
                 seldepth = self.depth;
             }
+            
             // info
             let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
-            if avg_depth > depth {
+            if avg_depth >= depth_limit {
                 break;
             }
             if avg_depth > prev_avg_depth {
