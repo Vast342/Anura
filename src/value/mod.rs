@@ -1,4 +1,4 @@
-//use crate::{board::Position, search::EVAL_SCALE, types::{bitboard::Bitboard, piece::Piece, square::Square}};
+use crate::{board::Position, search::EVAL_SCALE, types::{bitboard::Bitboard, piece::Piece, square::Square}};
 
 /*
     Anura
@@ -17,12 +17,9 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// material counting eval: being used rn but not for long
-pub const PIECE_WEIGHTS: [i16; 6] = [100, 310, 330, 500, 900, 0];
 // value net:
-// avn_002.vn right now (VERY BAD NET)
+// avn_002.vn
 // 768->32->1 activated by SCReLU
-/*
 const INPUT_SIZE: usize = 768;
 const HL_SIZE: usize = 32;
 
@@ -49,8 +46,8 @@ pub struct ValueNetworkState {
     state: [i16; HL_SIZE],
 }
 
-pub const fn get_feature_index(piece: Piece, sq: Square, ctm: u8) -> usize{
-    let c = (piece.color() != ctm) as usize;
+pub const fn get_feature_index(piece: Piece, sq: Square) -> usize{
+    let c = 1 - piece.color() as usize;
     let p = piece.piece() as usize;
     return c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize;
 }
@@ -66,21 +63,21 @@ impl ValueNetworkState {
     pub fn reset(&mut self) {
         self.state = NET.feature_biases
     }
-    pub fn evaluate(&mut self, position: &Position, ctm: u8) -> i32 {
-        self.load_position(position, ctm);
+    pub fn evaluate(&mut self, position: &Position) -> i32 {
+        self.load_position(position);
         self.forward()
     }
-    pub fn load_position(&mut self, position: &Position, ctm: u8) {
+    pub fn load_position(&mut self, position: &Position) {
         self.reset();
         let mut occ = position.occupied();
         while occ != Bitboard::EMPTY {
             let idx = Square(occ.pop_lsb());
             let piece = position.piece_on_square(idx);
-            self.activate_feature(piece, idx, ctm);
+            self.activate_feature(piece, idx);
         }
     }
-    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8) {
-        let idx = get_feature_index(piece, sq, ctm);
+    pub fn activate_feature(&mut self, piece: Piece, sq: Square) {
+        let idx = get_feature_index(piece, sq);
         for hl_node in 0..HL_SIZE {
             self.state[hl_node] += NET.feature_weights[idx * HL_SIZE + hl_node];
         }
@@ -100,4 +97,4 @@ impl Default for ValueNetworkState {
     fn default() -> Self {
         Self::new()
     }
-}*/
+}

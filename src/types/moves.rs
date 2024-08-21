@@ -121,6 +121,9 @@ impl Move {
 
         Self::new_unchecked(from, to, flag as u8)
     }
+    pub fn to_other_string(&self) -> String {
+        self.0.to_string()
+    }
 }
 
 impl fmt::Display for Move {
