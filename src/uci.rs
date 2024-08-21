@@ -124,7 +124,7 @@ impl Manager {
         let mut board: Board = Board::new();
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine.search(board.clone(), 10_000_000, 10_000_000, 4, false);
+            self.engine.search(board.clone(), 10_000_000, 10_000_000, 10_000_000, 5, false);
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
@@ -132,9 +132,70 @@ impl Manager {
     }
 
     pub fn go(&mut self, command_text: &str) {
-        let mut command_split = command_text.split_ascii_whitespace();
-        let time: u128 = command_split.nth(4 - 2 * self.board.ctm as usize).expect("no time?").parse::<u128>().expect("invalid time");
-        let best_move = self.engine.search(self.board.clone(), 1_000_000_000_000_000, time, 100, true);
+        let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
+        let mut i: usize = 1;
+        let mut time: u128 = 1_000_000_000_000_000;
+        let mut inc: u128 = 0;
+        let mut nodes = 1_000_000_000_000_000;
+        let mut depth = 1_000_000_000;
+        let mut btime: u128 = 0;
+        let mut wtime: u128 = 0;
+        let mut binc: u128 = 0;
+        let mut winc: u128 = 0;
+        while i < command_sections.len() {
+            match command_sections[i] {
+                "depth" => {
+                    i += 1;
+                    if i >= command_sections.len() {
+                        panic!("missing depth");
+                    }
+
+                    depth = command_sections[i].parse::<u32>().expect("not a parsable depth");                    
+                }
+                "nodes" => {
+                    i += 1;
+                    if i >= command_sections.len() {
+                        eprintln!("Missing node count");
+                        return;
+                    }
+
+                    nodes = command_sections[i].parse::<u128>().expect("not a parsable node limit");
+                }
+                "wtime" | "btime" | "winc" | "binc" => {
+                    let token = command_sections[i];
+
+                    i += 1;
+                    if i >= command_sections.len() {
+                        eprintln!("Missing {}", token);
+                        return;
+                    }
+
+                    let Ok(value) = command_sections[i].parse::<u128>() else {
+                        eprintln!("Invalid {} '{}'", token, command_sections[i]);
+                        return;
+                    };
+
+                    match token {
+                        "btime" => btime = value,
+                        "wtime" => wtime = value,
+                        "binc" => binc = value,
+                        "winc" => winc = value,
+                        _ => unreachable!(),
+                    }
+                }
+                _ => println!("invalid go limiter: {}", command_sections[i]),
+            }
+
+            i += 1;
+        }
+        if self.board.ctm == 0 && btime != 0 {
+            time = btime;
+            inc = binc;
+        } else if self.board.ctm == 1 && wtime != 0 {
+            time = wtime;
+            inc = winc;
+        }
+        let best_move = self.engine.search(self.board.clone(), nodes, time, inc, depth, true);
         println!("bestmove {best_move}");
     }
 
