@@ -15,7 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-
+#[cfg(feature = "datagen")]
+use crate::datagen::NODE_LIMIT;
 use crate::{board::Board, types::{moves::Move, MoveList}};
 use std::time::Instant;
 use std::ops::Range;
@@ -219,7 +220,7 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn search(&mut self, board: Board, node_lim: u128, time: u128, depth: u32, info: bool) -> (Move, i32) {
+    pub fn search(&mut self, board: Board, node_lim: u128, time: u128, depth: u32, info: bool) -> Move {
         self.nodes = 0;
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
@@ -277,8 +278,8 @@ impl Engine {
             prev_avg_depth = avg_depth;
         }
 
-        let (thing1, thing2) = self.get_best_move();
-        let best_move = self.tree[thing1].mov;
+        let (best_node_idx, best_score) = self.get_best_move();
+        let best_move = self.tree[best_node_idx].mov;
 
         let duration = self.start.elapsed().as_millis();
         let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
@@ -288,13 +289,61 @@ impl Engine {
             } else {
                 self.nodes * 1000 / duration
             };
-            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(thing2), best_move);
+            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(best_score), best_move);
         }
 
         self.tree.clear();
         self.tree.shrink_to_fit();
 
-        (best_move, to_cp(thing2))
+        best_move
+    }
+    #[cfg(feature = "datagen")]
+    pub fn datagen_search(&mut self, board: Board) -> (Move, i32, u32, Vec<(Move, u32)>) {
+        self.nodes = 0;
+        self.start = Instant::now();
+
+        self.tree.push(Node::new(0, Move::new_unchecked(0, 0, 0)));
+
+        let root_state = board.states.last().expect("bruh you gave an empty board");
+        let root_ctm = board.ctm;
+
+        while self.nodes < NODE_LIMIT {
+            self.board.load_state(root_state, root_ctm);
+
+            // selection
+            let node_idx = self.select();
+            let node = &self.tree[node_idx];
+
+            // expansion
+            if !node.result.is_terminal() && node.visits != 0 {
+                self.expand(node_idx);
+            }
+
+            // simulation
+            let result = self.simulate(node_idx);
+            // backpropogation
+            self.backprop(node_idx, result);
+
+            self.nodes += 1;
+        }
+
+        let (best_node_idx, best_score) = self.get_best_move();
+        let best_move = self.tree[best_node_idx].mov;
+        
+        // get visit distribution
+        let root_node = &self.tree[0];
+        let root_visits = root_node.visits;
+        let mut visit_points: Vec<(Move, u32)> = vec![];
+        for child_idx in root_node.children_range() {
+            let child_node = &self.tree[child_idx];
+            visit_points.push((child_node.mov, child_node.visits));
+        }
+
+
+        self.tree.clear();
+        self.tree.shrink_to_fit();
+
+        (best_move, to_cp(best_score), root_visits, visit_points) 
     }
 }
 

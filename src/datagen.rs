@@ -21,11 +21,13 @@ use std::{fs::File, io::{BufWriter, Write}, sync::{atomic::{AtomicU64, Ordering}
 use crate::{board::Board, search::Engine, types::MoveList};
 #[cfg(feature = "datagen")]
 use rand::Rng;
-
+#[cfg(feature = "datagen")]
+pub const NODE_LIMIT: u128 = 1000;
 
 #[cfg(feature = "datagen")]
 pub fn datagen_main(args: Vec<String>) {
     let thread_count: usize = args[2].parse().expect("invalid thread count");
+    let policy = args.len() > 4 && args[4] == "policy";
     println!("generating data on {thread_count} threads");
     let draw_count = Arc::new(AtomicU64::new(0));
     let game_count = Arc::new(AtomicU64::new(0));
@@ -38,7 +40,7 @@ pub fn datagen_main(args: Vec<String>) {
         let draw_count_clone = Arc::clone(&draw_count);
         let value = args[3].clone();
         threads.push(thread::spawn(move || {
-            thread_function(value, 1 + i as u8, &game_count_clone, &pos_count_clone, &draw_count_clone, start)
+            thread_function(value, 1 + i as u8, &game_count_clone, &pos_count_clone, &draw_count_clone, start, policy)
         }));
     }
     for thread in threads {
@@ -47,23 +49,23 @@ pub fn datagen_main(args: Vec<String>) {
 }
 
 #[cfg(feature = "datagen")]
-fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant) {
+fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant, policy: bool) {
     let mut board: Board = Board::new();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let this_directory = directory + "thread" + &thread_id.to_string() + ".txt";
     let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));
     loop {
         let mut data: Vec<String> = vec![];
-        let result = run_game(&mut data, board.clone());
+        let result = run_game(&mut data, board.clone(), policy);
         if result != 3 {
-            dump_to_file(data, &mut writer, game_count, position_count, draw_count, start, result);
+            dump_to_file(data, &mut writer, game_count, position_count, draw_count, start, result, policy);
         }
     }
 }
 
 #[cfg(feature = "datagen")]
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
-fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
+fn run_game(strings: &mut Vec<String>, mut board: Board, policy: bool) -> u8 {
     // 8 random moves
     for _ in 0..8 {
         // generate the moves
@@ -82,7 +84,7 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
     let mut engine: Engine = Engine::new();
     // the rest of the moves
     for _ in 0..1000 {
-        let (mov, score) = engine.search(board.clone(), 1000, 1000000000, 1000000, false);
+        let (mov, score, root_visits, visit_points) = engine.datagen_search(board.clone());
         board.make_move(mov);
         if board.is_drawn() {
             return 1
@@ -102,15 +104,25 @@ fn run_game(strings: &mut Vec<String>, mut board: Board) -> u8 {
                 return 1
             }
         }
-
-        strings.push(format!("{} | {} | ", board.get_fen(), score * (1 - i32::from(board.ctm) * 2)));
+        if policy {
+            let mut thing: String = format!("{} | {} | ", board.get_fen(), root_visits);
+            for (mov, visits) in visit_points {
+                thing += &mov.to_other_string();
+                thing += " ";
+                thing += &visits.to_string();
+                thing += " ";
+            }
+            strings.push(thing);
+        } else {
+            strings.push(format!("{} | {} | ", board.get_fen(), score * (1 - i32::from(board.ctm) * 2)));
+        }
     }
     let score = board.evaluate();
     if score < 0 { return 0 } else if score > 0 { return 2 } else { return 1 }
 }
 
 #[cfg(feature = "datagen")]
-fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant, result: u8) {
+fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant, result: u8, policy: bool) {
     game_count.fetch_add(1, Ordering::Relaxed);
     if result == 1 { draw_count.fetch_add(1, Ordering::Relaxed); }
     position_count.fetch_add(strings.len() as u64, Ordering::Relaxed);
@@ -130,7 +142,9 @@ fn dump_to_file(strings: Vec<String>, writer: &mut BufWriter<File>, game_count: 
 
     // push it to a file
     for mut line in strings {
-        line += &(result as f64 / 2.0).to_string();
+        if !policy {
+            line += &(result as f64 / 2.0).to_string();
+        }
         line += "\n";
         writer.write_all(line.as_bytes()).expect("failed to write to file");
     }
