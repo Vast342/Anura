@@ -18,11 +18,23 @@
 #[cfg(feature = "datagen")]
 use std::{fs::File, io::{BufWriter, Write}, sync::{atomic::{AtomicU64, Ordering}, Arc}, thread::{self}, time::Instant};
 #[cfg(feature = "datagen")]
-use crate::{board::Board, search::Engine, types::MoveList};
+use crate::{board::Board, search::Engine, types::{bitboard::Bitboard, moves::Move, MoveList}};
 #[cfg(feature = "datagen")]
 use rand::Rng;
 #[cfg(feature = "datagen")]
 pub const NODE_LIMIT: u128 = 1000;
+
+#[cfg(feature = "datagen")]
+// size = 160 (0xA0), align = 0x8   
+struct PolicyDatapoint {
+    occupied: Bitboard,
+    // 4 bits per piece, in order of the occ's bits, lsb to msb
+    pieces: [u8; 16],
+    // number of visits on the root node is calculated from the sum of this array's visits
+    // ctm is encoded in the first bit of the first move here since that's just unused otherwise
+    // it's the 32 most visited moves out of however many the position has
+    moves: [(Move, u16); 32],
+}
 
 #[cfg(feature = "datagen")]
 pub fn datagen_main(args: Vec<String>) {
