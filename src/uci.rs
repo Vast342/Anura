@@ -170,16 +170,16 @@ impl Manager {
                         return;
                     }
 
-                    let Ok(value) = command_sections[i].parse::<u128>() else {
+                    let Ok(value) = command_sections[i].parse::<i128>() else {
                         eprintln!("Invalid {} '{}'", token, command_sections[i]);
                         return;
                     };
 
                     match token {
-                        "btime" => btime = value,
-                        "wtime" => wtime = value,
-                        "binc" => binc = value,
-                        "winc" => winc = value,
+                        "btime" => btime = value as u128,
+                        "wtime" => wtime = value as u128,
+                        "binc" => binc = value as u128,
+                        "winc" => winc = value as u128,
                         _ => unreachable!(),
                     }
                 }

@@ -275,8 +275,8 @@ impl Engine {
                     };
                     println!("info depth {} seldepth {} nodes {} time {} nps {}", avg_depth, seldepth, self.nodes, duration, nps);
                 }
+                prev_avg_depth = avg_depth;
             }
-            prev_avg_depth = avg_depth;
         }
 
         let (best_node_idx, best_score) = self.get_best_move();
