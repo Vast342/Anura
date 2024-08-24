@@ -1,4 +1,5 @@
 EXE = anura
+TYPE = policy
 
 ifeq ($(OS),Windows_NT)
     override EXE := $(EXE).exe
@@ -11,7 +12,7 @@ debug:
 	cargo rustc -- -C target-cpu=native --emit link=$(EXE)
 
 datagen:
-	cargo rustc --release --features "datagen" -- -C target-cpu=native --emit link=$(EXE)
+	cargo rustc --release --features "datagen, $(TYPE)" -- -C target-cpu=native --emit link=$(EXE)
 
 perftsuite:
 	cargo rustc --release --features "perftsuite" -- -C target-cpu=native --emit link=$(EXE)
