@@ -19,4 +19,6 @@ rand = { version = "0.8.5", optional = true }
 
 [features]
 datagen = ["rand"]
+policy = []
+value = []
 perftsuite = []
