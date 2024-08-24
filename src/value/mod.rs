@@ -39,7 +39,7 @@ pub struct ValueNetwork {
     output_bias: i16,
 }
 
-pub const NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn_002.vn")) };
+pub const VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn_002.vn")) };
 
 #[derive(Debug, Clone)]
 pub struct ValueNetworkState {
@@ -58,10 +58,10 @@ pub fn activation(x: i16) -> i32 {
 
 impl ValueNetworkState {
     pub const fn new() -> Self {
-        Self{state: NET.feature_biases}
+        Self{state: VALUE_NET.feature_biases}
     }
     pub fn reset(&mut self) {
-        self.state = NET.feature_biases
+        self.state = VALUE_NET.feature_biases
     }
     pub fn evaluate(&mut self, position: &Position) -> i32 {
         self.load_position(position);
@@ -79,17 +79,17 @@ impl ValueNetworkState {
     pub fn activate_feature(&mut self, piece: Piece, sq: Square) {
         let idx = get_feature_index(piece, sq);
         for hl_node in 0..HL_SIZE {
-            self.state[hl_node] += NET.feature_weights[idx * HL_SIZE + hl_node];
+            self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
     }
     pub fn forward(&self) -> i32 {
         let mut sum = 0;
 
         for hl_node in 0..HL_SIZE {
-            sum += activation(self.state[hl_node]) * NET.output_weights[hl_node] as i32;
+            sum += activation(self.state[hl_node]) * VALUE_NET.output_weights[hl_node] as i32;
         }
 
-        (sum / QA + NET.output_bias as i32) * EVAL_SCALE as i32 / QAB
+        (sum / QA + VALUE_NET.output_bias as i32) * EVAL_SCALE as i32 / QAB
     }
 }
 

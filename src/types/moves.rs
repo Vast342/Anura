@@ -60,11 +60,12 @@ impl Flag {
 }
 
 impl Move {
-    #[must_use] pub fn new_unchecked(from: u8, to: u8, flag: u8) -> Self {
-        debug_assert!(from <= 63, "invalid from square {from}");
-        debug_assert!(to <= 63, "invalid to square {to}");
-        Self((u16::from(flag) << 12) | (u16::from(to) << 6) | u16::from(from))
+    #[must_use] pub const fn new_unchecked(from: u8, to: u8, flag: u8) -> Self {
+        //debug_assert!(from <= 63, "invalid from square {from}");
+        //debug_assert!(to <= 63, "invalid to square {to}");
+        Self(((flag as u16) << 12) | ((to as u16) << 6) | from as u16)
     }
+    pub const NULL_MOVE: Self = Self::new_unchecked(0, 0, 0);
     #[must_use] pub const fn from(&self) -> u8 {
         (self.0 & 0b11_1111) as u8
     }

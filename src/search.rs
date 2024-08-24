@@ -227,7 +227,7 @@ impl Engine {
         let mut prev_avg_depth = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(0, Move::new_unchecked(0, 0, 0)));
+        self.tree.push(Node::new(0, Move::NULL_MOVE));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
@@ -299,11 +299,11 @@ impl Engine {
         best_move
     }
     #[cfg(feature = "datagen")]
-    pub fn datagen_search(&mut self, board: Board) -> (Move, i32, u32, Vec<(Move, u32)>) {
+    pub fn datagen_search(&mut self, board: Board) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(0, Move::new_unchecked(0, 0, 0)));
+        self.tree.push(Node::new(0, Move::NULL_MOVE));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
@@ -333,18 +333,17 @@ impl Engine {
         
         // get visit distribution
         let root_node = &self.tree[0];
-        let root_visits = root_node.visits;
-        let mut visit_points: Vec<(Move, u32)> = vec![];
+        let mut visit_points: Vec<(Move, u16)> = vec![];
         for child_idx in root_node.children_range() {
             let child_node = &self.tree[child_idx];
-            visit_points.push((child_node.mov, child_node.visits));
+            visit_points.push((child_node.mov, child_node.visits as u16));
         }
 
 
         self.tree.clear();
         self.tree.shrink_to_fit();
 
-        (best_move, to_cp(best_score), root_visits, visit_points) 
+        (best_move, to_cp(best_score), visit_points) 
     }
 }
 
