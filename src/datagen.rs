@@ -157,6 +157,12 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
                 index += 1;
             }
             occ = state.occupied();
+            /*println!("{}", board.get_fen());
+            dbg!(occ);
+            for dn in 0..16 {
+                println!("{}, {}", Piece(pieces[dn] >> 4), Piece(pieces[dn] & 0b1111));
+            }
+            panic!(":3");*/
             visit_points.sort_by(|a, b| b.1.cmp(&a.1));
             let mut thingies = [(Move::NULL_MOVE, 0); 32];
             let len = visit_points.len().min(thingies.len());

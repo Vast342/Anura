@@ -21,6 +21,7 @@ pub mod uci;
 pub mod board;
 pub mod types;
 pub mod value;
+pub mod policy;
 pub mod movegen;
 pub mod perft;
 pub mod search;
