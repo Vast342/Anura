@@ -42,7 +42,7 @@ pub const KING_RIGHT_MASKS: [u8; 2] = [
 ];
 
 use crate::{
-    hash::{zobrist_ctm, zobrist_psq}, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, rays::{ray_between, ray_intersecting}, types::{
+    hash::{zobrist_ctm, zobrist_psq}, movegen::{lookups::DIRECTIONAL_OFFSETS, others::{get_king_attacks, get_knight_attacks}, pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise}, slideys::{get_bishop_attacks, get_rook_attacks}}, policy::get_score, rays::{ray_between, ray_intersecting}, types::{
         bitboard::Bitboard, moves::{Flag, Move}, piece::{
             Colors, Piece, Types
         }, square::Square, MoveList
@@ -764,6 +764,9 @@ impl Board {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.states.last().expect("bruh"))
 
+    }
+    pub fn get_policy(&self, mov: Move) -> f32 {
+        get_score(self.states.last().expect("bruh"), mov)
     }
     #[must_use] pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();

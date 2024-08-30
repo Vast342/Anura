@@ -128,7 +128,7 @@ impl Engine {
                 } else {
                     child.avg()
                 };
-                let p = 1.0 / node.child_count as f32;
+                let p = self.board.get_policy(child.mov);
                 let uct = avg + e * p / (1 + child.visits) as f32; 
                 
                 if uct > best_child_uct {
