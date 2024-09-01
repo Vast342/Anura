@@ -35,6 +35,7 @@ pub enum CommandTypes {
     MakeMove,
     Bench,
     GetFen,
+    Policy,
     Empty,
     Invalid,
     Quit,
@@ -87,6 +88,7 @@ impl Manager {
             "perftsuite" => CommandTypes::PerftSuite,
             "makemove" => CommandTypes::MakeMove,
             "bench" => CommandTypes::Bench,
+            "policy" => CommandTypes::Policy,
             _ => CommandTypes::Invalid,
         }
     }
@@ -112,10 +114,30 @@ impl Manager {
             CommandTypes::PerftSuite => self.perft_suite(),
             CommandTypes::Bench => self.bench(),
             CommandTypes::GetFen => self.get_fen(),
+            CommandTypes::Policy => self.output_policy(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
         true
+    }
+
+    pub fn output_policy(&mut self) {
+        let mut moves = MoveList::new();
+        self.board.get_moves(&mut moves);
+        
+        // get initial policy values
+        let mut policy: Vec<f32> = vec![0.0; moves.len()];
+        let mut policy_sum: f32 = 0.0;
+        for i in 0..moves.len() {
+            policy[i] = self.board.get_policy(moves[i]);
+            policy_sum += policy[i].exp();
+        }
+        // normalize
+        // could prob do some like .iter().enumerate() shenanigans here but ehhhhhh
+        for i in 0..moves.len() {
+            policy[i] = policy[i].exp() / policy_sum;
+            println!("{}: {}", moves[i], policy[i]);
+        }
     }
 
     pub fn bench(&mut self) {
