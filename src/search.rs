@@ -164,7 +164,6 @@ impl Engine {
             policy_sum += policy[i];
         }
         // normalize
-        // could prob do some like .iter().enumerate() shenanigans here but ehhhhhh
         for i in 0..moves.len() {
             policy[i] = policy[i] / policy_sum;
         }
