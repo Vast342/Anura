@@ -281,6 +281,8 @@ impl Board {
             let index = us.pop_lsb();
             let piece = state.piece_on_square(Square(index));
             let is_pinned = (total_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+            let is_diag_pin = (state.diago_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
+            let is_ortho_pin = (state.ortho_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
             let mut current_attack: Bitboard = match piece.piece() {
                 // pawns (we do them setwise later)
                 0 => Bitboard::EMPTY,
@@ -291,8 +293,10 @@ impl Board {
                 },
                 // bishops
                 2 => {
-                    if is_pinned {  
-                        get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
+                    if is_pinned {
+                        if is_diago_pin {
+                            get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
+                        } else { continue }
                     } else {
                         get_bishop_attacks(Square(index), occ)
                     }
@@ -300,7 +304,9 @@ impl Board {
                 // rooks
                 3 => {
                     if is_pinned {
-                        get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                        if is_ortho_pin {
+                            get_rook_attacks(Square(index), occ) & state.ortho_pin_mask
+                        } else { continue }
                     } else {
                         get_rook_attacks(Square(index), occ)
                     }
@@ -308,8 +314,6 @@ impl Board {
                 // queens
                 4 => {
                     if is_pinned {
-                        let is_diag_pin = (state.diago_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
-                        let is_ortho_pin = (state.ortho_pin_mask & Bitboard::from_square(Square(index))).is_not_empty();
                         if is_diag_pin {
                             get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
                         } else if is_ortho_pin {
@@ -325,7 +329,7 @@ impl Board {
                 5 => {
                     let mut potential_moves = get_king_attacks(Square(index));
                     let mut checkers_clone = checkers;
-                    while checkers_clone .is_not_empty() {
+                    while checkers_clone.is_not_empty() {
                         let checker = Square(checkers_clone.pop_lsb());
                         let checker_piece = state.piece_on_square(checker).piece();
                         if let 2..=4 = checker_piece { potential_moves &= !(ray_intersecting(Square(index), checker) & !Bitboard::from_square(checker)) }
