@@ -17,8 +17,7 @@
 */
 
 use std::fmt;
-use std::ops::{BitXorAssign, BitXor, BitAnd, BitOrAssign, BitOr, Shl, Shr, Not, BitAndAssign};
-
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Not, Shl, Shr};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct Bitboard(pub u64);
@@ -31,24 +30,30 @@ pub const FILEMASK: u64 = 0b1_0000_0001_0000_0001_0000_0001_0000_0001_0000_0001_
 pub const RANKMASK: u64 = 0b1111_1111;
 
 impl Bitboard {
-
     pub const EMPTY: Self = Self(0);
 
-    #[must_use] pub const fn from_square(sq: Square) -> Self {
+    #[must_use]
+    pub const fn from_square(sq: Square) -> Self {
         Self(1 << sq.0)
     }
-    #[must_use] pub const fn from_rank(rank: u8) -> Self {
+    #[must_use]
+    pub const fn from_rank(rank: u8) -> Self {
         Self(RANKMASK << (8 * rank))
     }
-    #[must_use] pub const fn from_file(file: u8) -> Self {
+    #[must_use]
+    pub const fn from_file(file: u8) -> Self {
         Self(FILEMASK << file)
     }
 
-    #[must_use] #[allow(clippy::cast_possible_truncation)] pub const fn lsb(&self) -> u8 {
+    #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
+    pub const fn lsb(&self) -> u8 {
         debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
         self.0.trailing_zeros() as u8
     }
-    #[must_use] #[allow(clippy::cast_possible_truncation)] pub const fn msb(&self) -> u8 {
+    #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
+    pub const fn msb(&self) -> u8 {
         debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
         self.0.leading_zeros() as u8
     }
@@ -57,19 +62,24 @@ impl Bitboard {
         self.0 &= self.0 - 1;
         lsb
     }
-    #[must_use] pub const fn popcount(&self) -> u32 {
+    #[must_use]
+    pub const fn popcount(&self) -> u32 {
         self.0.count_ones()
     }
-    #[must_use] pub const fn is_empty(&self) -> bool {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
         self.0 == 0
     }
-    #[must_use] pub const fn is_not_empty(&self) -> bool {
+    #[must_use]
+    pub const fn is_not_empty(&self) -> bool {
         self.0 != 0
     }
-    #[must_use] pub const fn has_bits(&self) -> bool {
+    #[must_use]
+    pub const fn has_bits(&self) -> bool {
         self.0 != 0
     }
-    #[must_use] pub const fn as_u64(&self) -> u64 {
+    #[must_use]
+    pub const fn as_u64(&self) -> u64 {
         self.0
     }
     #[must_use]
@@ -100,7 +110,7 @@ impl BitAnd for Bitboard {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self(self.0 & rhs.0 )
+        Self(self.0 & rhs.0)
     }
 }
 
@@ -108,7 +118,7 @@ impl BitOr for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self(self.0 | rhs.0 )
+        Self(self.0 | rhs.0)
     }
 }
 

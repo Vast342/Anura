@@ -15,19 +15,23 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#![allow(clippy::missing_panics_doc, clippy::cargo_common_metadata, clippy::cast_possible_truncation)]
+#![allow(
+    clippy::missing_panics_doc,
+    clippy::cargo_common_metadata,
+    clippy::cast_possible_truncation
+)]
 
-pub mod uci;
 pub mod board;
-pub mod types;
-pub mod value;
+pub mod datagen;
+pub mod hash;
 pub mod movegen;
 pub mod perft;
-pub mod search;
-pub mod datagen;
-pub mod rays;
 pub mod prng;
-pub mod hash;
+pub mod rays;
+pub mod search;
+pub mod types;
+pub mod uci;
+pub mod value;
 
 #[cfg(feature = "datagen")]
 use datagen::datagen_main;

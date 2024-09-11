@@ -16,7 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use crate::{prng::fill_array, types::{piece::Piece, square::Square}};
+use crate::{
+    prng::fill_array,
+    types::{piece::Piece, square::Square},
+};
 
 const PIECE_SQUARE_SIZE: usize = 14 * 64;
 const CTM_SIZE: usize = 1;

@@ -40,7 +40,12 @@ pub struct Generator {
 
 impl Generator {
     pub const fn new(seed: u64) -> Self {
-        let mut thing = Self{a: seed, b: seed, c: seed, d: seed};
+        let mut thing = Self {
+            a: seed,
+            b: seed,
+            c: seed,
+            d: seed,
+        };
         // run a few iterations
         let mut i = 0;
         while i < 15 {

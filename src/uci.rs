@@ -19,7 +19,13 @@
 use std::io;
 use std::time::Instant;
 
-use crate::{board::Board, movegen::lookups::BENCH_FENS, perft::{perft, run_perft_suite}, search::Engine, types::{moves::Move, MoveList}};
+use crate::{
+    board::Board,
+    movegen::lookups::BENCH_FENS,
+    perft::{perft, run_perft_suite},
+    search::Engine,
+    types::{moves::Move, MoveList},
+};
 
 pub enum CommandTypes {
     Uci,
@@ -53,13 +59,17 @@ impl Default for Manager {
 }
 
 impl Manager {
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         let b: Board = Board::new();
         let e: Engine = Engine::new();
-        Self{board: b, engine: e}
+        Self {
+            board: b,
+            engine: e,
+        }
     }
     // read line from stdin and then interpret it
-    pub fn get_command(&mut self) -> bool{
+    pub fn get_command(&mut self) -> bool {
         let mut buffer = String::new();
 
         io::stdin()
@@ -70,9 +80,12 @@ impl Manager {
         self.uci_interpret_command(command)
     }
 
-    #[must_use] pub fn parse(&self, command: &str) -> CommandTypes {
+    #[must_use]
+    pub fn parse(&self, command: &str) -> CommandTypes {
         let mut command_split = command.split_ascii_whitespace();
-        let Some(first_token) = command_split.next() else { return CommandTypes::Empty };
+        let Some(first_token) = command_split.next() else {
+            return CommandTypes::Empty;
+        };
 
         match first_token {
             "uci" => CommandTypes::Uci,
@@ -124,11 +137,16 @@ impl Manager {
         let mut board: Board = Board::new();
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine.search(board.clone(), 10_000_000, 10_000_000, 10_000_000, 5, false);
+            self.engine
+                .search(board.clone(), 10_000_000, 10_000_000, 10_000_000, 5, false);
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
-        println!("{} nodes {} nps", total, (total as f64/duration.as_secs_f64()) as u64);
+        println!(
+            "{} nodes {} nps",
+            total,
+            (total as f64 / duration.as_secs_f64()) as u64
+        );
     }
 
     pub fn go(&mut self, command_text: &str) {
@@ -150,7 +168,9 @@ impl Manager {
                         panic!("missing depth");
                     }
 
-                    depth = command_sections[i].parse::<u32>().expect("not a parsable depth");                    
+                    depth = command_sections[i]
+                        .parse::<u32>()
+                        .expect("not a parsable depth");
                 }
                 "nodes" => {
                     i += 1;
@@ -159,7 +179,9 @@ impl Manager {
                         return;
                     }
 
-                    nodes = command_sections[i].parse::<u128>().expect("not a parsable node limit");
+                    nodes = command_sections[i]
+                        .parse::<u128>()
+                        .expect("not a parsable node limit");
                 }
                 "wtime" | "btime" | "winc" | "binc" => {
                     let token = command_sections[i];
@@ -195,19 +217,27 @@ impl Manager {
             time = wtime;
             inc = winc;
         }
-        let best_move = self.engine.search(self.board.clone(), nodes, time, inc, depth, true);
+        let best_move = self
+            .engine
+            .search(self.board.clone(), nodes, time, inc, depth, true);
         println!("bestmove {best_move}");
     }
-
 
     pub fn perft(&mut self, command_text: &str) {
         let mut command_split = command_text.split_ascii_whitespace();
         let _first_token = command_split.next().expect("not enough tokens");
         let second_token = command_split.next().expect("not enough tokens");
         let start = Instant::now();
-        let nodes = perft(&mut self.board, second_token.parse().expect("invalid perft depth"));
+        let nodes = perft(
+            &mut self.board,
+            second_token.parse().expect("invalid perft depth"),
+        );
         let duration = start.elapsed();
-        println!("{} nodes {} nps", nodes, nodes as f64/duration.as_secs_f64());
+        println!(
+            "{} nodes {} nps",
+            nodes,
+            nodes as f64 / duration.as_secs_f64()
+        );
     }
 
     pub fn split_perft(&mut self, command_text: &str) {
@@ -228,7 +258,11 @@ impl Manager {
         }
         let duration = start.elapsed();
         println!("total: ");
-        println!("{} nodes {} nps", total, total as f64/duration.as_secs_f64());
+        println!(
+            "{} nodes {} nps",
+            total,
+            total as f64 / duration.as_secs_f64()
+        );
     }
 
     pub fn perft_suite(&self) {
@@ -239,7 +273,8 @@ impl Manager {
         let mut command_split = command_text.split_ascii_whitespace();
         let _first_token = command_split.next().expect("not enough tokens");
         let second_token = command_split.next().expect("not enough tokens");
-        self.board.make_move(Move::from_text(second_token, &self.board));
+        self.board
+            .make_move(Move::from_text(second_token, &self.board));
     }
 
     pub fn position(&mut self, command_text: &str) {
@@ -250,22 +285,30 @@ impl Manager {
         if second_token == "startpos" {
             fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string();
         } else if second_token == "kiwipete" {
-            fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string();
+            fen =
+                "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1".to_string();
         } else {
             let third_token = command_split.next().expect("not enough tokens");
-            fen = third_token.to_owned() + " "
-                + command_split.next().expect("not enough tokens") + " " 
-                + command_split.next().expect("not enough tokens") + " " 
-                + command_split.next().expect("not enough tokens") + " ";
+            fen = third_token.to_owned()
+                + " "
+                + command_split.next().expect("not enough tokens")
+                + " "
+                + command_split.next().expect("not enough tokens")
+                + " "
+                + command_split.next().expect("not enough tokens")
+                + " ";
             let next_token = command_split.next();
-            if let Some(string) = next_token { if string != "moves" {
-                fen += &(string.to_owned() + " "
-                     + command_split.next().expect("not enough tokens"));
-            } }
+            if let Some(string) = next_token {
+                if string != "moves" {
+                    fen += &(string.to_owned()
+                        + " "
+                        + command_split.next().expect("not enough tokens"));
+                }
+            }
         }
         self.board = Board::new();
         self.board.load_fen(&fen);
-        // if there are moves 
+        // if there are moves
         if let Some(_moves_token) = command_split.next() {
             // loop through the rest of the moves
             for move_text in command_split {

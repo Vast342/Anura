@@ -1,4 +1,8 @@
-use crate::{board::Position, search::EVAL_SCALE, types::{bitboard::Bitboard, piece::Piece, square::Square}};
+use crate::{
+    board::Position,
+    search::EVAL_SCALE,
+    types::{bitboard::Bitboard, piece::Piece, square::Square},
+};
 
 /*
     Anura
@@ -34,8 +38,8 @@ const QAB: i32 = QA * _QB;
 #[repr(align(64))]
 pub struct ValueNetwork {
     feature_weights: [i16; INPUT_SIZE * HL_SIZE],
-    feature_biases:  [i16; HL_SIZE],
-    output_weights:  [i16; HL_SIZE],
+    feature_biases: [i16; HL_SIZE],
+    output_weights: [i16; HL_SIZE],
     output_bias: i16,
 }
 
@@ -46,7 +50,7 @@ pub struct ValueNetworkState {
     state: [i16; HL_SIZE],
 }
 
-pub const fn get_feature_index(piece: Piece, sq: Square) -> usize{
+pub const fn get_feature_index(piece: Piece, sq: Square) -> usize {
     let c = 1 - piece.color() as usize;
     let p = piece.piece() as usize;
     return c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize;
@@ -58,7 +62,9 @@ pub fn activation(x: i16) -> i32 {
 
 impl ValueNetworkState {
     pub const fn new() -> Self {
-        Self{state: VALUE_NET.feature_biases}
+        Self {
+            state: VALUE_NET.feature_biases,
+        }
     }
     pub fn reset(&mut self) {
         self.state = VALUE_NET.feature_biases

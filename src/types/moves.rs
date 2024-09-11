@@ -60,23 +60,28 @@ impl Flag {
 }
 
 impl Move {
-    #[must_use] pub const fn new_unchecked(from: u8, to: u8, flag: u8) -> Self {
+    #[must_use]
+    pub const fn new_unchecked(from: u8, to: u8, flag: u8) -> Self {
         //debug_assert!(from <= 63, "invalid from square {from}");
         //debug_assert!(to <= 63, "invalid to square {to}");
         Self(((flag as u16) << 12) | ((to as u16) << 6) | from as u16)
     }
     pub const NULL_MOVE: Self = Self::new_unchecked(0, 0, 0);
-    #[must_use] pub const fn from(&self) -> u8 {
+    #[must_use]
+    pub const fn from(&self) -> u8 {
         (self.0 & 0b11_1111) as u8
     }
-    #[must_use] pub const fn to(&self) -> u8 {
+    #[must_use]
+    pub const fn to(&self) -> u8 {
         ((self.0 >> 6) & 0b11_1111) as u8
     }
-    #[must_use] pub fn flag(&self) -> Flag {
+    #[must_use]
+    pub fn flag(&self) -> Flag {
         Flag::from_u8((self.0 >> 12) as u8)
     }
     // next: convert text format to move (look to board's ep index decoding)
-    #[must_use] pub fn from_text(text: &str, board: &Board) -> Self {
+    #[must_use]
+    pub fn from_text(text: &str, board: &Board) -> Self {
         let state = board.states.last().expect("teehee");
         let from_text = text[..2].to_owned();
         let to_text = text[2..4].to_owned();
@@ -84,14 +89,14 @@ impl Move {
         let mut to: u8 = 0;
         let mut flag: Flag = Flag::Normal;
         for i in 0..64 {
-            if from_text == SQUARE_NAMES[i as usize] { 
-                from = i; 
+            if from_text == SQUARE_NAMES[i as usize] {
+                from = i;
                 break;
             }
         }
         for i in 0..64 {
-            if to_text == SQUARE_NAMES[i as usize] { 
-                to = i; 
+            if to_text == SQUARE_NAMES[i as usize] {
+                to = i;
                 break;
             }
         }
@@ -100,7 +105,7 @@ impl Move {
                 'n' => Flag::KnightPromo,
                 'b' => Flag::BishopPromo,
                 'r' => Flag::RookPromo,
-                'q' => Flag::QueenPromo, 
+                'q' => Flag::QueenPromo,
                 _ => panic!("no promotion but length is over 4"),
             }
         } else {
@@ -113,9 +118,13 @@ impl Move {
                 flag = Flag::BKCastle;
             } else if (castling & 8) != 0 && text == "e8c8" {
                 flag = Flag::BQCastle;
-            } else if state.piece_on_square(Square(from)).piece() == Types::Pawn as u8 && Square(to) == state.ep_index {
+            } else if state.piece_on_square(Square(from)).piece() == Types::Pawn as u8
+                && Square(to) == state.ep_index
+            {
                 flag = Flag::EnPassant;
-            } else if state.piece_on_square(Square(from)).piece() == Types::Pawn as u8 && from.abs_diff(to) == 16{
+            } else if state.piece_on_square(Square(from)).piece() == Types::Pawn as u8
+                && from.abs_diff(to) == 16
+            {
                 flag = Flag::DoublePush;
             }
         }
