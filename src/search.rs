@@ -17,9 +17,12 @@
 */
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
-use crate::{board::Board, types::{moves::Move, MoveList}};
-use std::time::Instant;
+use crate::{
+    board::Board,
+    types::{moves::Move, MoveList},
+};
 use std::ops::Range;
+use std::time::Instant;
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
@@ -102,10 +105,17 @@ pub struct Engine {
 }
 
 impl Engine {
-    #[must_use] pub fn new() -> Self {
-        Self{tree: vec!(), board: Board::new(), depth: 0, nodes: 0, start: Instant::now()}
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            tree: vec![],
+            board: Board::new(),
+            depth: 0,
+            nodes: 0,
+            start: Instant::now(),
+        }
     }
-    fn select(&mut self) -> usize{
+    fn select(&mut self) -> usize {
         let mut current = 0;
         loop {
             let node = &self.tree[current as usize];
@@ -123,14 +133,10 @@ impl Engine {
             let mut best_child_uct = f32::NEG_INFINITY;
 
             for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
-                let avg = if child.visits == 0 {
-                    0.5
-                } else {
-                    child.avg()
-                };
+                let avg = if child.visits == 0 { 0.5 } else { child.avg() };
                 let p = 1.0 / node.child_count as f32;
-                let uct = avg + e * p / (1 + child.visits) as f32; 
-                
+                let uct = avg + e * p / (1 + child.visits) as f32;
+
                 if uct > best_child_uct {
                     best_child = Some(child_idx);
                     best_child_uct = uct;
@@ -220,7 +226,15 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn search(&mut self, board: Board, node_lim: u128, time: u128, inc: u128, depth_limit: u32, info: bool) -> Move {
+    pub fn search(
+        &mut self,
+        board: Board,
+        node_lim: u128,
+        time: u128,
+        inc: u128,
+        depth_limit: u32,
+        info: bool,
+    ) -> Move {
         self.nodes = 0;
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
@@ -259,7 +273,7 @@ impl Engine {
             if self.depth > seldepth {
                 seldepth = self.depth;
             }
-            
+
             // info
             let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
             if avg_depth >= depth_limit {
@@ -273,7 +287,10 @@ impl Engine {
                     } else {
                         self.nodes * 1000 / duration
                     };
-                    println!("info depth {} seldepth {} nodes {} time {} nps {}", avg_depth, seldepth, self.nodes, duration, nps);
+                    println!(
+                        "info depth {} seldepth {} nodes {} time {} nps {}",
+                        avg_depth, seldepth, self.nodes, duration, nps
+                    );
                 }
                 prev_avg_depth = avg_depth;
             }
@@ -290,7 +307,15 @@ impl Engine {
             } else {
                 self.nodes * 1000 / duration
             };
-            println!("info depth {} nodes {} time {} nps {} score cp {} pv {}", avg_depth, self.nodes, duration, nps, to_cp(best_score), best_move);
+            println!(
+                "info depth {} nodes {} time {} nps {} score cp {} pv {}",
+                avg_depth,
+                self.nodes,
+                duration,
+                nps,
+                to_cp(best_score),
+                best_move
+            );
         }
 
         self.tree.clear();
@@ -330,7 +355,7 @@ impl Engine {
 
         let (best_node_idx, best_score) = self.get_best_move();
         let best_move = self.tree[best_node_idx].mov;
-        
+
         // get visit distribution
         let root_node = &self.tree[0];
         let mut visit_points: Vec<(Move, u16)> = vec![];
@@ -339,11 +364,10 @@ impl Engine {
             visit_points.push((child_node.mov, child_node.visits as u16));
         }
 
-
         self.tree.clear();
         self.tree.shrink_to_fit();
 
-        (best_move, to_cp(best_score), visit_points) 
+        (best_move, to_cp(best_score), visit_points)
     }
 }
 

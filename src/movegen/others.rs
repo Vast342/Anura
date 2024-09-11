@@ -15,16 +15,18 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use super::lookups::{KING_ATTACKS, KNIGHT_ATTACKS};
 use crate::types::bitboard::Bitboard;
 use crate::types::square::Square;
-use super::lookups::{KING_ATTACKS, KNIGHT_ATTACKS};
 
 // Knights
-#[must_use] pub const fn get_knight_attacks(sq: Square) -> Bitboard {
+#[must_use]
+pub const fn get_knight_attacks(sq: Square) -> Bitboard {
     Bitboard(KNIGHT_ATTACKS[sq.as_usize()])
 }
 
 // Kings
-#[must_use] pub const fn get_king_attacks(sq: Square) -> Bitboard {
+#[must_use]
+pub const fn get_king_attacks(sq: Square) -> Bitboard {
     Bitboard(KING_ATTACKS[sq.as_usize()])
 }

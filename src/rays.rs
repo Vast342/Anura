@@ -38,7 +38,8 @@ pub fn init_between() {
     //unsafe { dbg!(BETWEEN_RAYS[60][39]) };
 }
 
-#[must_use] pub fn ray_between(a: Square, b: Square) -> Bitboard {
+#[must_use]
+pub fn ray_between(a: Square, b: Square) -> Bitboard {
     unsafe { BETWEEN_RAYS[a.as_usize()][b.as_usize()] }
 }
 
@@ -60,11 +61,13 @@ pub fn init_intersection() {
                     let dst_mask = Bitboard::from_square(dst);
 
                     if (rook_attacks & dst_mask).is_not_empty() {
-                        src_mask | get_rook_attacks(src, Bitboard::EMPTY)
-                         & (dst_mask | get_rook_attacks(dst, Bitboard::EMPTY))
-                    } else if (bishop_attacks & dst_mask).is_not_empty()  {
-                        src_mask | get_bishop_attacks(src, Bitboard::EMPTY)
-                         & (dst_mask | get_bishop_attacks(dst, Bitboard::EMPTY))
+                        src_mask
+                            | get_rook_attacks(src, Bitboard::EMPTY)
+                                & (dst_mask | get_rook_attacks(dst, Bitboard::EMPTY))
+                    } else if (bishop_attacks & dst_mask).is_not_empty() {
+                        src_mask
+                            | get_bishop_attacks(src, Bitboard::EMPTY)
+                                & (dst_mask | get_bishop_attacks(dst, Bitboard::EMPTY))
                     } else {
                         Bitboard::EMPTY
                     }
@@ -74,6 +77,7 @@ pub fn init_intersection() {
     }
 }
 
-#[must_use] pub fn ray_intersecting(a: Square, b: Square) -> Bitboard {
+#[must_use]
+pub fn ray_intersecting(a: Square, b: Square) -> Bitboard {
     unsafe { INTERSECTING_RAYS[a.as_usize()][b.as_usize()] }
 }

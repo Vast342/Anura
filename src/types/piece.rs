@@ -23,23 +23,34 @@ pub struct Piece(pub u8);
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
 #[repr(u8)]
 pub enum Types {
-    Pawn, Knight, Bishop, Rook, Queen, King, None
+    Pawn,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King,
+    None,
 }
 
 #[derive(PartialEq, PartialOrd, Eq, Ord)]
 #[repr(u8)]
 pub enum Colors {
-    Black, White, None
+    Black,
+    White,
+    None,
 }
 
 impl Piece {
-    #[must_use] pub const fn color(self) -> u8 {
+    #[must_use]
+    pub const fn color(self) -> u8 {
         self.0 >> 3
     }
-    #[must_use] pub const fn piece(self) -> u8 {
+    #[must_use]
+    pub const fn piece(self) -> u8 {
         self.0 & 0b0111
     }
-    #[must_use] pub fn new_unchecked(piece: u8, color: u8) -> Self {
+    #[must_use]
+    pub fn new_unchecked(piece: u8, color: u8) -> Self {
         debug_assert!(piece < 6, "invalid piece");
         debug_assert!(color < 2, "invalid color");
         Self((color << 3) | piece)

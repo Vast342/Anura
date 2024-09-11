@@ -16,11 +16,25 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #[cfg(feature = "datagen")]
-use std::{ops::AddAssign, fs::File, io::{BufWriter, Write}, sync::{atomic::{AtomicU64, Ordering}, Arc}, thread::{self}, time::Instant};
-#[cfg(feature = "datagen")]
-use crate::{board::{Board, Position}, search::Engine, types::{bitboard::Bitboard, moves::Move, MoveList, piece::Piece, square::Square}};
+use crate::{
+    board::{Board, Position},
+    search::Engine,
+    types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
+};
 #[cfg(feature = "datagen")]
 use rand::Rng;
+#[cfg(feature = "datagen")]
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    ops::AddAssign,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+    thread::{self},
+    time::Instant,
+};
 #[cfg(feature = "datagen")]
 pub const NODE_LIMIT: u128 = 1000;
 
@@ -42,7 +56,12 @@ struct Datapoint {
 #[cfg(feature = "policy")]
 impl Datapoint {
     pub fn new(occ: Bitboard, pieces_: [u8; 16], ctm_: u8, moves_: [(Move, u16); 32]) -> Self {
-        Self{occupied: occ, pieces: pieces_, ctm: ctm_, moves: moves_}
+        Self {
+            occupied: occ,
+            pieces: pieces_,
+            ctm: ctm_,
+            moves: moves_,
+        }
     }
 }
 
@@ -74,7 +93,14 @@ pub fn datagen_main(args: Vec<String>) {
         let draw_count_clone = Arc::clone(&draw_count);
         let value = args[3].clone();
         threads.push(thread::spawn(move || {
-            thread_function(value, 1 + i as u8, &game_count_clone, &pos_count_clone, &draw_count_clone, start)
+            thread_function(
+                value,
+                1 + i as u8,
+                &game_count_clone,
+                &pos_count_clone,
+                &draw_count_clone,
+                start,
+            )
         }));
     }
     for thread in threads {
@@ -83,7 +109,14 @@ pub fn datagen_main(args: Vec<String>) {
 }
 
 #[cfg(feature = "datagen")]
-fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant) {
+fn thread_function(
+    directory: String,
+    thread_id: u8,
+    game_count: &AtomicU64,
+    position_count: &AtomicU64,
+    draw_count: &AtomicU64,
+    start: Instant,
+) {
     let mut board: Board = Board::new();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let this_directory = directory + "thread" + &thread_id.to_string() + ".txt";
@@ -92,7 +125,15 @@ fn thread_function(directory: String, thread_id: u8, game_count: &AtomicU64, pos
         let mut data: Vec<Datapoint> = vec![];
         let result = run_game(&mut data, board.clone());
         if result != 3 {
-            dump_to_file(data, &mut writer, game_count, position_count, draw_count, start, result);
+            dump_to_file(
+                data,
+                &mut writer,
+                game_count,
+                position_count,
+                draw_count,
+                start,
+                result,
+            );
         }
     }
 }
@@ -111,7 +152,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         // reset
         if list.len() == 0 {
             println!("hit a checkmate or stalemate in opening generation");
-            return 3
+            return 3;
         }
 
         let index = rand::thread_rng().gen_range(0..list.len());
@@ -123,7 +164,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         let (mov, score, mut visit_points) = engine.datagen_search(board.clone());
         board.make_move(mov);
         if board.is_drawn() {
-            return 1
+            return 1;
         }
         // checkmate check
         // this is more efficient than it is in clarity lol
@@ -137,7 +178,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
                 // checkmate opponnent wins
                 return 2 - 2 * board.ctm;
             } else {
-                return 1
+                return 1;
             }
         }
         board.undo_move();
@@ -152,7 +193,9 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
                 let piece2 = if !occ.is_empty() {
                     let index2 = Square(occ.pop_lsb());
                     state.piece_on_square(index2)
-                } else {Piece(0)};
+                } else {
+                    Piece(0)
+                };
                 pieces[index] = piece1.0 << 4 | piece2.0;
                 index += 1;
             }
@@ -165,26 +208,43 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
             datapoints.push(Datapoint::new(occ, pieces, board.ctm, thingies));
         } else if cfg!(feature = "value") {
             #[cfg(feature = "value")]
-            datapoints.push(Datapoint(format!("{} | {} | ", board.get_fen(), score * (1 - i32::from(board.ctm) * 2))));
+            datapoints.push(Datapoint(format!(
+                "{} | {} | ",
+                board.get_fen(),
+                score * (1 - i32::from(board.ctm) * 2)
+            )));
         }
         board.make_move(mov);
     }
     let score = board.evaluate();
-    if score < 0 { return 0 } else if score > 0 { return 2 } else { return 1 }
+    if score < 0 {
+        return 0;
+    } else if score > 0 {
+        return 2;
+    } else {
+        return 1;
+    }
 }
 
 #[cfg(feature = "datagen")]
 unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    ::core::slice::from_raw_parts(
-        (p as *const T) as *const u8,
-        ::core::mem::size_of::<T>(),
-    )
+    ::core::slice::from_raw_parts((p as *const T) as *const u8, ::core::mem::size_of::<T>())
 }
 
 #[cfg(feature = "datagen")]
-fn dump_to_file(datapoints: Vec<Datapoint>, writer: &mut BufWriter<File>, game_count: &AtomicU64, position_count: &AtomicU64, draw_count: &AtomicU64, start: Instant, result: u8) {
+fn dump_to_file(
+    datapoints: Vec<Datapoint>,
+    writer: &mut BufWriter<File>,
+    game_count: &AtomicU64,
+    position_count: &AtomicU64,
+    draw_count: &AtomicU64,
+    start: Instant,
+    result: u8,
+) {
     game_count.fetch_add(1, Ordering::Relaxed);
-    if result == 1 { draw_count.fetch_add(1, Ordering::Relaxed); }
+    if result == 1 {
+        draw_count.fetch_add(1, Ordering::Relaxed);
+    }
     position_count.fetch_add(datapoints.len() as u64, Ordering::Relaxed);
 
     // check stuff in game_count and print stuff if necessary
@@ -206,9 +266,15 @@ fn dump_to_file(datapoints: Vec<Datapoint>, writer: &mut BufWriter<File>, game_c
         {
             point += Datapoint((result as f64 / 2.0).to_string());
             point += Datapoint("\n".to_string());
-            writer.write_all(point.0.as_bytes()).expect("failed to write to file");
+            writer
+                .write_all(point.0.as_bytes())
+                .expect("failed to write to file");
         }
         #[cfg(feature = "policy")]
-        unsafe { writer.write_all(any_as_u8_slice(&point)).expect("failed to write to file"); }
+        unsafe {
+            writer
+                .write_all(any_as_u8_slice(&point))
+                .expect("failed to write to file");
+        }
     }
 }

@@ -25,16 +25,20 @@ impl Square {
     pub fn flip(&mut self) {
         self.0 ^= 56;
     }
-    #[must_use] pub const fn rank(&self) -> u8 /* i refuse to write a rank wrapper */ {
+    #[must_use]
+    pub const fn rank(&self) -> u8 /* i refuse to write a rank wrapper */ {
         self.0 / 8
     }
-    #[must_use] pub const fn file(&self) -> u8 /* i refuse to write a file wrapper */ {
+    #[must_use]
+    pub const fn file(&self) -> u8 /* i refuse to write a file wrapper */ {
         self.0 & 0b111
     }
-    #[must_use] pub const fn as_usize(&self) -> usize {
+    #[must_use]
+    pub const fn as_usize(&self) -> usize {
         self.0 as usize
     }
-    #[must_use] pub const fn from_rf(rank: u8, file: u8) -> Self {
+    #[must_use]
+    pub const fn from_rf(rank: u8, file: u8) -> Self {
         Self(rank * 8 + file)
     }
 }
