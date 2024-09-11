@@ -294,7 +294,7 @@ impl Board {
                 // bishops
                 2 => {
                     if is_pinned {
-                        if is_diago_pin {
+                        if is_diag_pin {
                             get_bishop_attacks(Square(index), occ) & state.diago_pin_mask
                         } else { continue }
                     } else {
