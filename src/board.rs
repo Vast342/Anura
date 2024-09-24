@@ -39,6 +39,7 @@ use crate::{
         pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise},
         slideys::{get_bishop_attacks, get_rook_attacks},
     },
+    policy::get_score,
     rays::{ray_between, ray_intersecting},
     types::{
         bitboard::Bitboard,
@@ -1011,6 +1012,9 @@ impl Board {
     pub fn evaluate_non_stm(&self) -> i32 {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.states.last().expect("bruh"))
+    }
+    pub fn get_policy(&self, mov: Move) -> f32 {
+        get_score(self.states.last().expect("bruh"), mov)
     }
     #[must_use]
     pub fn get_fen(&self) -> String {

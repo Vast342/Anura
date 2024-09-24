@@ -26,6 +26,7 @@ pub mod datagen;
 pub mod hash;
 pub mod movegen;
 pub mod perft;
+pub mod policy;
 pub mod prng;
 pub mod rays;
 pub mod search;

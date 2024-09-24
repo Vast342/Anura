@@ -60,10 +60,11 @@ struct Node {
     visits: u32,
     total_score: f32,
     result: GameResult,
+    policy: f32,
 }
 
 impl Node {
-    fn new(parent: u32, mov: Move) -> Self {
+    fn new(parent: u32, mov: Move, policy: f32) -> Self {
         Self {
             parent,
             mov,
@@ -72,6 +73,7 @@ impl Node {
             visits: 0,
             total_score: 0.0,
             result: GameResult::Ongoing,
+            policy,
         }
     }
 
@@ -134,7 +136,7 @@ impl Engine {
 
             for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
                 let avg = if child.visits == 0 { 0.5 } else { child.avg() };
-                let p = 1.0 / node.child_count as f32;
+                let p = child.policy;
                 let uct = avg + e * p / (1 + child.visits) as f32;
 
                 if uct > best_child_uct {
@@ -160,6 +162,18 @@ impl Engine {
         let mut moves = MoveList::new();
         self.board.get_moves(&mut moves);
 
+        // get initial policy values
+        let mut policy: Vec<f32> = vec![0.0; moves.len()];
+        let mut policy_sum: f32 = 0.0;
+        for i in 0..moves.len() {
+            policy[i] = self.board.get_policy(moves[i]).exp();
+            policy_sum += policy[i];
+        }
+        // normalize
+        for i in 0..moves.len() {
+            policy[i] = policy[i] / policy_sum;
+        }
+
         // checkmate or stalemate
         if moves.is_empty() {
             node.result = if self.board.in_check() {
@@ -173,8 +187,8 @@ impl Engine {
         node.first_child = next;
         node.child_count = moves.len() as u8;
 
-        for mov in moves {
-            let node = Node::new(node_idx as u32, mov);
+        for i in 0..moves.len() {
+            let node = Node::new(node_idx as u32, moves[i], policy[i]);
             self.tree.push(node);
         }
     }
@@ -241,7 +255,7 @@ impl Engine {
         let mut prev_avg_depth = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(0, Move::NULL_MOVE));
+        self.tree.push(Node::new(0, Move::NULL_MOVE, 0.0));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
