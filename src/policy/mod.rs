@@ -19,18 +19,20 @@
 // apn_001.pn
 // (768->1)x384
 
-use crate::{board::Position, types::{moves::Move, piece::Piece, square::Square}};
+use crate::{
+    board::Position,
+    types::{moves::Move, piece::Piece, square::Square},
+};
 const INPUT_SIZE: usize = 768;
 const OUTPUT_SIZE: usize = 384;
 const OW_SIZE: usize = INPUT_SIZE * OUTPUT_SIZE;
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 #[repr(align(64))]
-pub struct PolicyNetwork{
+pub struct PolicyNetwork {
     pub output_weights: [f32; OW_SIZE],
     pub output_biases: [f32; OUTPUT_SIZE],
 }
-
 
 pub const POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn_001.pn")) };
 
@@ -43,14 +45,15 @@ pub const PIECE_STEP: usize = 64;
 pub const COLOR_STEP: usize = 64 * 6;
 
 pub fn calculate_index(move_piece: Piece, move_to: usize, piece: Piece, square: usize) -> usize {
-    let move_number  = PIECE_STEP * move_piece.piece() as usize + move_to;
-    let input_number = COLOR_STEP * piece.color() as usize + PIECE_STEP * piece.piece() as usize + square;
+    let move_number = PIECE_STEP * move_piece.piece() as usize + move_to;
+    let input_number =
+        COLOR_STEP * piece.color() as usize + PIECE_STEP * piece.piece() as usize + square;
     INPUT_SIZE * move_number + input_number
     // highest possible would be uhhhh
     // 768 * (64 * 5 + 63) + (384 + 64 * 5 + 63)
 }
 
-pub fn get_score(pos: &Position, mov: Move) -> f32{
+pub fn get_score(pos: &Position, mov: Move) -> f32 {
     let piece = pos.piece_on_square(Square(mov.from()));
     let to = mov.to();
     // infer
