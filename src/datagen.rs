@@ -49,13 +49,13 @@ struct Datapoint {
     // ctm, realistically it should be one bit but bruh
     ctm: u8,
     // number of visits on the root node is calculated from the sum of this array's visits
-    // it's the 32 most visited moves out of however many the position has
-    moves: [(Move, u16); 32],
+    // it's the 92 most visited moves out of however many the position has
+    moves: [(Move, u16); 92],
 }
 #[cfg(feature = "datagen")]
 #[cfg(feature = "policy")]
 impl Datapoint {
-    pub fn new(occ: Bitboard, pieces_: [u8; 16], ctm_: u8, moves_: [(Move, u16); 32]) -> Self {
+    pub fn new(occ: Bitboard, pieces_: [u8; 16], ctm_: u8, moves_: [(Move, u16); 92]) -> Self {
         Self {
             occupied: occ,
             pieces: pieces_,
@@ -207,7 +207,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
             }
             panic!(":3");*/
             visit_points.sort_by(|a, b| b.1.cmp(&a.1));
-            let mut thingies = [(Move::NULL_MOVE, 0); 32];
+            let mut thingies = [(Move::NULL_MOVE, 0); 92];
             let len = visit_points.len().min(thingies.len());
             thingies[..len].copy_from_slice(&visit_points[..len]);
             #[cfg(feature = "policy")]
