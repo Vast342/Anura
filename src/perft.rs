@@ -883,6 +883,16 @@ pub fn run_perft_suite() {
                 5,
                 74_148_519,
             ),
+            PerftTest::new("4k3/1b1r3p/8/R5P1/B3n3/4R3/P6P/7K b - - 6 41", 1, 11),
+            PerftTest::new("4k3/1b1r3p/8/R5P1/B3n3/4R3/P6P/7K b - - 6 41", 2, 327),
+            PerftTest::new("4k3/1b1r3p/8/R5P1/B3n3/4R3/P6P/7K b - - 6 41", 3, 6_064),
+            PerftTest::new("4k3/1b1r3p/8/R5P1/B3n3/4R3/P6P/7K b - - 6 41", 4, 156_355),
+            PerftTest::new("4k3/1b1r3p/8/R5P1/B3n3/4R3/P6P/7K b - - 6 41", 5, 3_527_894),
+            PerftTest::new(
+                "4k3/1b1r3p/8/R5P1/B3n3/4R3/P6P/7K b - - 6 41",
+                6,
+                92_395_277,
+            ),
         ]
         .to_vec()
     } else {
