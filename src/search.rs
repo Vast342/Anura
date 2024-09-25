@@ -77,7 +77,7 @@ impl Node {
         }
     }
 
-    fn avg(&self) -> f32 {
+    fn average_score(&self) -> f32 {
         self.total_score / self.visits as f32
     }
 
@@ -135,9 +135,13 @@ impl Engine {
             let mut best_child_uct = f32::NEG_INFINITY;
 
             for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
-                let avg = if child.visits == 0 { 0.5 } else { child.avg() };
+                let average_score = if child.visits == 0 {
+                    0.5
+                } else {
+                    child.average_score()
+                };
                 let p = child.policy;
-                let uct = avg + e * p / (1 + child.visits) as f32;
+                let uct = average_score + e * p / (1 + child.visits) as f32;
 
                 if uct > best_child_uct {
                     best_child = Some(child_idx);
@@ -228,7 +232,7 @@ impl Engine {
 
         for node_idx in root.children_range() {
             let node = &self.tree[node_idx];
-            let score = node.avg();
+            let score = node.average_score();
 
             if node.visits > best_visits {
                 best = Some(node_idx);
@@ -238,6 +242,42 @@ impl Engine {
         }
 
         (best.expect("nothing"), best_score)
+    }
+
+    pub fn get_pv(&mut self) -> (Vec<Move>, f32) {
+        let (root_best_child, root_best_score) = self.get_best_move();
+        let mut pv = vec![];
+        pv.push(self.tree[root_best_child].mov);
+
+        let mut node_idx = root_best_child;
+        loop {
+            let node = &self.tree[node_idx];
+            if node.result.is_terminal() || node.child_count == 0 {
+                break;
+            }
+            let mut has_valid_child = false;
+            let mut best_child_idx = 0;
+            let mut best_child_score = f32::NEG_INFINITY;
+            for child_idx in node.children_range() {
+                let child = &self.tree[child_idx];
+                if child.visits == 0 {
+                    continue;
+                }
+                has_valid_child = true;
+                if child.average_score() > best_child_score {
+                    best_child_idx = child_idx;
+                    best_child_score = child.average_score();
+                }
+            }
+
+            if !has_valid_child {
+                break;
+            }
+            pv.push(self.tree[best_child_idx].mov);
+            node_idx = best_child_idx;
+        }
+
+        (pv, root_best_score)
     }
 
     pub fn search(
@@ -252,7 +292,7 @@ impl Engine {
         self.nodes = 0;
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
-        let mut prev_avg_depth = 0;
+        let mut prev_avg_depth = 1;
         self.start = Instant::now();
 
         self.tree.push(Node::new(0, Move::NULL_MOVE, 0.0));
@@ -296,46 +336,55 @@ impl Engine {
             if avg_depth > prev_avg_depth {
                 let duration = self.start.elapsed().as_millis();
                 if info {
+                    let (pv, score) = self.get_pv();
                     let nps = if duration == 0 {
                         0
                     } else {
                         self.nodes * 1000 / duration
                     };
-                    println!(
-                        "info depth {} seldepth {} nodes {} time {} nps {}",
-                        avg_depth, seldepth, self.nodes, duration, nps
+                    print!(
+                        "info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv",
+                        avg_depth - 1, seldepth, self.nodes, duration, nps, to_cp(score)
                     );
+                    for mov in &pv {
+                        print!(" {}", mov.to_string());
+                    }
+                    println!();
                 }
                 prev_avg_depth = avg_depth;
             }
         }
 
-        let (best_node_idx, best_score) = self.get_best_move();
-        let best_move = self.tree[best_node_idx].mov;
+        let (pv, best_score) = self.get_pv();
 
         let duration = self.start.elapsed().as_millis();
-        let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
+        let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
         if info {
+            // todo: optional full breakdown of visit and score distribution, like voidstar's
             let nps = if duration == 0 {
                 0
             } else {
                 self.nodes * 1000 / duration
             };
-            println!(
-                "info depth {} nodes {} time {} nps {} score cp {} pv {}",
+            print!(
+                "info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv",
                 avg_depth,
+                seldepth,
                 self.nodes,
                 duration,
                 nps,
                 to_cp(best_score),
-                best_move
             );
+            for mov in &pv {
+                print!(" {}", mov.to_string());
+            }
+            println!();
         }
 
         self.tree.clear();
         self.tree.shrink_to_fit();
 
-        best_move
+        pv[0]
     }
     #[cfg(feature = "datagen")]
     pub fn datagen_search(&mut self, board: Board) -> (Move, i32, Vec<(Move, u16)>) {
