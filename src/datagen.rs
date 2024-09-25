@@ -161,6 +161,24 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     let mut engine: Engine = Engine::new();
     // the rest of the moves
     for _ in 0..1000 {
+        if board.is_drawn() {
+            return 1;
+        }
+        // checkmate check
+        // this is more efficient than it is in clarity lol
+        // generate the moves
+        let mut list: MoveList = MoveList::new();
+        board.get_moves(&mut list);
+
+        // checkmate or stalemate
+        if list.len() == 0 {
+            if board.in_check() {
+                // checkmate opponnent wins
+                return 2 - 2 * board.ctm;
+            } else {
+                return 1;
+            }
+        }
         let (mov, score, mut visit_points) = engine.datagen_search(board.clone());
         board.make_move(mov);
         if board.is_drawn() {
