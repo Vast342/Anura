@@ -19,6 +19,7 @@
 use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
+    time::Limiters,
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
@@ -285,14 +286,11 @@ impl Engine {
     // todo 4: find another way to organize this that will allow for SMP
     // todo 5: SMP
     // todo 6: Better value net
-    // todo 7: Actual policy net 
+    // todo 7: Actual policy net
     pub fn search(
         &mut self,
         board: Board,
-        node_lim: u128,
-        time: u128,
-        inc: u128,
-        depth_limit: u32,
+        limiters: Limiters,
         info: bool,
         options: &UciOptions,
     ) -> Move {
@@ -300,6 +298,7 @@ impl Engine {
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
         let mut prev_avg_depth = 1;
+        let mut avg_depth = 0;
         self.start = Instant::now();
 
         self.tree.push(Node::new(0, Move::NULL_MOVE, 0.0));
@@ -308,7 +307,7 @@ impl Engine {
         let root_ctm = board.ctm;
         let root_node = 0;
 
-        while self.start.elapsed().as_millis() <= time / 20 + inc / 2 {
+        while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
@@ -327,9 +326,6 @@ impl Engine {
             self.backprop(node_idx, result);
 
             self.nodes += 1;
-            if self.nodes > node_lim {
-                break;
-            }
             total_depth += self.depth as usize;
 
             if self.depth > seldepth {
@@ -337,10 +333,7 @@ impl Engine {
             }
 
             // info
-            let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
-            if avg_depth >= depth_limit {
-                break;
-            }
+            avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
             if avg_depth > prev_avg_depth {
                 let duration = self.start.elapsed().as_millis();
                 if info {
@@ -371,7 +364,7 @@ impl Engine {
         let (pv, best_score) = self.get_pv();
 
         let duration = self.start.elapsed().as_millis();
-        let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
+        avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
         if info {
             // todo: optional full breakdown of visit and score distribution, like voidstar's
             if options.more_info {

@@ -19,6 +19,7 @@
 use std::time::Instant;
 use std::{io, u64};
 
+use crate::time::Limiters;
 use crate::{
     board::Board,
     movegen::lookups::BENCH_FENS,
@@ -68,6 +69,7 @@ pub struct Manager {
     board: Board,
     engine: Engine,
     options: UciOptions,
+    limiter: Limiters,
     // TT
 }
 
@@ -84,6 +86,7 @@ impl Manager {
             board: Board::new(),
             engine: Engine::new(),
             options: UciOptions::new(),
+            limiter: Limiters::new(),
         }
     }
     // read line from stdin and then interpret it
@@ -198,14 +201,13 @@ impl Manager {
         let mut total = 0;
         let start = Instant::now();
         let mut board: Board = Board::new();
+        let mut limiters = Limiters::new();
+        limiters.load_values(0, 0, 0, 5);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine.search(
                 board.clone(),
-                10_000_000,
-                10_000_000,
-                10_000_000,
-                5,
+                limiters,
                 false,
                 &self.options,
             );
@@ -221,11 +223,12 @@ impl Manager {
 
     pub fn go(&mut self, command_text: &str) {
         let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
+        self.limiter.load_values(0, 0, 0, 0);
         let mut i: usize = 1;
-        let mut time: u128 = 1_000_000_000_000_000;
+        let mut time: u128 = 0;
         let mut inc: u128 = 0;
-        let mut nodes = 1_000_000_000_000_000;
-        let mut depth = 1_000_000_000;
+        let mut nodes = 0;
+        let mut depth = 0;
         let mut btime: u128 = 0;
         let mut wtime: u128 = 0;
         let mut binc: u128 = 0;
@@ -275,6 +278,7 @@ impl Manager {
                         _ => unreachable!(),
                     }
                 }
+                "infinite" => (),
                 _ => println!("invalid go limiter: {}", command_sections[i]),
             }
 
@@ -287,12 +291,10 @@ impl Manager {
             time = wtime;
             inc = winc;
         }
+        self.limiter.load_values(time, inc, nodes, depth);
         let best_move = self.engine.search(
             self.board.clone(),
-            nodes,
-            time,
-            inc,
-            depth,
+            self.limiter,
             true,
             &self.options,
         );
