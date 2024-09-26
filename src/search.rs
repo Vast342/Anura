@@ -228,16 +228,14 @@ impl Engine {
         let root = &self.tree[0];
 
         let mut best = None;
-        let mut best_visits = 0u32;
         let mut best_score = f32::NEG_INFINITY;
 
         for node_idx in root.children_range() {
             let node = &self.tree[node_idx];
             let score = node.average_score();
 
-            if node.visits > best_visits {
+            if score > best_score {
                 best = Some(node_idx);
-                best_visits = node.visits;
                 best_score = score;
             }
         }
