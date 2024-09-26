@@ -20,6 +20,7 @@ use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
     types::{moves::Move, MoveList},
+    uci::UciOptions,
 };
 use std::ops::Range;
 use std::time::Instant;
@@ -288,6 +289,7 @@ impl Engine {
         inc: u128,
         depth_limit: u32,
         info: bool,
+        options: &UciOptions,
     ) -> Move {
         self.nodes = 0;
         let mut seldepth = 0;
@@ -344,7 +346,12 @@ impl Engine {
                     };
                     print!(
                         "info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv",
-                        avg_depth - 1, seldepth, self.nodes, duration, nps, to_cp(score)
+                        avg_depth - 1,
+                        seldepth,
+                        self.nodes,
+                        duration,
+                        nps,
+                        to_cp(score)
                     );
                     for mov in &pv {
                         print!(" {}", mov.to_string());
@@ -361,6 +368,19 @@ impl Engine {
         let avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
         if info {
             // todo: optional full breakdown of visit and score distribution, like voidstar's
+            if options.more_info {
+                for node_idx in self.tree[0].children_range() {
+                    let this_node = &self.tree[node_idx];
+                    let score = this_node.average_score();
+
+                    println!(
+                        "{}: visits: {}, average score: {}",
+                        this_node.mov.to_string(),
+                        this_node.visits,
+                        score,
+                    );
+                }
+            }
             let nps = if duration == 0 {
                 0
             } else {

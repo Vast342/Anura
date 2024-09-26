@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::io;
 use std::time::Instant;
+use std::{io, u64};
 
 use crate::{
     board::Board,
@@ -39,6 +39,7 @@ pub enum CommandTypes {
     SplitPerft,
     PerftSuite,
     MakeMove,
+    SetOption,
     Bench,
     GetFen,
     Policy,
@@ -47,9 +48,26 @@ pub enum CommandTypes {
     Quit,
 }
 
+pub struct UciOptions {
+    pub more_info: bool,
+    pub tree_size: u64,
+    pub thread_count: u64,
+}
+
+impl UciOptions {
+    fn new() -> Self {
+        Self {
+            more_info: false,
+            tree_size: u64::MAX,
+            thread_count: 1,
+        }
+    }
+}
+
 pub struct Manager {
     board: Board,
     engine: Engine,
+    options: UciOptions,
     // TT
 }
 
@@ -62,11 +80,10 @@ impl Default for Manager {
 impl Manager {
     #[must_use]
     pub fn new() -> Self {
-        let b: Board = Board::new();
-        let e: Engine = Engine::new();
         Self {
-            board: b,
-            engine: e,
+            board: Board::new(),
+            engine: Engine::new(),
+            options: UciOptions::new(),
         }
     }
     // read line from stdin and then interpret it
@@ -100,6 +117,7 @@ impl Manager {
             "splitperft" => CommandTypes::SplitPerft,
             "perftsuite" => CommandTypes::PerftSuite,
             "makemove" => CommandTypes::MakeMove,
+            "setoption" => CommandTypes::SetOption,
             "bench" => CommandTypes::Bench,
             "policy" => CommandTypes::Policy,
             _ => CommandTypes::Invalid,
@@ -124,6 +142,7 @@ impl Manager {
             CommandTypes::Perft => self.perft(command_text),
             CommandTypes::SplitPerft => self.split_perft(command_text),
             CommandTypes::MakeMove => self.make_move(command_text),
+            CommandTypes::SetOption => self.set_option(command_text),
             CommandTypes::PerftSuite => self.perft_suite(),
             CommandTypes::Bench => self.bench(),
             CommandTypes::GetFen => self.get_fen(),
@@ -132,6 +151,28 @@ impl Manager {
             _ => panic!("invalid command type"),
         }
         true
+    }
+
+    pub fn set_option(&mut self, command_text: &str) {
+        let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
+        match command_sections[2] {
+            "Hash" => {
+                self.options.tree_size = command_sections[4]
+                    .parse::<u64>()
+                    .expect("not a parsable hash size");
+            }
+            "Threads" => {
+                self.options.thread_count = command_sections[4]
+                    .parse::<u64>()
+                    .expect("not a parsable thread count");
+            }
+            "MoreInfo" => {
+                self.options.more_info = command_sections[4]
+                    .parse::<bool>()
+                    .expect("not a parsable hash size");
+            }
+            _ => panic!("Invalid option: {}", command_sections[2]),
+        }
     }
 
     pub fn output_policy(&mut self) {
@@ -159,8 +200,15 @@ impl Manager {
         let mut board: Board = Board::new();
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine
-                .search(board.clone(), 10_000_000, 10_000_000, 10_000_000, 5, false);
+            self.engine.search(
+                board.clone(),
+                10_000_000,
+                10_000_000,
+                10_000_000,
+                5,
+                false,
+                &self.options,
+            );
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
@@ -239,9 +287,15 @@ impl Manager {
             time = wtime;
             inc = winc;
         }
-        let best_move = self
-            .engine
-            .search(self.board.clone(), nodes, time, inc, depth, true);
+        let best_move = self.engine.search(
+            self.board.clone(),
+            nodes,
+            time,
+            inc,
+            depth,
+            true,
+            &self.options,
+        );
         println!("bestmove {best_move}");
     }
 
@@ -344,8 +398,9 @@ impl Manager {
     pub fn uci_uci(&self) {
         println!("id name Anura {}", env!("CARGO_PKG_VERSION"));
         println!("id author Vast");
-        println!("option name Hash type spin default 0 min 0 max 0");
-        println!("option name Threads type spin default 1 min 1 max 1");
+        println!("option name Hash type spin default 32 min 1 max 1048576");
+        println!("option name Threads type spin default 1 min 1 max 1048576");
+        println!("option name MoreInfo type spin default false");
         println!("uciok");
     }
 }
