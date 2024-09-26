@@ -26,13 +26,12 @@ pub mod datagen;
 pub mod hash;
 pub mod movegen;
 pub mod perft;
-pub mod policy;
+pub mod nets;
 pub mod prng;
 pub mod rays;
 pub mod search;
 pub mod types;
 pub mod uci;
-pub mod value;
 
 #[cfg(feature = "datagen")]
 use datagen::datagen_main;

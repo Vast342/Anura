@@ -39,7 +39,7 @@ use crate::{
         pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise},
         slideys::{get_bishop_attacks, get_rook_attacks},
     },
-    policy::get_score,
+    nets::{policy::get_score, value::ValueNetworkState},
     rays::{ray_between, ray_intersecting},
     types::{
         bitboard::Bitboard,
@@ -48,7 +48,6 @@ use crate::{
         square::Square,
         MoveList,
     },
-    value::ValueNetworkState,
 };
 
 #[derive(Debug, Copy, Clone)]

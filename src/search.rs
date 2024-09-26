@@ -39,7 +39,7 @@ enum GameResult {
 }
 
 impl GameResult {
-    fn floatify(self) -> Option<f32> {
+    fn score(self) -> Option<f32> {
         match self {
             GameResult::Win => Some(1.0),
             GameResult::Draw => Some(0.5),
@@ -118,8 +118,8 @@ impl Engine {
             start: Instant::now(),
         }
     }
-    fn select(&mut self) -> usize {
-        let mut current = 0;
+    fn select(&mut self, root_node: u32) -> usize {
+        let mut current = root_node;
         loop {
             let node = &self.tree[current as usize];
             if current != 0 {
@@ -201,7 +201,7 @@ impl Engine {
     // using my normal eval as a value net here so it actually just evaluates
     fn simulate(&self, node_idx: usize) -> f32 {
         let node = &self.tree[node_idx];
-        node.result.floatify().unwrap_or_else(|| {
+        node.result.score().unwrap_or_else(|| {
             1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
         })
     }
@@ -279,6 +279,13 @@ impl Engine {
         (pv, root_best_score)
     }
 
+    // todo 1: Non-Iterative MCTS
+    // todo 2: LRU
+    // todo 3: Tree Reuse
+    // todo 4: find another way to organize this that will allow for SMP
+    // todo 5: SMP
+    // todo 6: Better value net
+    // todo 7: Actual policy net 
     pub fn search(
         &mut self,
         board: Board,
@@ -299,13 +306,14 @@ impl Engine {
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
+        let root_node = 0;
 
         while self.start.elapsed().as_millis() <= time / 20 + inc / 2 {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
             // selection
-            let node_idx = self.select();
+            let node_idx = self.select(root_node);
             let node = &self.tree[node_idx];
 
             // expansion
