@@ -41,6 +41,7 @@ pub const NODE_LIMIT: u128 = 1000;
 // policy net datapoint, my own (probably bad and massive) format
 #[cfg(feature = "datagen")]
 #[cfg(feature = "policy")]
+#[repr(C)]
 // size = 160 (0xA0), align = 0x8
 struct Datapoint {
     occupied: Bitboard,
