@@ -244,15 +244,19 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn get_pv(&mut self, root_node: usize) -> (Vec<Move>, f32) {
+    pub fn get_pv(&mut self, root_node: usize) -> (Vec<Move>, f32, bool) {
         let (root_best_child, root_best_score) = self.get_best_move(root_node);
         let mut pv = vec![];
         pv.push(self.tree[root_best_child].mov);
+        let mut ends_in_mate = false;
 
         let mut node_idx = root_best_child;
         loop {
             let node = &self.tree[node_idx];
             if node.result.is_terminal() || node.child_count == 0 {
+                if node.result == GameResult::Loss || node.result == GameResult::Win {
+                    ends_in_mate = true;
+                }
                 break;
             }
             let mut has_valid_child = false;
@@ -277,7 +281,7 @@ impl Engine {
             node_idx = best_child_idx;
         }
 
-        (pv, root_best_score)
+        (pv, root_best_score, ends_in_mate)
     }
 
     // todo 1: Non-Iterative MCTS
@@ -337,21 +341,26 @@ impl Engine {
             if avg_depth > prev_avg_depth {
                 let duration = self.start.elapsed().as_millis();
                 if info {
-                    let (pv, score) = self.get_pv(root_node);
+                    let (pv, score, ends_in_mate) = self.get_pv(root_node);
                     let nps = if duration == 0 {
                         0
                     } else {
                         self.nodes * 1000 / duration
                     };
                     print!(
-                        "info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv",
+                        "info depth {} seldepth {} nodes {} time {} nps {} ",
                         avg_depth - 1,
                         seldepth,
                         self.nodes,
                         duration,
                         nps,
-                        to_cp(score)
                     );
+                    if ends_in_mate {
+                        print!("score mate {} ", pv.len() / 2);
+                    } else {
+                        print!("score cp {} ", to_cp(score));
+                    }
+                    print!("pv");
                     for mov in &pv {
                         print!(" {}", mov.to_string());
                     }
@@ -361,7 +370,7 @@ impl Engine {
             }
         }
 
-        let (pv, best_score) = self.get_pv(root_node);
+        let (pv, score, ends_in_mate) = self.get_pv(root_node);
 
         let duration = self.start.elapsed().as_millis();
         avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
@@ -386,14 +395,19 @@ impl Engine {
                 self.nodes * 1000 / duration
             };
             print!(
-                "info depth {} seldepth {} nodes {} time {} nps {} score cp {} pv",
-                avg_depth,
+                "info depth {} seldepth {} nodes {} time {} nps {} ",
+                avg_depth - 1,
                 seldepth,
                 self.nodes,
                 duration,
                 nps,
-                to_cp(best_score),
             );
+            if ends_in_mate {
+                print!("score mate {} ", pv.len() / 2);
+            } else {
+                print!("score cp {} ", to_cp(score));
+            }
+            print!("pv");
             for mov in &pv {
                 print!(" {}", mov.to_string());
             }
