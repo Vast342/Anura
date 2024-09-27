@@ -119,7 +119,7 @@ impl Engine {
             start: Instant::now(),
         }
     }
-    fn select(&mut self, root_node: u32) -> usize {
+    fn select(&mut self, root_node: usize) -> usize {
         let mut current = root_node;
         loop {
             let node = &self.tree[current as usize];
@@ -151,9 +151,9 @@ impl Engine {
                 }
             }
 
-            current = (node.first_child as usize + best_child.unwrap()) as u32;
+            current = node.first_child as usize + best_child.unwrap();
         }
-        current as usize
+        current
     }
 
     fn expand(&mut self, node_idx: usize) {
@@ -225,8 +225,8 @@ impl Engine {
         }
     }
 
-    fn get_best_move(&self) -> (usize, f32) {
-        let root = &self.tree[0];
+    fn get_best_move(&self, root_node: usize) -> (usize, f32) {
+        let root = &self.tree[root_node];
 
         let mut best = None;
         let mut best_score = f32::NEG_INFINITY;
@@ -244,8 +244,8 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn get_pv(&mut self) -> (Vec<Move>, f32) {
-        let (root_best_child, root_best_score) = self.get_best_move();
+    pub fn get_pv(&mut self, root_node: usize) -> (Vec<Move>, f32) {
+        let (root_best_child, root_best_score) = self.get_best_move(root_node);
         let mut pv = vec![];
         pv.push(self.tree[root_best_child].mov);
 
@@ -337,7 +337,7 @@ impl Engine {
             if avg_depth > prev_avg_depth {
                 let duration = self.start.elapsed().as_millis();
                 if info {
-                    let (pv, score) = self.get_pv();
+                    let (pv, score) = self.get_pv(root_node);
                     let nps = if duration == 0 {
                         0
                     } else {
@@ -361,7 +361,7 @@ impl Engine {
             }
         }
 
-        let (pv, best_score) = self.get_pv();
+        let (pv, best_score) = self.get_pv(root_node);
 
         let duration = self.start.elapsed().as_millis();
         avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;

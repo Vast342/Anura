@@ -35,7 +35,7 @@ pub enum CommandTypes {
     NewGame,
     Go,
     PrintState,
-    Evaluate,
+    Value,
     Perft,
     SplitPerft,
     PerftSuite,
@@ -115,7 +115,7 @@ impl Manager {
             "go" => CommandTypes::Go,
             "quit" => CommandTypes::Quit,
             "printstate" | "show" | "print" => CommandTypes::PrintState,
-            "evaluate" => CommandTypes::Evaluate,
+            "value" => CommandTypes::Value,
             "perft" => CommandTypes::Perft,
             "splitperft" => CommandTypes::SplitPerft,
             "perftsuite" => CommandTypes::PerftSuite,
@@ -141,7 +141,7 @@ impl Manager {
             CommandTypes::Go => self.go(command_text),
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
-            CommandTypes::Evaluate => println!("evaluation {}", self.board.evaluate()),
+            CommandTypes::Value => println!("evaluation {}", self.board.evaluate()),
             CommandTypes::Perft => self.perft(command_text),
             CommandTypes::SplitPerft => self.split_perft(command_text),
             CommandTypes::MakeMove => self.make_move(command_text),
@@ -205,12 +205,8 @@ impl Manager {
         limiters.load_values(0, 0, 0, 5);
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine.search(
-                board.clone(),
-                limiters,
-                false,
-                &self.options,
-            );
+            self.engine
+                .search(board.clone(), limiters, false, &self.options);
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
@@ -292,12 +288,9 @@ impl Manager {
             inc = winc;
         }
         self.limiter.load_values(time, inc, nodes, depth);
-        let best_move = self.engine.search(
-            self.board.clone(),
-            self.limiter,
-            true,
-            &self.options,
-        );
+        let best_move = self
+            .engine
+            .search(self.board.clone(), self.limiter, true, &self.options);
         println!("bestmove {best_move}");
     }
 

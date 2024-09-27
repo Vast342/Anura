@@ -3,7 +3,7 @@ pub struct Limiters {
     use_time: bool,
     time: u128,
     increment: u128,
-    pub use_nodes: bool,
+    use_nodes: bool,
     node_lim: u128,
     use_depth: bool,
     depth_limit: u32,
@@ -25,17 +25,17 @@ impl Limiters {
     pub fn check(&self, tim: u128, nodes: u128, depth: u32) -> bool {
         if self.use_time {
             if tim >= self.time / 20 + self.increment / 2 {
-                return false
+                return false;
             }
         }
         if self.use_nodes {
             if nodes >= self.node_lim {
-                return false
+                return false;
             }
         }
         if self.use_depth {
             if depth >= self.depth_limit {
-                return false
+                return false;
             }
         }
         true
