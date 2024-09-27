@@ -16,14 +16,23 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 #[cfg(feature = "datagen")]
+#[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},
     search::Engine,
     types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
 };
 #[cfg(feature = "datagen")]
+#[cfg(feature = "value")]
+use crate::{
+    board::{Board, Position},
+    search::Engine,
+    types::{piece::Piece, square::Square, MoveList},
+};
+#[cfg(feature = "datagen")]
 use rand::Rng;
 #[cfg(feature = "datagen")]
+#[allow(unused_imports)]
 use std::{
     fs::File,
     io::{BufWriter, Write},
@@ -140,6 +149,7 @@ fn thread_function(
 }
 
 #[cfg(feature = "datagen")]
+#[allow(unused_assignments)]
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
 fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     // 8 random moves
@@ -180,6 +190,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
                 return 1;
             }
         }
+        #[allow(unused_variables)]
         let (mov, score, mut visit_points) = engine.datagen_search(board.clone());
         board.make_move(mov);
         if board.is_drawn() {
@@ -219,12 +230,6 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
                 index += 1;
             }
             occ = state.occupied();
-            /*println!("{}", board.get_fen());
-            dbg!(occ);
-            for dn in 0..16 {
-                println!("{}, {}", Piece(pieces[dn] >> 4), Piece(pieces[dn] & 0b1111));
-            }
-            panic!(":3");*/
             visit_points.sort_by(|a, b| b.1.cmp(&a.1));
             let mut thingies = [(Move::NULL_MOVE, 0); 92];
             let len = visit_points.len().min(thingies.len());
@@ -236,15 +241,15 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
             datapoints.push(Datapoint(format!(
                 "{} | {} | ",
                 board.get_fen(),
-                score * (1 - i32::from(board.ctm) * 2)
+                score * (-1 + i32::from(board.ctm) * 2)
             )));
         }
         board.make_move(mov);
     }
-    let score = board.evaluate();
-    if score < 0 {
+    let score = board.evaluate_non_stm();
+    if score < -100 {
         return 0;
-    } else if score > 0 {
+    } else if score > 100 {
         return 2;
     } else {
         return 1;
@@ -252,6 +257,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
 }
 
 #[cfg(feature = "datagen")]
+#[cfg(feature = "policy")]
 unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
     ::core::slice::from_raw_parts((p as *const T) as *const u8, ::core::mem::size_of::<T>())
 }
@@ -286,6 +292,7 @@ fn dump_to_file(
     }
 
     // push it to a file
+    #[allow(unused_mut)]
     for mut point in datapoints {
         #[cfg(feature = "value")]
         {
