@@ -341,83 +341,24 @@ impl Engine {
             if avg_depth > prev_avg_depth {
                 let duration = self.start.elapsed().as_millis();
                 if info {
-                    let (pv, score, ends_in_mate) = self.get_pv(root_node);
-                    let nps = if duration == 0 {
-                        0
-                    } else {
-                        self.nodes * 1000 / duration
-                    };
-                    print!(
-                        "info depth {} seldepth {} nodes {} time {} nps {} ",
-                        avg_depth - 1,
-                        seldepth,
-                        self.nodes,
-                        duration,
-                        nps,
-                    );
-                    if ends_in_mate {
-                        print!("score mate {} ", pv.len() / 2);
-                    } else {
-                        print!("score cp {} ", to_cp(score));
-                    }
-                    print!("pv");
-                    for mov in &pv {
-                        print!(" {}", mov.to_string());
-                    }
-                    println!();
+                    self.print_info(root_node, avg_depth - 1, seldepth, duration, false, options);
                 }
                 prev_avg_depth = avg_depth;
             }
         }
-
-        let (pv, score, ends_in_mate) = self.get_pv(root_node);
-
         let duration = self.start.elapsed().as_millis();
         avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
         if info {
-            // todo: optional full breakdown of visit and score distribution, like voidstar's
-            if options.more_info {
-                for node_idx in self.tree[0].children_range() {
-                    let this_node = &self.tree[node_idx];
-                    let score = this_node.average_score();
-
-                    println!(
-                        "{}: visits: {}, average score: {}",
-                        this_node.mov.to_string(),
-                        this_node.visits,
-                        score,
-                    );
-                }
-            }
-            let nps = if duration == 0 {
-                0
-            } else {
-                self.nodes * 1000 / duration
-            };
-            print!(
-                "info depth {} seldepth {} nodes {} time {} nps {} ",
-                avg_depth - 1,
-                seldepth,
-                self.nodes,
-                duration,
-                nps,
-            );
-            if ends_in_mate {
-                print!("score mate {} ", pv.len() / 2);
-            } else {
-                print!("score cp {} ", to_cp(score));
-            }
-            print!("pv");
-            for mov in &pv {
-                print!(" {}", mov.to_string());
-            }
-            println!();
+            self.print_info(root_node, avg_depth - 1, seldepth, duration, true, options);
         }
+
+        let (index, _best_score) = self.get_best_move(root_node);
+        let best_move = self.tree[index].mov;
 
         self.tree.clear();
         self.tree.shrink_to_fit();
 
-        pv[0]
+        best_move
     }
     #[cfg(feature = "datagen")]
     pub fn datagen_search(&mut self, board: Board) -> (Move, i32, Vec<(Move, u16)>) {
@@ -428,12 +369,13 @@ impl Engine {
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
+        let root_node = 0;
 
         while self.nodes < NODE_LIMIT {
             self.board.load_state(root_state, root_ctm);
 
             // selection
-            let node_idx = self.select();
+            let node_idx = self.select(root_node);
             let node = &self.tree[node_idx];
 
             // expansion
@@ -449,7 +391,7 @@ impl Engine {
             self.nodes += 1;
         }
 
-        let (best_node_idx, best_score) = self.get_best_move();
+        let (best_node_idx, best_score) = self.get_best_move(root_node);
         let best_move = self.tree[best_node_idx].mov;
 
         // get visit distribution
@@ -464,6 +406,46 @@ impl Engine {
         self.tree.shrink_to_fit();
 
         (best_move, to_cp(best_score), visit_points)
+    }
+    fn print_info(&mut self, root_node: usize, depth: u32, seldepth: u32, duration: u128, final_info: bool, options: &UciOptions) {
+        if final_info && options.more_info {
+            // potential todo: even more information
+            for node_idx in self.tree[0].children_range() {
+                let this_node = &self.tree[node_idx];
+                let score = this_node.average_score();
+
+                println!(
+                    "{}: visits: {}, average score: {}",
+                    this_node.mov.to_string(),
+                    this_node.visits,
+                    score,
+                );
+            }   
+        }
+        let (pv, score, ends_in_mate) = self.get_pv(root_node);
+        let nps = if duration == 0 {
+            0
+        } else {
+            self.nodes * 1000 / duration
+        };
+        print!(
+            "info depth {} seldepth {} nodes {} time {} nps {} ",
+            depth,
+            seldepth,
+            self.nodes,
+            duration,
+            nps,
+        );
+        if ends_in_mate {
+            print!("score mate {} ", pv.len() / 2);
+        } else {
+            print!("score cp {} ", to_cp(score));
+        }
+        print!("pv");
+        for mov in &pv {
+            print!(" {}", mov.to_string());
+        }
+        println!();
     }
 }
 

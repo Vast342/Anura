@@ -25,7 +25,7 @@ use crate::{
 // avn_002.vn
 // 768->32->1 activated by SCReLU
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 32;
+const HL_SIZE: usize = 64;
 
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
@@ -43,7 +43,7 @@ pub struct ValueNetwork {
     output_bias: i16,
 }
 
-pub const VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn_002.vn")) };
+pub const VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn_003.vn")) };
 
 #[derive(Debug, Clone)]
 pub struct ValueNetworkState {
