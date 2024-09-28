@@ -1005,12 +1005,12 @@ impl Board {
     #[must_use]
     pub fn evaluate(&self) -> i32 {
         let mut net = ValueNetworkState::new();
-        net.evaluate(self.states.last().expect("bruh")) * (-1 + i32::from(self.ctm) * 2)
+        net.evaluate(self.states.last().expect("bruh"), self.ctm)
     }
     #[must_use]
     pub fn evaluate_non_stm(&self) -> i32 {
         let mut net = ValueNetworkState::new();
-        net.evaluate(self.states.last().expect("bruh"))
+        net.evaluate(self.states.last().expect("bruh"), 1)
     }
     pub fn get_policy(&self, mov: Move) -> f32 {
         get_score(self.states.last().expect("bruh"), mov)
