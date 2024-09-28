@@ -25,7 +25,8 @@ use crate::{
 // avn_002.vn
 // 768->32->1 activated by SCReLU
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 64;
+const HL_SIZE: usize = 128;
+const OUTPUT_BUCKET_COUNT: usize = 8;
 
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
@@ -39,11 +40,33 @@ const QAB: i32 = QA * _QB;
 pub struct ValueNetwork {
     feature_weights: [i16; INPUT_SIZE * HL_SIZE],
     feature_biases: [i16; HL_SIZE],
-    output_weights: [i16; HL_SIZE],
-    output_bias: i16,
+    output_weights: [i16; HL_SIZE * OUTPUT_BUCKET_COUNT],
+    output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
-pub const VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn_003.vn")) };
+pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork{
+    let mut output_weights = [0; HL_SIZE * OUTPUT_BUCKET_COUNT];
+    let mut weight = 0;
+    while weight < HL_SIZE {
+        let mut bucket = 0;
+        while bucket < OUTPUT_BUCKET_COUNT {
+            let src = weight * OUTPUT_BUCKET_COUNT + bucket;
+            let dst = bucket * HL_SIZE + weight;
+            output_weights[dst] = net.output_weights[src];
+            bucket += 1;
+        }
+        weight += 1;
+    }
+    ValueNetwork{feature_weights: net.feature_weights, feature_biases: net.feature_biases, output_weights, output_bias: net.output_bias}
+}
+
+pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_004.vn")) });
+
+const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
+
+const fn get_output_bucket(piece_count: usize) -> usize {
+    (piece_count - 2) / OUTPUT_BUCKET_DIVISOR
+}
 
 #[derive(Debug, Clone)]
 pub struct ValueNetworkState {
@@ -74,7 +97,7 @@ impl ValueNetworkState {
     }
     pub fn evaluate(&mut self, position: &Position, ctm: u8) -> i32 {
         self.load_position(position, ctm);
-        self.forward()
+        self.forward(position.occupied().popcount() as usize)
     }
     pub fn load_position(&mut self, position: &Position, ctm: u8) {
         self.reset();
@@ -91,14 +114,16 @@ impl ValueNetworkState {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
     }
-    pub fn forward(&self) -> i32 {
+    pub fn forward(&self, piece_count: usize) -> i32 {
         let mut sum = 0;
+        let output_bucket = get_output_bucket(piece_count);
+        let bucket_increment = HL_SIZE * output_bucket;
 
         for hl_node in 0..HL_SIZE {
-            sum += activation(self.state[hl_node]) * VALUE_NET.output_weights[hl_node] as i32;
+            sum += activation(self.state[hl_node]) * VALUE_NET.output_weights[hl_node + bucket_increment] as i32;
         }
 
-        (sum / QA + VALUE_NET.output_bias as i32) * EVAL_SCALE as i32 / QAB
+        (sum / QA + VALUE_NET.output_bias[output_bucket] as i32) * EVAL_SCALE as i32 / QAB
     }
 }
 
