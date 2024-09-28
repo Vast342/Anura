@@ -25,8 +25,8 @@ use crate::{
 // avn_002.vn
 // 768->32->1 activated by SCReLU
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 64;
-const OUTPUT_BUCKET_COUNT: usize = 1;
+const HL_SIZE: usize = 128;
+const OUTPUT_BUCKET_COUNT: usize = 8;
 
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
@@ -44,12 +44,23 @@ pub struct ValueNetwork {
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
-pub const fn transpose_output_weights(mut net: ValueNetwork) -> ValueNetwork{
-    
-    net
+pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork{
+    let mut output_weights = [0; HL_SIZE * OUTPUT_BUCKET_COUNT];
+    let mut weight = 0;
+    while weight < HL_SIZE {
+        let mut bucket = 0;
+        while bucket < OUTPUT_BUCKET_COUNT {
+            let src = weight * OUTPUT_BUCKET_COUNT + bucket;
+            let dst = bucket * HL_SIZE + weight;
+            output_weights[dst] = net.output_weights[src];
+            bucket += 1;
+        }
+        weight += 1;
+    }
+    ValueNetwork{feature_weights: net.feature_weights, feature_biases: net.feature_biases, output_weights, output_bias: net.output_bias}
 }
 
-pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_003.vn")) });
+pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_004.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
