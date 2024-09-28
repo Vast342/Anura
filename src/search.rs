@@ -407,7 +407,15 @@ impl Engine {
 
         (best_move, to_cp(best_score), visit_points)
     }
-    fn print_info(&mut self, root_node: usize, depth: u32, seldepth: u32, duration: u128, final_info: bool, options: &UciOptions) {
+    fn print_info(
+        &mut self,
+        root_node: usize,
+        depth: u32,
+        seldepth: u32,
+        duration: u128,
+        final_info: bool,
+        options: &UciOptions,
+    ) {
         if final_info && options.more_info {
             // potential todo: even more information
             for node_idx in self.tree[0].children_range() {
@@ -420,7 +428,7 @@ impl Engine {
                     this_node.visits,
                     score,
                 );
-            }   
+            }
         }
         let (pv, score, ends_in_mate) = self.get_pv(root_node);
         let nps = if duration == 0 {
@@ -430,11 +438,7 @@ impl Engine {
         };
         print!(
             "info depth {} seldepth {} nodes {} time {} nps {} ",
-            depth,
-            seldepth,
-            self.nodes,
-            duration,
-            nps,
+            depth, seldepth, self.nodes, duration, nps,
         );
         if ends_in_mate {
             print!("score mate {} ", pv.len() / 2);

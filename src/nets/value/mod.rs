@@ -22,11 +22,24 @@ use crate::{
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // value net:
-// avn_002.vn
-// 768->32->1 activated by SCReLU
+// avn_004.vn
+// 768->128->1x8 activated by SCReLU
 const INPUT_SIZE: usize = 768;
+const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 128;
 const OUTPUT_BUCKET_COUNT: usize = 8;
+
+#[rustfmt::skip]
+const INPUT_BUCKET_SCHEME: [usize; 64] = [
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+];
 
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
@@ -38,7 +51,7 @@ const QAB: i32 = QA * _QB;
 #[repr(C)]
 #[repr(align(64))]
 pub struct ValueNetwork {
-    feature_weights: [i16; INPUT_SIZE * HL_SIZE],
+    feature_weights: [i16; INPUT_SIZE * HL_SIZE * INPUT_BUCKET_COUNT],
     feature_biases: [i16; HL_SIZE],
     output_weights: [i16; HL_SIZE * OUTPUT_BUCKET_COUNT],
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
@@ -73,13 +86,14 @@ pub struct ValueNetworkState {
     state: [i16; HL_SIZE],
 }
 
-pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8) -> usize {
+pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square) -> usize {
     let c = (piece.color() != ctm) as usize;
     if ctm == 0 {
         sq.flip();
+        king.flip();
     }
     let p = piece.piece() as usize;
-    return c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize;
+    return INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE + c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize;
 }
 
 pub fn activation(x: i16) -> i32 {
@@ -101,15 +115,16 @@ impl ValueNetworkState {
     }
     pub fn load_position(&mut self, position: &Position, ctm: u8) {
         self.reset();
+        let king = position.king_sqs[ctm as usize];
         let mut occ = position.occupied();
         while occ != Bitboard::EMPTY {
             let idx = Square(occ.pop_lsb());
             let piece = position.piece_on_square(idx);
-            self.activate_feature(piece, idx, ctm);
+            self.activate_feature(piece, idx, ctm, king);
         }
     }
-    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8) {
-        let idx = get_feature_index(piece, sq, ctm);
+    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8, king: Square) {
+        let idx = get_feature_index(piece, sq, ctm, king);
         for hl_node in 0..HL_SIZE {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }

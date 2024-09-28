@@ -202,7 +202,7 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::new();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, 5);
+        limiters.load_values(0, 0, 0, 6);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine

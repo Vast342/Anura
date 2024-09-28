@@ -55,7 +55,7 @@ pub struct Position {
     colors: [Bitboard; 2],
     pieces: [Bitboard; 6],
     mailbox: [Piece; 64],
-    king_sqs: [Square; 2],
+    pub king_sqs: [Square; 2],
     hash: u64,
     pub ep_index: Square,
     pub hm_clock: u8,
