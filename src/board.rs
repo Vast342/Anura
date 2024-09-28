@@ -151,7 +151,7 @@ impl Board {
         self.ctm = ctm;
     }
     pub fn print_state(&self) {
-        let state = self.states.last().expect("no state???");
+        let state = self.current_state();
         for i in (0..8).rev() {
             for j in 0..8 {
                 print!("{} ", (state.mailbox[i * 8 + j]));
@@ -314,7 +314,7 @@ impl Board {
         self.update_pins_and_checkers();
     }
     pub fn get_moves(&self, list: &mut MoveList) {
-        let state = self.states.last().expect("no state");
+        let state = self.current_state();
         let occ: Bitboard = state.occupied();
         let checkers: Bitboard = state.checkers;
         let num_checkers = checkers.popcount();
@@ -591,7 +591,7 @@ impl Board {
     }
     pub fn get_move_count(&self) -> u64 {
         let mut sum = 0;
-        let state = self.states.last().expect("no state");
+        let state = self.current_state();
         let occ: Bitboard = state.occupied();
         let checkers: Bitboard = state.checkers;
         let num_checkers = checkers.popcount();
@@ -814,7 +814,8 @@ impl Board {
         sum as u64
     }
     pub fn make_move(&mut self, mov: Move) {
-        self.states.push(*self.states.last().expect("no position?"));
+        self.states.push(*self.current_state());
+        //                         not using self.current_state_mut() because of borrowing shenanigans
         let state = self.states.last_mut().expect("no position");
 
         let from = mov.from();
@@ -931,7 +932,7 @@ impl Board {
     pub fn square_attacked(&self, sq: Square) -> bool {
         let opp = 1 - self.ctm as usize;
 
-        let state = self.states.last().expect("no state");
+        let state = self.current_state();
         let occ = state.occupied();
         let opp_queens: Bitboard = state.pieces[Types::Queen as usize] & state.colors[opp];
 
@@ -969,7 +970,7 @@ impl Board {
     pub fn square_attacked_occ(&self, sq: Square, occ: Bitboard) -> bool {
         let opp = 1 - self.ctm as usize;
 
-        let state = self.states.last().expect("no state");
+        let state = self.current_state();
         let opp_queens: Bitboard = state.pieces[Types::Queen as usize] & state.colors[opp];
 
         let mut mask: Bitboard = get_rook_attacks(sq, occ)
@@ -1002,23 +1003,29 @@ impl Board {
 
         false
     }
+    pub fn current_state(&self) -> &Position {
+        self.states.last().expect("No current state")
+    }
+    pub fn current_state_mut(&mut self) -> &mut Position {
+        self.states.last_mut().expect("No current state")
+    }
     #[must_use]
     pub fn evaluate(&self) -> i32 {
         let mut net = ValueNetworkState::new();
-        net.evaluate(self.states.last().expect("bruh"), self.ctm)
+        net.evaluate(self.current_state(), self.ctm)
     }
     #[must_use]
     pub fn evaluate_non_stm(&self) -> i32 {
         let mut net = ValueNetworkState::new();
-        net.evaluate(self.states.last().expect("bruh"), 1)
+        net.evaluate(self.current_state(), 1)
     }
     pub fn get_policy(&self, mov: Move) -> f32 {
-        get_score(self.states.last().expect("bruh"), mov)
+        get_score(self.current_state(), mov)
     }
     #[must_use]
     pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();
-        let state = self.states.last().expect("the unexpected");
+        let state = self.current_state();
         for rank in (0..8).rev() {
             let mut num_empty_files = 0;
             for file in 0..8 {
@@ -1096,7 +1103,7 @@ impl Board {
         fen
     }
     fn get_attackers(&self, sq: Square) -> Bitboard {
-        let state = self.states.last().expect("the spanish inquisition");
+        let state = self.current_state();
         let occupied = state.occupied();
         let opp = 1 - self.ctm;
         let opp_queens = state.colored_piece(4, opp);
@@ -1111,12 +1118,12 @@ impl Board {
         let us_idx = self.ctm as usize;
         let opp = 1 - self.ctm;
         let opp_idx = opp as usize;
-        let state = self.states.last().expect("teehee 1");
+        let state = self.current_state();
         let king = state.king_sqs[us_idx];
 
         // while the other engines were playing chess, ANURA WAS PLAYING CHECKERS
         let checkers = self.get_attackers(king);
-        let state = self.states.last_mut().expect("teehee 2");
+        let state = self.current_state_mut();
         state.checkers = checkers;
 
         // more info gathering
@@ -1148,7 +1155,7 @@ impl Board {
         }
     }
     pub fn is_drawn(&self) -> bool {
-        let state = self.states.last().expect("lol");
+        let state = self.current_state();
 
         if state.hm_clock >= 100 {
             return true;
