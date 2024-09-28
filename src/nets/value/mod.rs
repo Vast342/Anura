@@ -50,8 +50,11 @@ pub struct ValueNetworkState {
     state: [i16; HL_SIZE],
 }
 
-pub const fn get_feature_index(piece: Piece, sq: Square) -> usize {
-    let c = 1 - piece.color() as usize;
+pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8) -> usize {
+    let c = (piece.color() != ctm) as usize;
+    if ctm == 0 {
+        sq.flip();
+    }
     let p = piece.piece() as usize;
     return c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize;
 }
@@ -69,21 +72,21 @@ impl ValueNetworkState {
     pub fn reset(&mut self) {
         self.state = VALUE_NET.feature_biases
     }
-    pub fn evaluate(&mut self, position: &Position) -> i32 {
-        self.load_position(position);
+    pub fn evaluate(&mut self, position: &Position, ctm: u8) -> i32 {
+        self.load_position(position, ctm);
         self.forward()
     }
-    pub fn load_position(&mut self, position: &Position) {
+    pub fn load_position(&mut self, position: &Position, ctm: u8) {
         self.reset();
         let mut occ = position.occupied();
         while occ != Bitboard::EMPTY {
             let idx = Square(occ.pop_lsb());
             let piece = position.piece_on_square(idx);
-            self.activate_feature(piece, idx);
+            self.activate_feature(piece, idx, ctm);
         }
     }
-    pub fn activate_feature(&mut self, piece: Piece, sq: Square) {
-        let idx = get_feature_index(piece, sq);
+    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8) {
+        let idx = get_feature_index(piece, sq, ctm);
         for hl_node in 0..HL_SIZE {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
