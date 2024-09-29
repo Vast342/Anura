@@ -57,7 +57,7 @@ pub struct ValueNetwork {
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
-pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork{
+pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
     let mut output_weights = [0; HL_SIZE * OUTPUT_BUCKET_COUNT];
     let mut weight = 0;
     while weight < HL_SIZE {
@@ -70,10 +70,16 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork{
         }
         weight += 1;
     }
-    ValueNetwork{feature_weights: net.feature_weights, feature_biases: net.feature_biases, output_weights, output_bias: net.output_bias}
+    ValueNetwork {
+        feature_weights: net.feature_weights,
+        feature_biases: net.feature_biases,
+        output_weights,
+        output_bias: net.output_bias,
+    }
 }
 
-pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_005.vn")) });
+pub const VALUE_NET: ValueNetwork =
+    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_005.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
@@ -93,7 +99,10 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
         king.flip();
     }
     let p = piece.piece() as usize;
-    return INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE + c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize;
+    return INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE
+        + c * COLOR_STRIDE
+        + p * PIECE_STRIDE
+        + sq.0 as usize;
 }
 
 pub fn activation(x: i16) -> i32 {
@@ -135,7 +144,8 @@ impl ValueNetworkState {
         let bucket_increment = HL_SIZE * output_bucket;
 
         for hl_node in 0..HL_SIZE {
-            sum += activation(self.state[hl_node]) * VALUE_NET.output_weights[hl_node + bucket_increment] as i32;
+            sum += activation(self.state[hl_node])
+                * VALUE_NET.output_weights[hl_node + bucket_increment] as i32;
         }
 
         (sum / QA + VALUE_NET.output_bias[output_bucket] as i32) * EVAL_SCALE as i32 / QAB

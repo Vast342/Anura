@@ -119,41 +119,31 @@ impl Engine {
             start: Instant::now(),
         }
     }
-    fn select(&mut self, root_node: usize) -> usize {
-        let mut current = root_node;
-        loop {
-            let node = &self.tree[current as usize];
-            if current != 0 {
-                self.board.make_move(node.mov);
-                self.depth += 1;
+    fn select(&mut self, current: usize) -> usize {
+        let node = &self.tree[current as usize];
+
+        let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
+
+        let mut best_child = 0;
+        let mut best_child_uct = f32::NEG_INFINITY;
+
+        for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
+            let average_score = if child.visits == 0 {
+                0.5
+            } else {
+                child.average_score()
+            };
+            let p = child.policy;
+            let uct = average_score + e * p / (1 + child.visits) as f32;
+
+            if uct > best_child_uct {
+                println!("stuff");
+                best_child = child_idx;
+                best_child_uct = uct;
             }
-            if node.result.is_terminal() || node.child_count == 0 {
-                break;
-            }
-
-            let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
-
-            let mut best_child = None;
-            let mut best_child_uct = f32::NEG_INFINITY;
-
-            for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
-                let average_score = if child.visits == 0 {
-                    0.5
-                } else {
-                    child.average_score()
-                };
-                let p = child.policy;
-                let uct = average_score + e * p / (1 + child.visits) as f32;
-
-                if uct > best_child_uct {
-                    best_child = Some(child_idx);
-                    best_child_uct = uct;
-                }
-            }
-
-            current = node.first_child as usize + best_child.unwrap();
         }
-        current
+
+        node.first_child as usize + best_child
     }
 
     fn expand(&mut self, node_idx: usize) {
@@ -216,13 +206,42 @@ impl Engine {
             if node_idx == 0 {
                 break;
             }
-            // idea
-            // result = 1.0 - 0.95 * result;
+            
             result = 1.0 - result;
             node.total_score += result;
 
             node_idx = node.parent as usize;
         }
+    }
+
+    fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
+        let score = 1.0 - if !root
+            && (self.tree[current_node].result.is_terminal() || self.tree[current_node].visits == 0)
+        {
+            self.simulate(current_node)
+        } else {
+            // if not already expanded (unsure if these conditions are right)
+            if !self.tree[current_node].child_count == 0
+                && self.tree[current_node].result == GameResult::Ongoing
+            {
+                self.expand(current_node);
+            }
+            
+            let next_index = self.select(current_node);
+            self.board.make_move(self.tree[next_index].mov);
+
+            self.depth += 1;
+            let score = self.mcts(next_index, root);
+
+            // things
+            
+            
+            score
+        };
+        self.tree[current_node].visits += 1;
+        self.tree[current_node].total_score += score;
+
+        score
     }
 
     fn get_best_move(&self, root_node: usize) -> (usize, f32) {
@@ -315,19 +334,7 @@ impl Engine {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
-            // selection
-            let node_idx = self.select(root_node);
-            let node = &self.tree[node_idx];
-
-            // expansion
-            if !node.result.is_terminal() && node.visits != 0 {
-                self.expand(node_idx);
-            }
-
-            // simulation
-            let result = self.simulate(node_idx);
-            // backpropogation
-            self.backprop(node_idx, result);
+            self.mcts(root_node, true);
 
             self.nodes += 1;
             total_depth += self.depth as usize;
