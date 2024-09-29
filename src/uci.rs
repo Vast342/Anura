@@ -202,7 +202,7 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::new();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, 6);
+        limiters.load_values(0, 0, 0, 5);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine
@@ -395,7 +395,7 @@ impl Manager {
         println!("id author Vast");
         println!("option name Hash type spin default 32 min 1 max 1048576");
         println!("option name Threads type spin default 1 min 1 max 1048576");
-        println!("option name MoreInfo type spin default false");
+        println!("option name MoreInfo type check default false");
         println!("uciok");
     }
 }

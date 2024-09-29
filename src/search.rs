@@ -346,10 +346,12 @@ impl Engine {
                 prev_avg_depth = avg_depth;
             }
         }
-        let duration = self.start.elapsed().as_millis();
-        avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
-        if info {
-            self.print_info(root_node, avg_depth - 1, seldepth, duration, true, options);
+        if !limiters.use_depth {
+            let duration = self.start.elapsed().as_millis();
+            avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
+            if info {
+                self.print_info(root_node, avg_depth, seldepth, duration, true, options);
+            }
         }
 
         let (index, _best_score) = self.get_best_move(root_node);
