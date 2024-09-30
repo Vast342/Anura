@@ -213,7 +213,7 @@ impl Engine {
             self.board.make_move(self.tree[next_index].mov);
             self.depth += 1;
 
-            let score = self.mcts(next_index, root);
+            let score = self.mcts(next_index, false);
 
             score
         };
@@ -364,19 +364,7 @@ impl Engine {
         while self.nodes < NODE_LIMIT {
             self.board.load_state(root_state, root_ctm);
 
-            // selection
-            let node_idx = self.select(root_node);
-            let node = &self.tree[node_idx];
-
-            // expansion
-            if !node.result.is_terminal() && node.visits != 0 {
-                self.expand(node_idx);
-            }
-
-            // simulation
-            let result = self.simulate(node_idx);
-            // backpropogation
-            self.backprop(node_idx, result);
+            self.mcts(root_node, true);
 
             self.nodes += 1;
         }
