@@ -21,7 +21,7 @@ use crate::board::{Board, SQUARE_NAMES};
 
 use super::{piece::Types, square::Square};
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct Move(pub u16);
 
 #[derive(PartialEq, PartialOrd, Eq, Ord)]

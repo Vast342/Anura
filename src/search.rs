@@ -55,7 +55,6 @@ impl GameResult {
 }
 
 struct Node {
-    parent: u32,
     mov: Move,
     first_child: u32,
     child_count: u8,
@@ -66,9 +65,8 @@ struct Node {
 }
 
 impl Node {
-    fn new(parent: u32, mov: Move, policy: f32) -> Self {
+    fn new(mov: Move, policy: f32) -> Self {
         Self {
-            parent,
             mov,
             first_child: 0,
             child_count: 0,
@@ -119,41 +117,30 @@ impl Engine {
             start: Instant::now(),
         }
     }
-    fn select(&mut self, root_node: usize) -> usize {
-        let mut current = root_node;
-        loop {
-            let node = &self.tree[current as usize];
-            if current != 0 {
-                self.board.make_move(node.mov);
-                self.depth += 1;
+    fn select(&mut self, current: usize) -> usize {
+        let node = &self.tree[current as usize];
+
+        let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
+
+        let mut best_child = 0;
+        let mut best_child_uct = f32::NEG_INFINITY;
+
+        for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
+            let average_score = if child.visits == 0 {
+                0.5
+            } else {
+                child.average_score()
+            };
+            let p = child.policy;
+            let uct = average_score + e * p / (1 + child.visits) as f32;
+
+            if uct > best_child_uct {
+                best_child = child_idx;
+                best_child_uct = uct;
             }
-            if node.result.is_terminal() || node.child_count == 0 {
-                break;
-            }
-
-            let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
-
-            let mut best_child = None;
-            let mut best_child_uct = f32::NEG_INFINITY;
-
-            for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
-                let average_score = if child.visits == 0 {
-                    0.5
-                } else {
-                    child.average_score()
-                };
-                let p = child.policy;
-                let uct = average_score + e * p / (1 + child.visits) as f32;
-
-                if uct > best_child_uct {
-                    best_child = Some(child_idx);
-                    best_child_uct = uct;
-                }
-            }
-
-            current = node.first_child as usize + best_child.unwrap();
         }
-        current
+
+        node.first_child as usize + best_child
     }
 
     fn expand(&mut self, node_idx: usize) {
@@ -194,7 +181,7 @@ impl Engine {
         node.child_count = moves.len() as u8;
 
         for i in 0..moves.len() {
-            let node = Node::new(node_idx as u32, moves[i], policy[i]);
+            let node = Node::new(moves[i], policy[i]);
             self.tree.push(node);
         }
     }
@@ -207,22 +194,35 @@ impl Engine {
         })
     }
 
-    fn backprop(&mut self, mut node_idx: usize, mut result: f32) {
-        loop {
-            let node = &mut self.tree[node_idx];
-
-            node.visits += 1;
-
-            if node_idx == 0 {
-                break;
+    fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
+        let mut score = if !root
+            && (self.tree[current_node].result.is_terminal()
+                || self.tree[current_node].visits == 0)
+        {
+            self.simulate(current_node)
+        } else {
+            if self.tree[current_node].child_count == 0 {
+                self.expand(current_node);
+                if self.tree[current_node].result.is_terminal() {
+                    return self.simulate(current_node)
+                }
             }
-            // idea
-            // result = 1.0 - 0.95 * result;
-            result = 1.0 - result;
-            node.total_score += result;
 
-            node_idx = node.parent as usize;
-        }
+            let next_index = self.select(current_node);
+
+            self.board.make_move(self.tree[next_index].mov);
+            self.depth += 1;
+
+            let score = self.mcts(next_index, false);
+
+            score
+        };
+        score = 1.0 - score;
+
+        self.tree[current_node].visits += 1;
+        self.tree[current_node].total_score += score;
+
+        score
     }
 
     fn get_best_move(&self, root_node: usize) -> (usize, f32) {
@@ -305,7 +305,7 @@ impl Engine {
         let mut avg_depth = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(0, Move::NULL_MOVE, 0.0));
+        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
@@ -315,19 +315,7 @@ impl Engine {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
-            // selection
-            let node_idx = self.select(root_node);
-            let node = &self.tree[node_idx];
-
-            // expansion
-            if !node.result.is_terminal() && node.visits != 0 {
-                self.expand(node_idx);
-            }
-
-            // simulation
-            let result = self.simulate(node_idx);
-            // backpropogation
-            self.backprop(node_idx, result);
+            self.mcts(root_node, true);
 
             self.nodes += 1;
             total_depth += self.depth as usize;
@@ -376,19 +364,7 @@ impl Engine {
         while self.nodes < NODE_LIMIT {
             self.board.load_state(root_state, root_ctm);
 
-            // selection
-            let node_idx = self.select(root_node);
-            let node = &self.tree[node_idx];
-
-            // expansion
-            if !node.result.is_terminal() && node.visits != 0 {
-                self.expand(node_idx);
-            }
-
-            // simulation
-            let result = self.simulate(node_idx);
-            // backpropogation
-            self.backprop(node_idx, result);
+            self.mcts(root_node, true);
 
             self.nodes += 1;
         }
