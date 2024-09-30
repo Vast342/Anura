@@ -40,10 +40,10 @@ enum GameResult {
 }
 
 impl GameResult {
-    fn score(self) -> Option<f32> {
+    fn score(self, ctm: u8, root_ctm: u8) -> Option<f32> {
         match self {
             GameResult::Win => Some(1.0),
-            GameResult::Draw => Some(0.5),
+            GameResult::Draw => Some(0.5 - 0.01 + 0.02 * (ctm == root_ctm) as u32 as f32),
             GameResult::Loss => Some(0.0),
             GameResult::Ongoing => None,
         }
@@ -104,6 +104,7 @@ pub struct Engine {
     depth: u32,
     pub nodes: u128,
     start: Instant,
+    root_ctm: u8,
 }
 
 impl Engine {
@@ -115,6 +116,7 @@ impl Engine {
             depth: 0,
             nodes: 0,
             start: Instant::now(),
+            root_ctm: 1,
         }
     }
     fn select(&mut self, current: usize) -> usize {
@@ -189,7 +191,7 @@ impl Engine {
     // using my normal eval as a value net here so it actually just evaluates
     fn simulate(&self, node_idx: usize) -> f32 {
         let node = &self.tree[node_idx];
-        node.result.score().unwrap_or_else(|| {
+        node.result.score(self.board.ctm, self.root_ctm).unwrap_or_else(|| {
             1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
         })
     }
@@ -309,6 +311,7 @@ impl Engine {
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
+        self.root_ctm = root_ctm;
         let root_node = 0;
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
