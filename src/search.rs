@@ -195,26 +195,30 @@ impl Engine {
     }
 
     fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
-        let score = 1.0
-            - if !root
-                && (self.tree[current_node].result.is_terminal()
-                    || self.tree[current_node].visits == 0)
-            {
-                self.simulate(current_node)
-            } else {
-                // if not already expanded (unsure if these conditions are right)
-                if self.tree[current_node].child_count == 0 {
-                    self.expand(current_node);
+        let mut score = if !root
+            && (self.tree[current_node].result.is_terminal()
+                || self.tree[current_node].visits == 0)
+        {
+            self.simulate(current_node)
+        } else {
+            if self.tree[current_node].child_count == 0 {
+                self.expand(current_node);
+                if self.tree[current_node].result.is_terminal() {
+                    return self.simulate(current_node)
                 }
+            }
 
-                let next_index = self.select(current_node);
-                self.board.make_move(self.tree[next_index].mov);
+            let next_index = self.select(current_node);
 
-                self.depth += 1;
-                let score = self.mcts(next_index, root);
+            self.board.make_move(self.tree[next_index].mov);
+            self.depth += 1;
 
-                score
-            };
+            let score = self.mcts(next_index, root);
+
+            score
+        };
+        score = 1.0 - score;
+
         self.tree[current_node].visits += 1;
         self.tree[current_node].total_score += score;
 
