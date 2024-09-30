@@ -55,7 +55,6 @@ impl GameResult {
 }
 
 struct Node {
-    parent: u32,
     mov: Move,
     first_child: u32,
     child_count: u8,
@@ -66,9 +65,8 @@ struct Node {
 }
 
 impl Node {
-    fn new(parent: u32, mov: Move, policy: f32) -> Self {
+    fn new(mov: Move, policy: f32) -> Self {
         Self {
-            parent,
             mov,
             first_child: 0,
             child_count: 0,
@@ -137,7 +135,6 @@ impl Engine {
             let uct = average_score + e * p / (1 + child.visits) as f32;
 
             if uct > best_child_uct {
-                println!("stuff");
                 best_child = child_idx;
                 best_child_uct = uct;
             }
@@ -184,7 +181,7 @@ impl Engine {
         node.child_count = moves.len() as u8;
 
         for i in 0..moves.len() {
-            let node = Node::new(node_idx as u32, moves[i], policy[i]);
+            let node = Node::new(moves[i], policy[i]);
             self.tree.push(node);
         }
     }
@@ -197,47 +194,27 @@ impl Engine {
         })
     }
 
-    fn backprop(&mut self, mut node_idx: usize, mut result: f32) {
-        loop {
-            let node = &mut self.tree[node_idx];
-
-            node.visits += 1;
-
-            if node_idx == 0 {
-                break;
-            }
-            
-            result = 1.0 - result;
-            node.total_score += result;
-
-            node_idx = node.parent as usize;
-        }
-    }
-
     fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
-        let score = 1.0 - if !root
-            && (self.tree[current_node].result.is_terminal() || self.tree[current_node].visits == 0)
-        {
-            self.simulate(current_node)
-        } else {
-            // if not already expanded (unsure if these conditions are right)
-            if !self.tree[current_node].child_count == 0
-                && self.tree[current_node].result == GameResult::Ongoing
+        let score = 1.0
+            - if !root
+                && (self.tree[current_node].result.is_terminal()
+                    || self.tree[current_node].visits == 0)
             {
-                self.expand(current_node);
-            }
-            
-            let next_index = self.select(current_node);
-            self.board.make_move(self.tree[next_index].mov);
+                self.simulate(current_node)
+            } else {
+                // if not already expanded (unsure if these conditions are right)
+                if self.tree[current_node].child_count == 0 {
+                    self.expand(current_node);
+                }
 
-            self.depth += 1;
-            let score = self.mcts(next_index, root);
+                let next_index = self.select(current_node);
+                self.board.make_move(self.tree[next_index].mov);
 
-            // things
-            
-            
-            score
-        };
+                self.depth += 1;
+                let score = self.mcts(next_index, root);
+
+                score
+            };
         self.tree[current_node].visits += 1;
         self.tree[current_node].total_score += score;
 
@@ -324,7 +301,7 @@ impl Engine {
         let mut avg_depth = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(0, Move::NULL_MOVE, 0.0));
+        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
