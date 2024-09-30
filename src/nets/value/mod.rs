@@ -26,7 +26,7 @@ use crate::{
 // 768->128->1x8 activated by SCReLU
 const INPUT_SIZE: usize = 768;
 const INPUT_BUCKET_COUNT: usize = 1;
-const HL_SIZE: usize = 256;
+const HL_SIZE: usize = 512;
 const OUTPUT_BUCKET_COUNT: usize = 16;
 
 #[rustfmt::skip]
@@ -73,7 +73,7 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork{
     ValueNetwork{feature_weights: net.feature_weights, feature_biases: net.feature_biases, output_weights, output_bias: net.output_bias}
 }
 
-pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_005.vn")) });
+pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_006.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
