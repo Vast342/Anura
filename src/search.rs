@@ -192,7 +192,7 @@ impl Engine {
     fn simulate(&self, node_idx: usize) -> f32 {
         let node = &self.tree[node_idx];
         node.result.score(self.board.ctm, self.root_ctm).unwrap_or_else(|| {
-            1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+            self.board.evaluate()
         })
     }
 

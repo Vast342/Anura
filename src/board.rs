@@ -1010,12 +1010,12 @@ impl Board {
         self.states.last_mut().expect("No current state")
     }
     #[must_use]
-    pub fn evaluate(&self) -> i32 {
+    pub fn evaluate(&self) -> f32 {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.current_state(), self.ctm)
     }
     #[must_use]
-    pub fn evaluate_non_stm(&self) -> i32 {
+    pub fn evaluate_non_stm(&self) -> f32 {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.current_state(), 1)
     }
