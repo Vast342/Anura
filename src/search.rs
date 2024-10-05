@@ -358,7 +358,7 @@ impl Engine {
         self.nodes = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(0, Move::NULL_MOVE, 0.0));
+        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
