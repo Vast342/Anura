@@ -54,12 +54,12 @@ const QAB: i32 = QA * _QB;
 #[repr(C)]
 #[repr(align(64))]
 pub struct ValueNetwork {
-    feature_weights: [i16; INPUT_SIZE * L1_SIZE * INPUT_BUCKET_COUNT],
-    feature_biases: [i16; L1_SIZE],
-    l2_weights: [i16; L2_SIZE * L1_SIZE * OUTPUT_BUCKET_COUNT],
-    l2_biases: [[i16; L2_SIZE]; OUTPUT_BUCKET_COUNT],
-    output_weights: [i16; L2_SIZE * OUTPUT_BUCKET_COUNT],
-    output_biases: [i16; OUTPUT_BUCKET_COUNT],
+    feature_weights: [i32; INPUT_SIZE * L1_SIZE * INPUT_BUCKET_COUNT],
+    feature_biases: [i32; L1_SIZE],
+    l2_weights: [[[f32; L2_SIZE]; L1_SIZE]; OUTPUT_BUCKET_COUNT],
+    l2_biases: [[f32; L2_SIZE]; OUTPUT_BUCKET_COUNT],
+    output_weights: [f32; L2_SIZE * OUTPUT_BUCKET_COUNT],
+    output_biases: [f32; OUTPUT_BUCKET_COUNT],
 }
 
 pub const VALUE_NET: ValueNetwork = convert(unsafe { std::mem::transmute(*include_bytes!("avn_007.vn")) });
@@ -72,8 +72,8 @@ const fn get_output_bucket(piece_count: usize) -> usize {
 
 #[derive(Debug, Clone)]
 pub struct ValueNetworkState {
-    l1_state: [i16; L1_SIZE],
-    l2_state: [i16; L2_SIZE],
+    l1_state: [i32; L1_SIZE],
+    l2_state: [f32; L2_SIZE],
 }
 
 pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square) -> usize {
@@ -89,15 +89,19 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
         + sq.0 as usize;
 }
 
-pub fn activation(x: i16) -> i32 {
-    ((x as i32).max(0).min(QA)).pow(2)
+pub fn activation_i32(x: i32) -> i32 {
+    ((x).max(0).min(QA)).pow(2)
+}
+
+pub fn activation_f32(x: f32) -> f32 {
+    ((x).max(0.0).min(1.0)).powf(2.0)
 }
 
 impl ValueNetworkState {
     pub const fn new() -> Self {
         Self {
             l1_state: VALUE_NET.feature_biases,
-            l2_state: [0; L2_SIZE],
+            l2_state: [0.0; L2_SIZE],
         }
     }
     pub fn reset(&mut self, output_bucket: usize) {
@@ -128,26 +132,22 @@ impl ValueNetworkState {
     // todo: forwarding l1 to l2
     pub fn l1_to_l2(&mut self, piece_count: usize) {
         let output_bucket = get_output_bucket(piece_count);
-        let bucket_increment_l1 = L1_SIZE * output_bucket;
-        let bucket_increment_l2 = L2_SIZE * output_bucket;
-
         for l1_node in 0..L1_SIZE {
             for l2_node in 0..L2_SIZE {
-                self.l2_state[l2_node + bucket_increment_l2] += 0;
+                self.l2_state[l2_node] += activation_i32(self.l1_state[l1_node]) as f32 * VALUE_NET.l2_weights[l1_node][output_bucket][l2_node];
             }
         }
     }
     pub fn forward(&self, piece_count: usize) -> i32 {
-        let mut sum = 0;
+        let mut sum = 0.0;
         let output_bucket = get_output_bucket(piece_count);
         let bucket_increment = L2_SIZE * output_bucket;
 
         for hl_node in 0..L2_SIZE {
-            sum += activation(self.l2_state[hl_node])
-                * VALUE_NET.output_weights[hl_node + bucket_increment] as i32;
+            sum += activation_f32(self.l2_state[hl_node]) * VALUE_NET.output_weights[hl_node + bucket_increment];
         }
 
-        (sum / QA + VALUE_NET.output_biases[output_bucket] as i32) * EVAL_SCALE as i32 / QAB
+        ((sum / QA as f32 + VALUE_NET.output_biases[output_bucket]) * EVAL_SCALE as f32 / QAB as f32) as i32
     }
 }
 
