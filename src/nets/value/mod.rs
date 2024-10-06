@@ -17,10 +17,8 @@
 */
 pub mod loader;
 use crate::{
-    board::Position,
-    types::{bitboard::Bitboard, piece::Piece, square::Square},
+    board::Position, search::EVAL_SCALE, types::{bitboard::Bitboard, piece::Piece, square::Square}
 };
-use loader::convert;
 
 // value net:
 // avn_007.vn
@@ -46,20 +44,21 @@ const INPUT_BUCKET_SCHEME: [usize; 64] = [
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
 
-#[derive(Debug)]
+// quantisation constants
+const QA: usize = 256;
+const QB: usize = 64;
+
+#[derive(Debug, Clone)]
 #[repr(C)]
 #[repr(align(64))]
 pub struct ValueNetwork {
-    feature_weights: [f32; INPUT_SIZE * L1_SIZE * INPUT_BUCKET_COUNT],
-    feature_biases: [f32; L1_SIZE],
+    feature_weights: [i32; INPUT_SIZE * L1_SIZE * INPUT_BUCKET_COUNT],
+    feature_biases: [i32; L1_SIZE],
     l2_weights: [[[f32; L2_SIZE]; OUTPUT_BUCKET_COUNT]; L1_SIZE],
     l2_biases: [[f32; L2_SIZE]; OUTPUT_BUCKET_COUNT],
     output_weights: [f32; L2_SIZE * OUTPUT_BUCKET_COUNT],
     output_biases: [f32; OUTPUT_BUCKET_COUNT],
 }
-
-pub const VALUE_NET: ValueNetwork =
-    convert(unsafe { std::mem::transmute(*include_bytes!("avn_007.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
@@ -69,7 +68,8 @@ const fn get_output_bucket(piece_count: usize) -> usize {
 
 #[derive(Debug, Clone)]
 pub struct ValueNetworkState {
-    l1_state: [f32; L1_SIZE],
+    net: Box<ValueNetwork>,
+    l1_state: [i32; L1_SIZE],
     l2_state: [f32; L2_SIZE],
 }
 
@@ -97,15 +97,16 @@ pub fn activation_l2(x: f32) -> f32 {
 }
 
 impl ValueNetworkState {
-    pub const fn new() -> Self {
+    pub fn new(net_: Box<ValueNetwork>) -> Self {
         Self {
-            l1_state: VALUE_NET.feature_biases,
+            l1_state: [0; L1_SIZE],
             l2_state: [0.0; L2_SIZE],
+            net: net_,
         }
     }
     pub fn reset(&mut self, output_bucket: usize) {
-        self.l1_state = VALUE_NET.feature_biases;
-        self.l2_state = VALUE_NET.l2_biases[output_bucket];
+        self.l1_state = [0; L1_SIZE];
+        self.l2_state = self.net.l2_biases[output_bucket];
     }
     pub fn evaluate(&mut self, position: &Position, ctm: u8) -> f32 {
         self.load_position(position, ctm);
@@ -126,15 +127,17 @@ impl ValueNetworkState {
     pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8, king: Square) {
         let idx = get_feature_index(piece, sq, ctm, king);
         for hl_node in 0..L1_SIZE {
-            self.l1_state[hl_node] += VALUE_NET.feature_weights[idx * L1_SIZE + hl_node];
+            self.l1_state[hl_node] += self.net.feature_weights[idx * L1_SIZE + hl_node];
         }
     }
     pub fn l1_to_l2(&mut self, piece_count: usize) {
         let output_bucket = get_output_bucket(piece_count);
         for l1_node in 0..L1_SIZE {
             for l2_node in 0..L2_SIZE {
-                self.l2_state[l2_node] += activation_l1(self.l1_state[l1_node])
-                    * VALUE_NET.l2_weights[l1_node][output_bucket][l2_node];
+                let dequantised_l1_node = (self.l1_state[l1_node] as f32 / (QA * QA * QB) as f32)
+                    + self.net.feature_biases[l1_node] as f32;
+                self.l2_state[l2_node] += activation_l1(dequantised_l1_node)
+                    * self.net.l2_weights[l1_node][output_bucket][l2_node];
             }
         }
     }
@@ -145,15 +148,9 @@ impl ValueNetworkState {
 
         for hl_node in 0..L2_SIZE {
             sum += activation_l2(self.l2_state[hl_node])
-                * VALUE_NET.output_weights[hl_node + bucket_increment];
+                * self.net.output_weights[hl_node + bucket_increment];
         }
 
-        return 1.0 / (1.0 + (-(sum + VALUE_NET.output_biases[output_bucket])).exp());
-    }
-}
-
-impl Default for ValueNetworkState {
-    fn default() -> Self {
-        Self::new()
+        sum * EVAL_SCALE as f32
     }
 }

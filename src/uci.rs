@@ -19,6 +19,7 @@
 use std::time::Instant;
 use std::{io, u64};
 
+use crate::nets::value::loader::{convert, VALUE_NET_RAW};
 use crate::time::Limiters;
 use crate::{
     board::Board,
@@ -83,7 +84,7 @@ impl Manager {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            board: Board::new(),
+            board: Board::new(convert(VALUE_NET_RAW)),
             engine: Engine::new(),
             options: UciOptions::new(),
             limiter: Limiters::new(),
@@ -200,7 +201,7 @@ impl Manager {
     pub fn bench(&mut self) {
         let mut total = 0;
         let start = Instant::now();
-        let mut board: Board = Board::new();
+        let mut board: Board = Board::new(convert(VALUE_NET_RAW));
         let mut limiters = Limiters::new();
         limiters.load_values(0, 0, 0, 5);
         for string in BENCH_FENS {
@@ -377,7 +378,6 @@ impl Manager {
                 }
             }
         }
-        self.board = Board::new();
         self.board.load_fen(&fen);
         // if there are moves
         if let Some(_moves_token) = command_split.next() {
