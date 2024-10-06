@@ -16,11 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 pub mod loader;
-use loader::convert;
 use crate::{
     board::Position,
     types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
+use loader::convert;
 
 // value net:
 // avn_007.vn
@@ -58,7 +58,8 @@ pub struct ValueNetwork {
     output_biases: [f32; OUTPUT_BUCKET_COUNT],
 }
 
-pub const VALUE_NET: ValueNetwork = convert(unsafe { std::mem::transmute(*include_bytes!("avn_007.vn")) });
+pub const VALUE_NET: ValueNetwork =
+    convert(unsafe { std::mem::transmute(*include_bytes!("avn_007.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
@@ -89,6 +90,7 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
 pub fn activation_l1(x: f32) -> f32 {
     x.max(0.0).min(1.0).powf(2.0)
 }
+
 // CReLU
 pub fn activation_l2(x: f32) -> f32 {
     x.max(0.0).min(1.0)
@@ -131,7 +133,8 @@ impl ValueNetworkState {
         let output_bucket = get_output_bucket(piece_count);
         for l1_node in 0..L1_SIZE {
             for l2_node in 0..L2_SIZE {
-                self.l2_state[l2_node] += activation_l1(self.l1_state[l1_node]) * VALUE_NET.l2_weights[l1_node][output_bucket][l2_node];
+                self.l2_state[l2_node] += activation_l1(self.l1_state[l1_node])
+                    * VALUE_NET.l2_weights[l1_node][output_bucket][l2_node];
             }
         }
     }
@@ -141,7 +144,8 @@ impl ValueNetworkState {
         let bucket_increment = L2_SIZE * output_bucket;
 
         for hl_node in 0..L2_SIZE {
-            sum += activation_l2(self.l2_state[hl_node]) * VALUE_NET.output_weights[hl_node + bucket_increment];
+            sum += activation_l2(self.l2_state[hl_node])
+                * VALUE_NET.output_weights[hl_node + bucket_increment];
         }
 
         return 1.0 / (1.0 + (-(sum + VALUE_NET.output_biases[output_bucket])).exp());

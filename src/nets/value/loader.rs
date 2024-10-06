@@ -1,6 +1,6 @@
 use super::{ValueNetwork, L2_SIZE, OUTPUT_BUCKET_COUNT};
 
-// todo: quantisation and transposing the l2 weights and biases 
+// todo: quantisation and transposing the l2 weights and biases
 pub const fn convert(net: ValueNetwork) -> ValueNetwork {
     let mut output_weights = [0.0; L2_SIZE * OUTPUT_BUCKET_COUNT];
     let mut weight = 0;

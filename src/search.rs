@@ -191,22 +191,21 @@ impl Engine {
     // using my normal eval as a value net here so it actually just evaluates
     fn simulate(&self, node_idx: usize) -> f32 {
         let node = &self.tree[node_idx];
-        node.result.score(self.board.ctm, self.root_ctm).unwrap_or_else(|| {
-            self.board.evaluate()
-        })
+        node.result
+            .score(self.board.ctm, self.root_ctm)
+            .unwrap_or_else(|| self.board.evaluate())
     }
 
     fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
         let mut score = if !root
-            && (self.tree[current_node].result.is_terminal()
-                || self.tree[current_node].visits == 0)
+            && (self.tree[current_node].result.is_terminal() || self.tree[current_node].visits == 0)
         {
             self.simulate(current_node)
         } else {
             if self.tree[current_node].child_count == 0 {
                 self.expand(current_node);
                 if self.tree[current_node].result.is_terminal() {
-                    return self.simulate(current_node)
+                    return self.simulate(current_node);
                 }
             }
 
