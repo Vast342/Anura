@@ -18,7 +18,11 @@
 
 use std::time::Instant;
 
-use crate::{board::Board, nets::value::loader::{convert, VALUE_NET_RAW}, types::MoveList};
+use crate::{
+    board::Board,
+    nets::value::loader::{convert, VALUE_NET_RAW},
+    types::MoveList,
+};
 
 pub fn perft(board: &mut Board, depth: u8) -> u64 {
     if depth == 0 {

@@ -17,7 +17,9 @@
 */
 pub mod loader;
 use crate::{
-    board::Position, search::EVAL_SCALE, types::{bitboard::Bitboard, piece::Piece, square::Square}
+    board::Position,
+    search::EVAL_SCALE,
+    types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
 
 // value net:
@@ -87,8 +89,8 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
 }
 
 // SCReLU
-pub fn activation_l1(x: f32) -> f32 {
-    x.max(0.0).min(1.0).powf(2.0)
+pub fn activation_l1(x: i32) -> f32 {
+    x.max(0).min(QA as i32).pow(2) as f32
 }
 
 // CReLU
@@ -99,13 +101,13 @@ pub fn activation_l2(x: f32) -> f32 {
 impl ValueNetworkState {
     pub fn new(net_: Box<ValueNetwork>) -> Self {
         Self {
-            l1_state: [0; L1_SIZE],
+            l1_state: net_.feature_biases,
             l2_state: [0.0; L2_SIZE],
             net: net_,
         }
     }
     pub fn reset(&mut self, output_bucket: usize) {
-        self.l1_state = [0; L1_SIZE];
+        self.l1_state = self.net.feature_biases;
         self.l2_state = self.net.l2_biases[output_bucket];
     }
     pub fn evaluate(&mut self, position: &Position, ctm: u8) -> f32 {
@@ -134,9 +136,7 @@ impl ValueNetworkState {
         let output_bucket = get_output_bucket(piece_count);
         for l1_node in 0..L1_SIZE {
             for l2_node in 0..L2_SIZE {
-                let dequantised_l1_node = (self.l1_state[l1_node] as f32 / (QA * QA * QB) as f32)
-                    + self.net.feature_biases[l1_node] as f32;
-                self.l2_state[l2_node] += activation_l1(dequantised_l1_node)
+                self.l2_state[l2_node] += (activation_l1(self.l1_state[l1_node]) / (QA * QA * QB) as f32)
                     * self.net.l2_weights[l1_node][output_bucket][l2_node];
             }
         }
@@ -151,6 +151,6 @@ impl ValueNetworkState {
                 * self.net.output_weights[hl_node + bucket_increment];
         }
 
-        sum * EVAL_SCALE as f32
+        return 1.0 / (1.0 + (-(sum + self.net.output_biases[output_bucket])).exp());
     }
 }
