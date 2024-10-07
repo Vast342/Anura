@@ -39,7 +39,7 @@ use crate::{
         pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise},
         slideys::{get_bishop_attacks, get_rook_attacks},
     },
-    nets::{policy::get_score, value::{ValueNetwork, ValueNetworkState}},
+    nets::{policy::get_score, value::ValueNetworkState},
     rays::{ray_between, ray_intersecting},
     types::{
         bitboard::Bitboard,
@@ -128,23 +128,21 @@ impl Position {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Board {
     pub states: Vec<Position>,
     pub ctm: u8,
     ply: i16,
-    value_net: ValueNetworkState,
     // phase: i8
 }
 
 impl Board {
     #[must_use]
-    pub fn new(net: Box<ValueNetwork>) -> Self {
+    pub fn new() -> Self {
         Self {
             states: vec![Position::empty(); 256],
             ctm: 0,
             ply: 0,
-            value_net: ValueNetworkState::new(net),
         }
     }
     pub fn load_state(&mut self, position: &Position, ctm: u8) {
@@ -1012,12 +1010,14 @@ impl Board {
         self.states.last_mut().expect("No current state")
     }
     #[must_use]
-    pub fn evaluate(&mut self) -> f32 {
-        self.value_net.evaluate(self.states.last().expect("bruh"), self.ctm)
+    pub fn evaluate(&self) -> f32 {
+        let mut net = ValueNetworkState::new();
+        net.evaluate(self.current_state(), self.ctm)
     }
     #[must_use]
-    pub fn evaluate_non_stm(&mut self) -> f32 {
-        self.value_net.evaluate(self.states.last().expect("bruh"), 1)
+    pub fn evaluate_non_stm(&self) -> f32 {
+        let mut net = ValueNetworkState::new();
+        net.evaluate(self.current_state(), 1)
     }
     pub fn get_policy(&self, mov: Move) -> f32 {
         get_score(self.current_state(), mov)

@@ -18,7 +18,10 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board, nets::value::loader::{convert, VALUE_NET_RAW}, time::Limiters, types::{moves::Move, MoveList}, uci::UciOptions
+    board::Board,
+    time::Limiters,
+    types::{moves::Move, MoveList},
+    uci::UciOptions,
 };
 use std::ops::Range;
 use std::time::Instant;
@@ -109,7 +112,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             tree: vec![],
-            board: Board::new(convert(VALUE_NET_RAW)),
+            board: Board::new(),
             depth: 0,
             nodes: 0,
             start: Instant::now(),
@@ -186,7 +189,7 @@ impl Engine {
     }
 
     // using my normal eval as a value net here so it actually just evaluates
-    fn simulate(&mut self, node_idx: usize) -> f32 {
+    fn simulate(&self, node_idx: usize) -> f32 {
         let node = &self.tree[node_idx];
         node.result
             .score(self.board.ctm, self.root_ctm)
