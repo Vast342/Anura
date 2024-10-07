@@ -1,5 +1,5 @@
 use super::{
-    ValueNetwork, INPUT_BUCKET_COUNT, INPUT_SIZE, L1_SIZE, L2_SIZE, OUTPUT_BUCKET_COUNT, QA,
+    ValueNetwork, INPUT_BUCKET_COUNT, INPUT_SIZE, L1_SIZE, L2_SIZE, OUTPUT_BUCKET_COUNT, QA ,
 };
 
 pub struct UnquantisedValueNetwork {
