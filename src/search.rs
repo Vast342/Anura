@@ -120,7 +120,7 @@ impl Engine {
         }
     }
     fn select(&mut self, current: usize) -> usize {
-        let node = &self.tree[current as usize];
+        let node = &self.tree[current];
 
         let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
 
@@ -165,8 +165,8 @@ impl Engine {
             policy_sum += policy[i];
         }
         // normalize
-        for i in 0..moves.len() {
-            policy[i] = policy[i] / policy_sum;
+        for item in policy.iter_mut().take(moves.len()) {
+            *item /= policy_sum;
         }
 
         // checkmate or stalemate
@@ -191,22 +191,23 @@ impl Engine {
     // using my normal eval as a value net here so it actually just evaluates
     fn simulate(&self, node_idx: usize) -> f32 {
         let node = &self.tree[node_idx];
-        node.result.score(self.board.ctm, self.root_ctm).unwrap_or_else(|| {
-            1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
-        })
+        node.result
+            .score(self.board.ctm, self.root_ctm)
+            .unwrap_or_else(|| {
+                1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+            })
     }
 
     fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
         let mut score = if !root
-            && (self.tree[current_node].result.is_terminal()
-                || self.tree[current_node].visits == 0)
+            && (self.tree[current_node].result.is_terminal() || self.tree[current_node].visits == 0)
         {
             self.simulate(current_node)
         } else {
             if self.tree[current_node].child_count == 0 {
                 self.expand(current_node);
                 if self.tree[current_node].result.is_terminal() {
-                    return self.simulate(current_node)
+                    return self.simulate(current_node);
                 }
             }
 
@@ -215,9 +216,7 @@ impl Engine {
             self.board.make_move(self.tree[next_index].mov);
             self.depth += 1;
 
-            let score = self.mcts(next_index, false);
-
-            score
+            self.mcts(next_index, false)
         };
         score = 1.0 - score;
 
@@ -405,9 +404,7 @@ impl Engine {
 
                 println!(
                     "{}: visits: {}, average score: {}",
-                    this_node.mov.to_string(),
-                    this_node.visits,
-                    score,
+                    this_node.mov, this_node.visits, score,
                 );
             }
         }
@@ -428,7 +425,7 @@ impl Engine {
         }
         print!("pv");
         for mov in &pv {
-            print!(" {}", mov.to_string());
+            print!(" {}", mov);
         }
         println!();
     }

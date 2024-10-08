@@ -26,20 +26,14 @@ impl Limiters {
         self.time / 20 + self.increment / 2
     }
     pub fn check(&self, tim: u128, nodes: u128, depth: u32) -> bool {
-        if self.use_time {
-            if tim >= self.time_allocated() {
-                return false;
-            }
+        if self.use_time && tim >= self.time_allocated() {
+            return false;
         }
-        if self.use_nodes {
-            if nodes >= self.node_lim {
-                return false;
-            }
+        if self.use_nodes && nodes >= self.node_lim {
+            return false;
         }
-        if self.use_depth {
-            if depth > self.depth_limit {
-                return false;
-            }
+        if self.use_depth && depth > self.depth_limit {
+            return false;
         }
         true
     }

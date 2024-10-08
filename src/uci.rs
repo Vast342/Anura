@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::io;
 use std::time::Instant;
-use std::{io, u64};
 
 use crate::time::Limiters;
 use crate::{

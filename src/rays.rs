@@ -9,6 +9,7 @@ use crate::types::square::Square;
 
 pub static mut BETWEEN_RAYS: [[Bitboard; 64]; 64] = [[Bitboard::EMPTY; 64]; 64];
 
+#[allow(clippy::needless_range_loop)]
 pub fn init_between() {
     for src_idx in 0..64 {
         let src = Square(src_idx as u8);
@@ -45,6 +46,7 @@ pub fn ray_between(a: Square, b: Square) -> Bitboard {
 
 static mut INTERSECTING_RAYS: [[Bitboard; 64]; 64] = [[Bitboard::EMPTY; 64]; 64];
 
+#[allow(clippy::needless_range_loop)]
 pub fn init_intersection() {
     for src_idx in 0..64 {
         let src = Square(src_idx as u8);

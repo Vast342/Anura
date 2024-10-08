@@ -78,7 +78,8 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
     }
 }
 
-pub const VALUE_NET: ValueNetwork = transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_006.vn")) });
+pub const VALUE_NET: ValueNetwork =
+    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_006.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
@@ -98,10 +99,10 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
         king.flip();
     }
     let p = piece.piece() as usize;
-    return INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE
+    INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE
         + c * COLOR_STRIDE
         + p * PIECE_STRIDE
-        + sq.0 as usize;
+        + sq.0 as usize
 }
 
 pub fn activation(x: i16) -> i32 {
