@@ -29,6 +29,17 @@ use std::time::Instant;
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
 
+pub struct SearchParams {
+    pub cpuct: f32,
+    pub fpu: f32,
+}
+
+impl Default for SearchParams {
+    fn default() -> Self {
+        Self { cpuct: std::f32::consts::SQRT_2, fpu: 0.5 }
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
 enum GameResult {
@@ -119,17 +130,17 @@ impl Engine {
             root_ctm: 1,
         }
     }
-    fn select(&mut self, current: usize) -> usize {
+    fn select(&mut self, current: usize, params: &SearchParams) -> usize {
         let node = &self.tree[current];
 
-        let e = std::f32::consts::SQRT_2 * (node.visits as f32).sqrt();
+        let e = params.cpuct * (node.visits as f32).sqrt();
 
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
 
         for (child_idx, child) in self.tree[node.children_range()].iter().enumerate() {
             let average_score = if child.visits == 0 {
-                0.5
+                params.fpu
             } else {
                 child.average_score()
             };
@@ -198,7 +209,7 @@ impl Engine {
             })
     }
 
-    fn mcts(&mut self, current_node: usize, root: bool) -> f32 {
+    fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> f32 {
         let mut score = if !root
             && (self.tree[current_node].result.is_terminal() || self.tree[current_node].visits == 0)
         {
@@ -211,12 +222,12 @@ impl Engine {
                 }
             }
 
-            let next_index = self.select(current_node);
+            let next_index = self.select(current_node, params);
 
             self.board.make_move(self.tree[next_index].mov);
             self.depth += 1;
 
-            self.mcts(next_index, false)
+            self.mcts(next_index, false, params)
         };
         score = 1.0 - score;
 
@@ -312,12 +323,13 @@ impl Engine {
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
         let root_node = 0;
+        let params = SearchParams::default();
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
-            self.mcts(root_node, true);
+            self.mcts(root_node, true, &params);
 
             self.nodes += 1;
             total_depth += self.depth as usize;
