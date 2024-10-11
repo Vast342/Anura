@@ -43,7 +43,10 @@ pub struct PolicyNetwork {
 
 impl Default for PolicyNetwork {
     fn default() -> Self {
-        Self{ output_weights: [0; OW_SIZE], output_biases: [0; SUBNET_COUNT]}
+        Self {
+            output_weights: [0; OW_SIZE],
+            output_biases: [0; SUBNET_COUNT],
+        }
     }
 }
 

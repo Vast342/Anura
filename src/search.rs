@@ -18,7 +18,11 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board, nets::policy::get_policy_net, time::Limiters, types::{moves::Move, MoveList}, uci::UciOptions
+    board::Board,
+    nets::policy::get_policy_net,
+    time::Limiters,
+    types::{moves::Move, MoveList},
+    uci::UciOptions,
 };
 use std::ops::Range;
 use std::time::Instant;
@@ -33,7 +37,10 @@ pub struct SearchParams {
 
 impl Default for SearchParams {
     fn default() -> Self {
-        Self { cpuct: std::f32::consts::SQRT_2, fpu: 0.5 }
+        Self {
+            cpuct: std::f32::consts::SQRT_2,
+            fpu: 0.5,
+        }
     }
 }
 
