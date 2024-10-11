@@ -18,7 +18,7 @@
 
 use std::time::Instant;
 
-use crate::{board::Board, types::MoveList};
+use crate::{board::Board, nets::policy::get_policy_net, types::MoveList};
 
 pub fn perft(board: &mut Board, depth: u8) -> u64 {
     if depth == 0 {
@@ -910,9 +910,9 @@ pub fn run_perft_suite() {
     let mut i = 0;
     let mut passed = 0;
     let mut failed = 0;
+    let mut board: Board = Board::new(get_policy_net());
     for test in test_suite {
         i += 1;
-        let mut board: Board = Board::new();
         board.load_fen(&test.fen);
         let nodes: u64 = perft(&mut board, test.depth);
         total += nodes;
