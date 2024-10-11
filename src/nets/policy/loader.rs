@@ -14,11 +14,16 @@ pub struct RawPolicyNetwork {
 pub fn load(net: RawPolicyNetwork) -> Box<PolicyNetwork> {
     let mut output_weights = [0; OW_SIZE];
     let mut output_biases = [0; SUBNET_COUNT];
+    let mut thing = 0.0;
     for (index, weight) in net.output_weights.into_iter().enumerate() {
-        output_weights[index] = (weight * QA) as i32;
+        output_weights[index] = (weight * QA) as i16;
+        if weight.abs() > thing {
+            thing = weight;
+        }
     }
+    println!("highest abs value of weight: {thing}");
     for (index, bias) in net.output_biases.into_iter().enumerate() {
-        output_biases[index] = (bias * QA) as i32;
+        output_biases[index] = (bias * QA) as i16;
     }
     Box::new(PolicyNetwork {
         output_weights,

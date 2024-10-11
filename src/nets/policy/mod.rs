@@ -37,8 +37,8 @@ pub const OW_SIZE: usize = INPUT_SIZE * SUBNET_COUNT;
 #[repr(C)]
 #[repr(align(64))]
 pub struct PolicyNetwork {
-    pub output_weights: [i32; OW_SIZE],
-    pub output_biases: [i32; SUBNET_COUNT],
+    pub output_weights: [i16; OW_SIZE],
+    pub output_biases: [i16; SUBNET_COUNT],
 }
 
 impl Default for PolicyNetwork {
