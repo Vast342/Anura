@@ -39,7 +39,7 @@ use crate::{
         pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise},
         slideys::{get_bishop_attacks, get_rook_attacks},
     },
-    nets::{policy::get_score, value::ValueNetworkState},
+    nets::{policy::PolicyNetwork, value::ValueNetworkState},
     rays::{ray_between, ray_intersecting},
     types::{
         bitboard::Bitboard,
@@ -133,16 +133,17 @@ pub struct Board {
     pub states: Vec<Position>,
     pub ctm: u8,
     ply: i16,
-    // phase: i8
+    policy_net: Box<PolicyNetwork>,
 }
 
 impl Board {
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(net: Box<PolicyNetwork>) -> Self {
         Self {
             states: vec![Position::empty(); 256],
             ctm: 0,
             ply: 0,
+            policy_net: net,
         }
     }
     pub fn load_state(&mut self, position: &Position, ctm: u8) {
@@ -1020,7 +1021,7 @@ impl Board {
         net.evaluate(self.current_state(), 1)
     }
     pub fn get_policy(&self, mov: Move) -> f32 {
-        get_score(self.current_state(), mov)
+        self.policy_net.get_score(self.current_state(), mov)
     }
     #[must_use]
     pub fn get_fen(&self) -> String {

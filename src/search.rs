@@ -18,10 +18,7 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board,
-    time::Limiters,
-    types::{moves::Move, MoveList},
-    uci::UciOptions,
+    board::Board, nets::policy::get_policy_net, time::Limiters, types::{moves::Move, MoveList}, uci::UciOptions
 };
 use std::ops::Range;
 use std::time::Instant;
@@ -123,7 +120,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             tree: vec![],
-            board: Board::new(),
+            board: Board::new(get_policy_net()),
             depth: 0,
             nodes: 0,
             start: Instant::now(),
