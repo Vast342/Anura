@@ -20,12 +20,14 @@ use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
     nets::policy::get_policy_net,
-    time::Limiters,
+    mcts::time::Limiters,
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
 use std::ops::Range;
 use std::time::Instant;
+
+use super::tree::SearchTree;
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
@@ -46,8 +48,7 @@ impl Default for SearchParams {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
-enum GameResult {
-    #[allow(unused)]
+pub enum GameResult {
     Win,
     Draw,
     Loss,
@@ -69,7 +70,7 @@ impl GameResult {
     }
 }
 
-struct Node {
+pub struct Node {
     mov: Move,
     first_child: u32,
     child_count: u8,
@@ -114,7 +115,7 @@ pub fn to_cp(score: f32) -> i32 {
 }
 
 pub struct Engine {
-    tree: Vec<Node>,
+    tree: SearchTree,
     board: Board,
     depth: u32,
     pub nodes: u128,
@@ -126,7 +127,7 @@ impl Engine {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            tree: vec![],
+            tree: SearchTree::new(),
             board: Board::new(get_policy_net()),
             depth: 0,
             nodes: 0,
@@ -363,8 +364,7 @@ impl Engine {
         let (index, _best_score) = self.get_best_move(root_node);
         let best_move = self.tree[index].mov;
 
-        self.tree.clear();
-        self.tree.shrink_to_fit();
+        self.tree.reset();
 
         best_move
     }

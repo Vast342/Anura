@@ -1,6 +1,6 @@
 use crate::{
     board::Position,
-    search::EVAL_SCALE,
+    mcts::search::EVAL_SCALE,
     types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
 

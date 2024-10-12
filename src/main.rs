@@ -29,8 +29,7 @@ pub mod nets;
 pub mod perft;
 pub mod prng;
 pub mod rays;
-pub mod search;
-pub mod time;
+pub mod mcts;
 pub mod types;
 pub mod uci;
 
