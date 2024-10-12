@@ -15,16 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use super::node::{GameResult, Node};
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
-    nets::policy::get_policy_net,
     mcts::time::Limiters,
+    nets::policy::get_policy_net,
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
-use super::node::{GameResult, Node};
 use std::time::Instant;
 
 use super::tree::SearchTree;

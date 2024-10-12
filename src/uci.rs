@@ -19,13 +19,13 @@
 use std::io;
 use std::time::Instant;
 
-use crate::nets::policy::get_policy_net;
 use crate::mcts::time::Limiters;
+use crate::nets::policy::get_policy_net;
 use crate::{
     board::Board,
+    mcts::search::Engine,
     movegen::lookups::BENCH_FENS,
     perft::{perft, run_perft_suite},
-    mcts::search::Engine,
     types::{moves::Move, MoveList},
 };
 

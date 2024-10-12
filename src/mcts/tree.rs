@@ -2,7 +2,6 @@ use std::ops::{Index, IndexMut, Range};
 
 use super::node::Node;
 
-
 pub struct SearchTree {
     tree: Vec<Node>,
 }

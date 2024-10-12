@@ -2,7 +2,6 @@ use std::ops::Range;
 
 use crate::types::moves::Move;
 
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
 pub enum GameResult {
@@ -10,6 +9,12 @@ pub enum GameResult {
     Draw,
     Loss,
     Ongoing,
+}
+
+impl Default for GameResult {
+    fn default() -> Self {
+        Self::Ongoing
+    }
 }
 
 impl GameResult {
@@ -27,6 +32,7 @@ impl GameResult {
     }
 }
 
+#[derive(Default, Clone, Copy)]
 pub struct Node {
     pub mov: Move,
     pub first_child: u32,
