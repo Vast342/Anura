@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut, Range};
 
-use super::search::Node;
+use super::node::Node;
 
 
 pub struct SearchTree {
