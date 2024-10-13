@@ -203,7 +203,7 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::new(get_policy_net());
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, 5);
+        limiters.load_values(0, 0, 0, 5, 0);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine
@@ -220,7 +220,7 @@ impl Manager {
 
     pub fn go(&mut self, command_text: &str) {
         let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
-        self.limiter.load_values(0, 0, 0, 0);
+        self.limiter.load_values(0, 0, 0, 0, 0);
         let mut i: usize = 1;
         let mut time: u128 = 0;
         let mut inc: u128 = 0;
@@ -230,6 +230,7 @@ impl Manager {
         let mut wtime: u128 = 0;
         let mut binc: u128 = 0;
         let mut winc: u128 = 0;
+        let mut movetime: u128 = 0;
         while i < command_sections.len() {
             match command_sections[i] {
                 "depth" => {
@@ -275,6 +276,17 @@ impl Manager {
                         _ => unreachable!(),
                     }
                 }
+                "movetime" => {
+                    i += 1;
+                    if i >= command_sections.len() {
+                        eprintln!("missing movetime");
+                        return;
+                    }
+
+                    movetime = command_sections[i]
+                        .parse::<u128>()
+                        .expect("not a parsable move time");
+                }
                 "infinite" => (),
                 _ => println!("invalid go limiter: {}", command_sections[i]),
             }
@@ -288,7 +300,7 @@ impl Manager {
             time = wtime;
             inc = winc;
         }
-        self.limiter.load_values(time, inc, nodes, depth);
+        self.limiter.load_values(time, inc, nodes, depth, movetime);
         let best_move = self
             .engine
             .search(self.board.clone(), self.limiter, true, &self.options);
