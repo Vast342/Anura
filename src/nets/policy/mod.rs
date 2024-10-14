@@ -26,6 +26,9 @@ use crate::{
 const INPUT_SIZE: usize = 768;
 const OUTPUT_SIZE: usize = 384;
 const OW_SIZE: usize = INPUT_SIZE * OUTPUT_SIZE;
+
+const QA: f32 = 512.0;
+
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 #[repr(align(64))]
@@ -34,7 +37,7 @@ pub struct PolicyNetwork {
     pub output_biases: [i16; OUTPUT_SIZE],
 }
 
-pub const POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
+pub static POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
 
 /* will need for more layers but not rn with my glorified psqts
 pub struct PolicyNetworkState{
@@ -65,5 +68,5 @@ pub fn get_score(pos: &Position, mov: Move) -> f32 {
             result += POLICY_NET.output_weights[index];
         }
     }
-    result
+    result as f32 / QA
 }

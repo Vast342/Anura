@@ -78,7 +78,7 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
     }
 }
 
-pub const VALUE_NET: ValueNetwork =
+pub static VALUE_NET: ValueNetwork =
     transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_006.vn")) });
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
@@ -110,7 +110,7 @@ pub fn activation(x: i16) -> i32 {
 }
 
 impl ValueNetworkState {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             state: VALUE_NET.feature_biases,
         }
