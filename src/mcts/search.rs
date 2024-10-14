@@ -19,12 +19,13 @@
 use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
-    time::Limiters,
+    mcts::time::Limiters,
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
-use std::ops::Range;
 use std::time::Instant;
+
+use super::node::{GameResult, Node};
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
@@ -36,66 +37,10 @@ pub struct SearchParams {
 
 impl Default for SearchParams {
     fn default() -> Self {
-        Self { cpuct: std::f32::consts::SQRT_2, fpu: 0.5 }
-    }
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[repr(u8)]
-enum GameResult {
-    #[allow(unused)]
-    Win,
-    Draw,
-    Loss,
-    Ongoing,
-}
-
-impl GameResult {
-    fn score(self, ctm: u8, root_ctm: u8) -> Option<f32> {
-        match self {
-            GameResult::Win => Some(1.0),
-            GameResult::Draw => Some(0.5 - 0.01 + 0.02 * (ctm == root_ctm) as u32 as f32),
-            GameResult::Loss => Some(0.0),
-            GameResult::Ongoing => None,
-        }
-    }
-
-    fn is_terminal(self) -> bool {
-        self != Self::Ongoing
-    }
-}
-
-struct Node {
-    mov: Move,
-    first_child: u32,
-    child_count: u8,
-    visits: u32,
-    total_score: f32,
-    result: GameResult,
-    policy: f32,
-}
-
-impl Node {
-    fn new(mov: Move, policy: f32) -> Self {
         Self {
-            mov,
-            first_child: 0,
-            child_count: 0,
-            visits: 0,
-            total_score: 0.0,
-            result: GameResult::Ongoing,
-            policy,
+            cpuct: std::f32::consts::SQRT_2,
+            fpu: 0.5,
         }
-    }
-
-    fn average_score(&self) -> f32 {
-        self.total_score / self.visits as f32
-    }
-
-    fn children_range(&self) -> Range<usize> {
-        let start = self.first_child as usize;
-        let end = start + self.child_count as usize;
-        start..end
     }
 }
 

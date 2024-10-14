@@ -19,12 +19,11 @@
 use std::io;
 use std::time::Instant;
 
-use crate::time::Limiters;
 use crate::{
     board::Board,
+    mcts::{search::Engine, time::Limiters},
     movegen::lookups::BENCH_FENS,
     perft::{perft, run_perft_suite},
-    search::Engine,
     types::{moves::Move, MoveList},
 };
 

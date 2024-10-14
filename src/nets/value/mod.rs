@@ -1,9 +1,3 @@
-use crate::{
-    board::Position,
-    search::EVAL_SCALE,
-    types::{bitboard::Bitboard, piece::Piece, square::Square},
-};
-
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -21,14 +15,22 @@ use crate::{
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+use crate::{
+    board::Position,
+    mcts::search::EVAL_SCALE,
+    types::{bitboard::Bitboard, piece::Piece, square::Square},
+};
+
 // value net:
-// avn_004.vn
-// 768->128->1x8 activated by SCReLU
+// avn_006.vn
+// 768->512->1x8 activated by SCReLU
 const INPUT_SIZE: usize = 768;
 const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 512;
 const OUTPUT_BUCKET_COUNT: usize = 16;
 
+// genuinely just a slowdown that i don't need rn
 #[rustfmt::skip]
 const INPUT_BUCKET_SCHEME: [usize; 64] = [
     0, 0, 0, 0, 0, 0, 0, 0,
@@ -78,6 +80,7 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
     }
 }
 
+#[allow(clippy::missing_transmute_annotations)]
 pub static VALUE_NET: ValueNetwork =
     transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_006.vn")) });
 
@@ -106,7 +109,7 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
 }
 
 pub fn activation(x: i16) -> i32 {
-    ((x as i32).max(0).min(QA)).pow(2)
+    ((x as i32).clamp(0, QA)).pow(2)
 }
 
 impl ValueNetworkState {

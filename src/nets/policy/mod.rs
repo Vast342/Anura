@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_001.pn
+// apn_003.pn (now quantised)
 // (768->1)x384
 
 use crate::{
@@ -37,7 +37,8 @@ pub struct PolicyNetwork {
     pub output_biases: [i16; OUTPUT_SIZE],
 }
 
-pub static POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
+pub static POLICY_NET: PolicyNetwork =
+    unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
 
 /* will need for more layers but not rn with my glorified psqts
 pub struct PolicyNetworkState{
