@@ -19,7 +19,6 @@
 use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
-    nets::policy::get_policy_net,
     time::Limiters,
     types::{moves::Move, MoveList},
     uci::UciOptions,
@@ -37,10 +36,7 @@ pub struct SearchParams {
 
 impl Default for SearchParams {
     fn default() -> Self {
-        Self {
-            cpuct: std::f32::consts::SQRT_2,
-            fpu: 0.5,
-        }
+        Self { cpuct: std::f32::consts::SQRT_2, fpu: 0.5 }
     }
 }
 
@@ -127,7 +123,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             tree: vec![],
-            board: Board::new(get_policy_net()),
+            board: Board::new(),
             depth: 0,
             nodes: 0,
             start: Instant::now(),
