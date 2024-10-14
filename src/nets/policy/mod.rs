@@ -30,8 +30,8 @@ const OW_SIZE: usize = INPUT_SIZE * OUTPUT_SIZE;
 #[repr(C)]
 #[repr(align(64))]
 pub struct PolicyNetwork {
-    pub output_weights: [f32; OW_SIZE],
-    pub output_biases: [f32; OUTPUT_SIZE],
+    pub output_weights: [i16; OW_SIZE],
+    pub output_biases: [i16; OUTPUT_SIZE],
 }
 
 pub const POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
