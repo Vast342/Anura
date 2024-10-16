@@ -1011,12 +1011,12 @@ impl Board {
     }
     #[must_use]
     pub fn evaluate(&self) -> i32 {
-        let mut net = ValueNetworkState::new();
+        let mut net = ValueNetworkState::default();
         net.evaluate(self.current_state(), self.ctm)
     }
     #[must_use]
     pub fn evaluate_non_stm(&self) -> i32 {
-        let mut net = ValueNetworkState::new();
+        let mut net = ValueNetworkState::default();
         net.evaluate(self.current_state(), 1)
     }
     pub fn get_policy(&self, mov: Move) -> f32 {

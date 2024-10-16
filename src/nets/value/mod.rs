@@ -113,11 +113,6 @@ pub fn activation(x: i16) -> i32 {
 }
 
 impl ValueNetworkState {
-    pub fn new() -> Self {
-        Self {
-            state: VALUE_NET.feature_biases,
-        }
-    }
     pub fn reset(&mut self) {
         self.state = VALUE_NET.feature_biases
     }
@@ -157,6 +152,8 @@ impl ValueNetworkState {
 
 impl Default for ValueNetworkState {
     fn default() -> Self {
-        Self::new()
+        Self {
+            state: VALUE_NET.feature_biases,
+        }
     }
 }

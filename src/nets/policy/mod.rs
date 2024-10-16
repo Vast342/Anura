@@ -27,7 +27,7 @@ const INPUT_SIZE: usize = 768;
 const OUTPUT_SIZE: usize = 384;
 const OW_SIZE: usize = INPUT_SIZE * OUTPUT_SIZE;
 
-const QA: f32 = 512.0;
+const QA: f32 = 4976.0;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
