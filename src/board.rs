@@ -39,7 +39,7 @@ use crate::{
         pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise},
         slideys::{get_bishop_attacks, get_rook_attacks},
     },
-    nets::{policy::get_score, value::ValueNetworkState},
+    nets::{policy::get_score, value::ValueAccumulator},
     rays::{ray_between, ray_intersecting},
     types::{
         bitboard::Bitboard,
@@ -160,7 +160,7 @@ impl Board {
         }
         println!("hash: {}", state.hash);
         println!("ctm: {}", self.ctm);
-        println!("is_drawn: {}", self.is_drawn())
+        println!("is_drawn: {}", self.is_drawn());
     }
     #[allow(clippy::cast_possible_truncation)]
     pub fn load_fen(&mut self, fen: &str) {
@@ -268,7 +268,7 @@ impl Board {
         token = fen_split.next().expect("no ctm?");
         self.ctm = u8::from(token == "w");
         if self.ctm == 1 {
-            state.switch_color()
+            state.switch_color();
         };
 
         // third token: castling rights
@@ -424,7 +424,7 @@ impl Board {
                         let checker_piece = state.piece_on_square(checker).piece();
                         if let 2..=4 = checker_piece {
                             potential_moves &= !(ray_intersecting(Square(index), checker)
-                                & !Bitboard::from_square(checker))
+                                & !Bitboard::from_square(checker));
                         }
                     }
                     potential_moves
@@ -589,6 +589,7 @@ impl Board {
             }
         }
     }
+    #[must_use]
     pub fn get_move_count(&self) -> u64 {
         let mut sum = 0;
         let state = self.current_state();
@@ -701,7 +702,7 @@ impl Board {
                         let checker_piece = state.piece_on_square(checker).piece();
                         if let 2..=4 = checker_piece {
                             potential_moves &= !(ray_intersecting(Square(index), checker)
-                                & !Bitboard::from_square(checker))
+                                & !Bitboard::from_square(checker));
                         }
                     }
                     potential_moves
@@ -811,7 +812,7 @@ impl Board {
                 }
             }
         }
-        sum as u64
+        u64::from(sum)
     }
     pub fn make_move(&mut self, mov: Move) {
         self.states.push(*self.current_state());
@@ -886,7 +887,7 @@ impl Board {
                 Piece(Types::None as u8),
             ),
             Flag::DoublePush => {
-                state.ep_index = Square((to as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8)
+                state.ep_index = Square((to as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8);
             }
             Flag::EnPassant => state.remove_piece(
                 Square((to as i8 + DIRECTIONAL_OFFSETS[self.ctm as usize]) as u8),
@@ -901,7 +902,7 @@ impl Board {
                 Piece::new_unchecked(Types::Bishop as u8, self.ctm),
             ),
             Flag::RookPromo => {
-                state.add_piece(to_square, Piece::new_unchecked(Types::Rook as u8, self.ctm))
+                state.add_piece(to_square, Piece::new_unchecked(Types::Rook as u8, self.ctm));
             }
             Flag::QueenPromo => state.add_piece(
                 to_square,
@@ -1003,6 +1004,7 @@ impl Board {
 
         false
     }
+    #[must_use]
     pub fn current_state(&self) -> &Position {
         self.states.last().expect("No current state")
     }
@@ -1011,14 +1013,15 @@ impl Board {
     }
     #[must_use]
     pub fn evaluate(&self) -> i32 {
-        let mut net = ValueNetworkState::new();
+        let mut net = ValueAccumulator::new();
         net.evaluate(self.current_state(), self.ctm)
     }
     #[must_use]
     pub fn evaluate_non_stm(&self) -> i32 {
-        let mut net = ValueNetworkState::new();
+        let mut net = ValueAccumulator::new();
         net.evaluate(self.current_state(), 1)
     }
+    #[must_use]
     pub fn get_policy(&self, mov: Move) -> f32 {
         get_score(self.current_state(), mov)
     }
@@ -1047,7 +1050,7 @@ impl Board {
                         _ => panic!("invalid piece type"),
                     };
                     if is_white {
-                        piece_char = piece_char.to_uppercase()
+                        piece_char = piece_char.to_uppercase();
                     }
                     fen += &piece_char;
                 } else {
@@ -1089,7 +1092,7 @@ impl Board {
             thing_added = true;
         }
         if !thing_added {
-            fen += "-"
+            fen += "-";
         }
 
         // en passant square
@@ -1154,6 +1157,7 @@ impl Board {
             }
         }
     }
+    #[must_use]
     pub fn is_drawn(&self) -> bool {
         let state = self.current_state();
 

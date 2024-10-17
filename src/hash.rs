@@ -31,10 +31,12 @@ const TOTAL_SIZE: usize = PIECE_SQUARE_SIZE + CTM_SIZE;
 //                                                read this as "tastelesscascade"
 const ZOBRIST_VALUES: [u64; TOTAL_SIZE] = fill_array();
 
+#[must_use]
 pub fn zobrist_psq(piece: Piece, sq: Square) -> u64 {
     ZOBRIST_VALUES[PIECE_SQUARE_STRIDE + sq.0 as usize * 14 + piece.0 as usize]
 }
 
+#[must_use]
 pub fn zobrist_ctm() -> u64 {
     ZOBRIST_VALUES[CTM_STRIDE]
 }

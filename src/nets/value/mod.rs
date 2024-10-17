@@ -24,7 +24,7 @@ use crate::{
 
 // value net:
 // avn_006.vn
-// 768->512->1x8 activated by SCReLU
+// 768->512->1x16 activated by SCReLU
 const INPUT_SIZE: usize = 768;
 const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 512;
@@ -59,6 +59,7 @@ pub struct ValueNetwork {
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
+#[must_use]
 pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
     let mut output_weights = [0; HL_SIZE * OUTPUT_BUCKET_COUNT];
     let mut weight = 0;
@@ -91,12 +92,13 @@ const fn get_output_bucket(piece_count: usize) -> usize {
 }
 
 #[derive(Debug, Clone)]
-pub struct ValueNetworkState {
+pub struct ValueAccumulator {
     state: [i16; HL_SIZE],
 }
 
+#[must_use]
 pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square) -> usize {
-    let c = (piece.color() != ctm) as usize;
+    let c = usize::from(piece.color() != ctm);
     if ctm == 0 {
         sq.flip();
         king.flip();
@@ -108,18 +110,20 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
         + sq.0 as usize
 }
 
+#[must_use]
 pub fn activation(x: i16) -> i32 {
-    ((x as i32).clamp(0, QA)).pow(2)
+    (i32::from(x).clamp(0, QA)).pow(2)
 }
 
-impl ValueNetworkState {
+impl ValueAccumulator {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             state: VALUE_NET.feature_biases,
         }
     }
     pub fn reset(&mut self) {
-        self.state = VALUE_NET.feature_biases
+        self.state = VALUE_NET.feature_biases;
     }
     pub fn evaluate(&mut self, position: &Position, ctm: u8) -> i32 {
         self.load_position(position, ctm);
@@ -141,6 +145,7 @@ impl ValueNetworkState {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
     }
+    #[must_use]
     pub fn forward(&self, piece_count: usize) -> i32 {
         let mut sum = 0;
         let output_bucket = get_output_bucket(piece_count);
@@ -148,14 +153,14 @@ impl ValueNetworkState {
 
         for hl_node in 0..HL_SIZE {
             sum += activation(self.state[hl_node])
-                * VALUE_NET.output_weights[hl_node + bucket_increment] as i32;
+                * i32::from(VALUE_NET.output_weights[hl_node + bucket_increment]);
         }
 
-        (sum / QA + VALUE_NET.output_bias[output_bucket] as i32) * EVAL_SCALE as i32 / QAB
+        (sum / QA + i32::from(VALUE_NET.output_bias[output_bucket])) * i32::from(EVAL_SCALE) / QAB
     }
 }
 
-impl Default for ValueNetworkState {
+impl Default for ValueAccumulator {
     fn default() -> Self {
         Self::new()
     }

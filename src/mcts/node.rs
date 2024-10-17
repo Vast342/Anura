@@ -27,18 +27,22 @@ pub enum GameResult {
     Ongoing,
 }
 impl GameResult {
+    #[must_use]
     pub fn score(self, ctm: u8, root_ctm: u8) -> Option<f32> {
         match self {
-            GameResult::Win => Some(1.0),
-            GameResult::Draw => Some(0.5 - 0.01 + 0.02 * (ctm == root_ctm) as u32 as f32),
-            GameResult::Loss => Some(0.0),
-            GameResult::Ongoing => None,
+            Self::Win => Some(1.0),
+            Self::Draw => Some(0.02f32.mul_add(u32::from(ctm == root_ctm) as f32, 0.5 - 0.01)),
+            Self::Loss => Some(0.0),
+            Self::Ongoing => None,
         }
     }
+    #[must_use]
     pub fn is_terminal(self) -> bool {
         self != Self::Ongoing
     }
 }
+
+#[derive(Debug, Copy, Clone)]
 pub struct Node {
     pub mov: Move,
     pub first_child: u32,
@@ -49,6 +53,7 @@ pub struct Node {
     pub policy: f32,
 }
 impl Node {
+    #[must_use]
     pub fn new(mov: Move, policy: f32) -> Self {
         Self {
             mov,
@@ -60,12 +65,20 @@ impl Node {
             policy,
         }
     }
+    #[must_use]
     pub fn average_score(&self) -> f32 {
         self.total_score / self.visits as f32
     }
+    #[must_use]
     pub fn children_range(&self) -> Range<usize> {
         let start = self.first_child as usize;
         let end = start + self.child_count as usize;
         start..end
+    }
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self::new(Move::NULL_MOVE, 0.0)
     }
 }

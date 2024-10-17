@@ -41,13 +41,14 @@ pub static POLICY_NET: PolicyNetwork =
     unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
 
 /* will need for more layers but not rn with my glorified psqts
-pub struct PolicyNetworkState{
+pub struct PolicyAccumulator{
 
 }*/
 
 pub const PIECE_STEP: usize = 64;
 pub const COLOR_STEP: usize = 64 * 6;
 
+#[must_use]
 pub fn calculate_index(move_piece: Piece, move_to: usize, piece: Piece, square: usize) -> usize {
     let move_number = PIECE_STEP * move_piece.piece() as usize + move_to;
     let input_number =
@@ -57,6 +58,7 @@ pub fn calculate_index(move_piece: Piece, move_to: usize, piece: Piece, square: 
     // 768 * (64 * 5 + 63) + (384 + 64 * 5 + 63)
 }
 
+#[must_use]
 pub fn get_score(pos: &Position, mov: Move) -> f32 {
     let piece = pos.piece_on_square(Square(mov.from()));
     let to = mov.to();
@@ -69,5 +71,5 @@ pub fn get_score(pos: &Position, mov: Move) -> f32 {
             result += POLICY_NET.output_weights[index];
         }
     }
-    result as f32 / QA
+    f32::from(result) / QA
 }

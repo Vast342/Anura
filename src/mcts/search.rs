@@ -25,7 +25,10 @@ use crate::{
 };
 use std::time::Instant;
 
-use super::node::{GameResult, Node};
+use super::{
+    node::{GameResult, Node},
+    tree::SearchTree,
+};
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
@@ -44,18 +47,19 @@ impl Default for SearchParams {
     }
 }
 
+#[must_use]
 pub fn to_cp(score: f32) -> i32 {
     if score == 1.0 {
         MATE_SCORE
     } else if score == 0.0 {
         -MATE_SCORE
     } else {
-        (-(EVAL_SCALE as f32) * (1.0 / score - 1.0).ln()) as i32
+        (-f32::from(EVAL_SCALE) * (1.0 / score - 1.0).ln()) as i32
     }
 }
 
 pub struct Engine {
-    tree: Vec<Node>,
+    tree: SearchTree,
     board: Board,
     depth: u32,
     pub nodes: u128,
@@ -67,13 +71,16 @@ impl Engine {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            tree: vec![],
+            tree: SearchTree::default(),
             board: Board::new(),
             depth: 0,
             nodes: 0,
             start: Instant::now(),
             root_ctm: 1,
         }
+    }
+    pub fn set_tree_size(&mut self, new_size: usize) {
+        self.tree.set_size(new_size);
     }
     fn select(&mut self, current: usize, params: &SearchParams) -> usize {
         let node = &self.tree[current];
@@ -150,7 +157,7 @@ impl Engine {
         node.result
             .score(self.board.ctm, self.root_ctm)
             .unwrap_or_else(|| {
-                1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+                1.0 / (1.0 + (-self.board.evaluate() as f32 / f32::from(EVAL_SCALE)).exp())
             })
     }
 
@@ -304,8 +311,7 @@ impl Engine {
         let (index, _best_score) = self.get_best_move(root_node);
         let best_move = self.tree[index].mov;
 
-        self.tree.clear();
-        self.tree.shrink_to_fit();
+        self.tree.reset();
 
         best_move
     }
@@ -382,7 +388,7 @@ impl Engine {
         }
         print!("pv");
         for mov in &pv {
-            print!(" {}", mov);
+            print!(" {mov}");
         }
         println!();
     }

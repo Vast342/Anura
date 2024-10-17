@@ -29,6 +29,7 @@ pub struct Limiters {
 }
 
 impl Limiters {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -46,6 +47,7 @@ impl Limiters {
     const fn time_allocated(&self) -> u128 {
         self.time / 20 + self.increment / 2
     }
+    #[must_use]
     pub fn check(&self, tim: u128, nodes: u128, depth: u32) -> bool {
         if self.use_time && tim >= self.time_allocated() {
             return false;

@@ -21,7 +21,7 @@ use std::time::Instant;
 
 use crate::{
     board::Board,
-    mcts::{search::Engine, time::Limiters},
+    mcts::{search::Engine, time::Limiters, tree::DEFAULT_TREE_SIZE},
     movegen::lookups::BENCH_FENS,
     perft::{perft, run_perft_suite},
     types::{moves::Move, MoveList},
@@ -50,7 +50,7 @@ pub enum CommandTypes {
 
 pub struct UciOptions {
     pub more_info: bool,
-    pub tree_size: u64,
+    pub tree_size: usize,
     pub thread_count: u64,
 }
 
@@ -58,7 +58,7 @@ impl UciOptions {
     fn new() -> Self {
         Self {
             more_info: false,
-            tree_size: u64::MAX,
+            tree_size: DEFAULT_TREE_SIZE,
             thread_count: 1,
         }
     }
@@ -160,8 +160,9 @@ impl Manager {
         match command_sections[2] {
             "Hash" => {
                 self.options.tree_size = command_sections[4]
-                    .parse::<u64>()
+                    .parse::<usize>()
                     .expect("not a parsable hash size");
+                self.engine.set_tree_size(self.options.tree_size);
             }
             "Threads" => {
                 self.options.thread_count = command_sections[4]
@@ -171,13 +172,13 @@ impl Manager {
             "MoreInfo" => {
                 self.options.more_info = command_sections[4]
                     .parse::<bool>()
-                    .expect("not a parsable hash size");
+                    .expect("not a parsable boolean");
             }
             _ => panic!("Invalid option: {}", command_sections[2]),
         }
     }
 
-    pub fn output_policy(&mut self) {
+    pub fn output_policy(&self) {
         let mut moves = MoveList::new();
         self.board.get_moves(&mut moves);
 
@@ -233,9 +234,7 @@ impl Manager {
             match command_sections[i] {
                 "depth" => {
                     i += 1;
-                    if i >= command_sections.len() {
-                        panic!("missing depth");
-                    }
+                    assert!(i < command_sections.len(), "missing depth");
 
                     depth = command_sections[i]
                         .parse::<u32>()
@@ -257,7 +256,7 @@ impl Manager {
 
                     i += 1;
                     if i >= command_sections.len() {
-                        eprintln!("Missing {}", token);
+                        eprintln!("Missing {token}");
                         return;
                     }
 

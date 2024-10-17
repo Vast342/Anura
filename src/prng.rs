@@ -39,6 +39,7 @@ pub struct Generator {
 }
 
 impl Generator {
+    #[must_use]
     pub const fn new(seed: u64) -> Self {
         let mut thing = Self {
             a: seed,
@@ -57,15 +58,16 @@ impl Generator {
     }
 }
 
+#[must_use]
 pub const fn fill_array<const SIZE: usize>() -> [u64; SIZE] {
     //                          read this as "tastelesscascade"
-    let mut rng = Generator::new(0x7a57e1e55ca5cade);
+    let mut rng = Generator::new(0x7a57_e1e5_5ca5_cade);
     let mut result = [0; SIZE];
 
     let mut i = 0;
     while i < SIZE {
         result[i] = next!(rng);
-        i += 1
+        i += 1;
     }
 
     result
