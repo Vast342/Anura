@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 use crate::types::moves::Move;
-use std::ops::Range;
+use std::ops::{Add, Range};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
@@ -45,7 +45,7 @@ impl GameResult {
 #[derive(Debug, Copy, Clone)]
 pub struct Node {
     pub mov: Move,
-    pub first_child: u32,
+    pub first_child: NodeIndex,
     pub child_count: u8,
     pub visits: u32,
     pub total_score: f32,
@@ -57,7 +57,7 @@ impl Node {
     pub fn new(mov: Move, policy: f32) -> Self {
         Self {
             mov,
-            first_child: 0,
+            first_child: NodeIndex::NULL,
             child_count: 0,
             visits: 0,
             total_score: 0.0,
@@ -71,7 +71,7 @@ impl Node {
     }
     #[must_use]
     pub fn children_range(&self) -> Range<usize> {
-        let start = self.first_child as usize;
+        let start = self.first_child.index();
         let end = start + self.child_count as usize;
         start..end
     }
@@ -80,5 +80,36 @@ impl Node {
 impl Default for Node {
     fn default() -> Self {
         Self::new(Move::NULL_MOVE, 0.0)
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct NodeIndex(pub usize);
+impl NodeIndex {
+    pub const NULL: NodeIndex = Self(usize::MAX);
+    pub fn from_raw(value: usize) -> Self {
+        Self(value)
+    }
+    pub fn from_parts(index: usize, half: usize) -> Self {
+        Self((half << 30) | (index & 0x3FFFFFFF))
+    }
+    pub fn get_raw(&self) -> usize {
+        self.0
+    }
+    pub fn index(&self) -> usize {
+        self.0 & 0x3FFFFFFF
+    }
+    pub fn half(&self) -> usize {
+        (self.0 >> 30) as usize
+    }
+    pub fn is_null(&self) -> bool {
+        *self == Self::NULL
+    }
+}
+
+impl Add for NodeIndex {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
     }
 }

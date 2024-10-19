@@ -15,7 +15,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use super::node::Node;
+use super::node::{Node, NodeIndex};
 use std::{
     mem,
     ops::{Index, IndexMut, Range},
@@ -69,9 +69,26 @@ impl IndexMut<usize> for SearchTree {
         &mut self.tree[index]
     }
 }
+impl Index<NodeIndex> for SearchTree {
+    type Output = Node;
+    fn index(&self, index: NodeIndex) -> &Self::Output {
+        &self.tree[index.index()]
+    }
+}
+impl IndexMut<NodeIndex> for SearchTree {
+    fn index_mut(&mut self, index: NodeIndex) -> &mut Self::Output {
+        &mut self.tree[index.index()]
+    }
+}
 impl Index<Range<usize>> for SearchTree {
     type Output = [Node];
     fn index(&self, index: Range<usize>) -> &Self::Output {
         &self.tree[index]
+    }
+}
+impl Index<Range<NodeIndex>> for SearchTree {
+    type Output = [Node];
+    fn index(&self, index: Range<NodeIndex>) -> &Self::Output {
+        &self.tree[index.start.index()..index.end.index()]
     }
 }

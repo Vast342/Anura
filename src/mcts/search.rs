@@ -26,7 +26,7 @@ use crate::{
 use std::time::Instant;
 
 use super::{
-    node::{GameResult, Node},
+    node::{GameResult, Node, NodeIndex},
     tree::SearchTree,
 };
 
@@ -82,7 +82,7 @@ impl Engine {
     pub fn set_tree_size(&mut self, new_size: usize) {
         self.tree.set_size(new_size);
     }
-    fn select(&mut self, current: usize, params: &SearchParams) -> usize {
+    fn select(&mut self, current: NodeIndex, params: &SearchParams) -> NodeIndex {
         let node = &self.tree[current];
 
         let e = params.cpuct * (node.visits as f32).sqrt();
@@ -105,10 +105,10 @@ impl Engine {
             }
         }
 
-        node.first_child as usize + best_child
+        node.first_child + NodeIndex(best_child)
     }
 
-    fn expand(&mut self, node_idx: usize) {
+    fn expand(&mut self, node_idx: NodeIndex) {
         let next = self.tree.len() as u32;
         let node = &mut self.tree[node_idx];
 
@@ -142,7 +142,7 @@ impl Engine {
             return;
         }
 
-        node.first_child = next;
+        node.first_child = NodeIndex(next as usize);
         node.child_count = moves.len() as u8;
 
         for i in 0..moves.len() {
@@ -152,7 +152,7 @@ impl Engine {
     }
 
     // using my normal eval as a value net here so it actually just evaluates
-    fn simulate(&self, node_idx: usize) -> f32 {
+    fn simulate(&self, node_idx: NodeIndex) -> f32 {
         let node = &self.tree[node_idx];
         node.result
             .score(self.board.ctm, self.root_ctm)
@@ -161,7 +161,7 @@ impl Engine {
             })
     }
 
-    fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> f32 {
+    fn mcts(&mut self, current_node: NodeIndex, root: bool, params: &SearchParams) -> f32 {
         let mut score = if !root
             && (self.tree[current_node].result.is_terminal() || self.tree[current_node].visits == 0)
         {
@@ -189,7 +189,7 @@ impl Engine {
         score
     }
 
-    fn get_best_move(&self, root_node: usize) -> (usize, f32) {
+    fn get_best_move(&self, root_node: NodeIndex) -> (NodeIndex, f32) {
         let root = &self.tree[root_node];
 
         let mut best = None;
@@ -200,7 +200,7 @@ impl Engine {
             let score = node.average_score();
 
             if score > best_score {
-                best = Some(node_idx);
+                best = Some(NodeIndex(node_idx));
                 best_score = score;
             }
         }
@@ -208,7 +208,7 @@ impl Engine {
         (best.expect("nothing"), best_score)
     }
 
-    pub fn get_pv(&mut self, root_node: usize) -> (Vec<Move>, f32, bool) {
+    pub fn get_pv(&mut self, root_node: NodeIndex) -> (Vec<Move>, f32, bool) {
         let (root_best_child, root_best_score) = self.get_best_move(root_node);
         let mut pv = vec![];
         pv.push(self.tree[root_best_child].mov);
@@ -242,7 +242,7 @@ impl Engine {
                 break;
             }
             pv.push(self.tree[best_child_idx].mov);
-            node_idx = best_child_idx;
+            node_idx = NodeIndex(best_child_idx);
         }
 
         (pv, root_best_score, ends_in_mate)
@@ -274,7 +274,7 @@ impl Engine {
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
-        let root_node = 0;
+        let root_node = NodeIndex(0);
         let params = SearchParams::default();
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
@@ -352,7 +352,7 @@ impl Engine {
     }
     fn print_info(
         &mut self,
-        root_node: usize,
+        root_node: NodeIndex,
         depth: u32,
         seldepth: u32,
         duration: u128,
