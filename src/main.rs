@@ -24,13 +24,12 @@
 pub mod board;
 pub mod datagen;
 pub mod hash;
+pub mod mcts;
 pub mod movegen;
 pub mod nets;
 pub mod perft;
 pub mod prng;
 pub mod rays;
-pub mod search;
-pub mod time;
 pub mod types;
 pub mod uci;
 

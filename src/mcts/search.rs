@@ -19,7 +19,7 @@
 use crate::datagen::NODE_LIMIT;
 use crate::{
     board::Board,
-    time::Limiters,
+    mcts::time::Limiters,
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
