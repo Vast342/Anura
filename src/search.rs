@@ -36,7 +36,10 @@ pub struct SearchParams {
 
 impl Default for SearchParams {
     fn default() -> Self {
-        Self { cpuct: std::f32::consts::SQRT_2, fpu: 0.5 }
+        Self {
+            cpuct: std::f32::consts::SQRT_2,
+            fpu: 0.5,
+        }
     }
 }
 

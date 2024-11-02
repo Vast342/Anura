@@ -37,7 +37,8 @@ pub struct PolicyNetwork {
     pub output_biases: [i16; OUTPUT_SIZE],
 }
 
-pub static POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
+pub static POLICY_NET: PolicyNetwork =
+    unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
 
 /* will need for more layers but not rn with my glorified psqts
 pub struct PolicyNetworkState{
