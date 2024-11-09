@@ -299,13 +299,11 @@ impl Engine {
         (pv, root_best_score, ends_in_mate)
     }
 
-    // todo 1: Non-Iterative MCTS
-    // todo 2: LRU
-    // todo 3: Tree Reuse
-    // todo 4: find another way to organize this that will allow for SMP
-    // todo 5: SMP
-    // todo 6: Better value net
-    // todo 7: Actual policy net
+    // todo 1: LRU
+    // todo 2: Tree Reuse
+    // todo 3: SMP
+    // todo 4: Better value net
+    // todo 5: Actual policy net
     pub fn search(
         &mut self,
         board: Board,
