@@ -19,14 +19,14 @@
 #[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},
-    search::Engine,
+    mcts::search::Engine,
     types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
 };
 #[cfg(feature = "datagen")]
 #[cfg(feature = "value")]
 use crate::{
     board::{Board, Position},
-    search::Engine,
+    mcts::search::Engine,
     types::{piece::Piece, square::Square, MoveList},
 };
 #[cfg(feature = "datagen")]

@@ -375,11 +375,12 @@ impl Engine {
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         let root_node = 0;
+        let params = SearchParams::default();
 
         while self.nodes < NODE_LIMIT {
             self.board.load_state(root_state, root_ctm);
 
-            self.mcts(root_node, true);
+            self.mcts(root_node, true, &params);
 
             self.nodes += 1;
         }
