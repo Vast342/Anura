@@ -15,11 +15,15 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use super::node::Node;
+use super::{node::Node, tree_half::TreeHalf};
 use std::ops::{Index, IndexMut, Range};
 
+pub const DEFAULT_HASH_SIZE: usize = 64;
+
 pub struct SearchTree {
-    tree: Vec<Node>,
+    halves: [TreeHalf; 2],
+    current_half: usize,
+    half_size: usize,
 }
 impl Default for SearchTree {
     fn default() -> Self {
@@ -28,34 +32,48 @@ impl Default for SearchTree {
 }
 impl SearchTree {
     pub fn new() -> Self {
-        Self { tree: vec![] }
+        Self {
+            halves: [
+                TreeHalf::new(DEFAULT_HASH_SIZE / 2),
+                TreeHalf::new(DEFAULT_HASH_SIZE / 2),
+            ],
+            current_half: 0,
+            half_size: DEFAULT_HASH_SIZE / 2,
+        }
     }
     #[allow(clippy::len_without_is_empty)]
-    pub fn len(&self) -> usize {
-        self.tree.len()
+    pub fn next(&self) -> usize {
+        self.current_half * self.half_size + self.halves[self.current_half].len()
     }
     pub fn reset(&mut self) {
-        self.tree.clear();
-        self.tree.shrink_to_fit();
+        self.halves[0].clear();
+        self.halves[1].clear();
     }
     pub fn push(&mut self, node: Node) {
-        self.tree.push(node)
+        if self.halves[self.current_half].is_full() {
+            // switch halves
+            self.current_half = 1 - self.current_half;
+            self.halves[self.current_half].clear();
+        }
+        // push node to current half
+        self.halves[self.current_half].push(node);
     }
 }
 impl Index<usize> for SearchTree {
     type Output = Node;
     fn index(&self, index: usize) -> &Self::Output {
-        &self.tree[index]
+        // if it's on previous half, copy it over and pass reference to the new one
     }
 }
 impl IndexMut<usize> for SearchTree {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.tree[index]
+        //&mut self.halves[index]
     }
 }
 impl Index<Range<usize>> for SearchTree {
     type Output = [Node];
     fn index(&self, index: Range<usize>) -> &Self::Output {
-        &self.tree[index]
+        // maybe copy all of these over? idk
+        //&self.halves[index]
     }
 }

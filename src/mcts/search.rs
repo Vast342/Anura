@@ -23,8 +23,12 @@ use crate::{
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
-use std::ops::Range;
 use std::time::Instant;
+
+use super::{
+    node::{GameResult, Node},
+    tree::SearchTree,
+};
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
@@ -43,65 +47,6 @@ impl Default for SearchParams {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-#[repr(u8)]
-enum GameResult {
-    #[allow(unused)]
-    Win,
-    Draw,
-    Loss,
-    Ongoing,
-}
-
-impl GameResult {
-    fn score(self, ctm: u8, root_ctm: u8) -> Option<f32> {
-        match self {
-            GameResult::Win => Some(1.0),
-            GameResult::Draw => Some(0.5 - 0.01 + 0.02 * (ctm == root_ctm) as u32 as f32),
-            GameResult::Loss => Some(0.0),
-            GameResult::Ongoing => None,
-        }
-    }
-
-    fn is_terminal(self) -> bool {
-        self != Self::Ongoing
-    }
-}
-
-struct Node {
-    mov: Move,
-    first_child: u32,
-    child_count: u8,
-    visits: u32,
-    total_score: f32,
-    result: GameResult,
-    policy: f32,
-}
-
-impl Node {
-    fn new(mov: Move, policy: f32) -> Self {
-        Self {
-            mov,
-            first_child: 0,
-            child_count: 0,
-            visits: 0,
-            total_score: 0.0,
-            result: GameResult::Ongoing,
-            policy,
-        }
-    }
-
-    fn average_score(&self) -> f32 {
-        self.total_score / self.visits as f32
-    }
-
-    fn children_range(&self) -> Range<usize> {
-        let start = self.first_child as usize;
-        let end = start + self.child_count as usize;
-        start..end
-    }
-}
-
 pub fn to_cp(score: f32) -> i32 {
     if score == 1.0 {
         MATE_SCORE
@@ -113,7 +58,7 @@ pub fn to_cp(score: f32) -> i32 {
 }
 
 pub struct Engine {
-    tree: Vec<Node>,
+    tree: SearchTree,
     board: Board,
     depth: u32,
     pub nodes: u128,
@@ -125,7 +70,7 @@ impl Engine {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            tree: vec![],
+            tree: SearchTree::default(),
             board: Board::new(),
             depth: 0,
             nodes: 0,
@@ -160,7 +105,7 @@ impl Engine {
     }
 
     fn expand(&mut self, node_idx: usize) {
-        let next = self.tree.len() as u32;
+        let next = self.tree.next() as u32;
         let node = &mut self.tree[node_idx];
 
         if self.board.is_drawn() {
@@ -359,9 +304,6 @@ impl Engine {
 
         let (index, _best_score) = self.get_best_move(root_node);
         let best_move = self.tree[index].mov;
-
-        self.tree.clear();
-        self.tree.shrink_to_fit();
 
         best_move
     }

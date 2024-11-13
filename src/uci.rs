@@ -182,7 +182,9 @@ impl Manager {
         self.board.get_moves(&mut moves);
         let command_split: Vec<&str> = command_text.split_ascii_whitespace().collect();
         let output_count = if command_split.len() != 1 {
-            command_split[1].parse::<usize>().expect("invalid number of moves to write")
+            command_split[1]
+                .parse::<usize>()
+                .expect("invalid number of moves to write")
         } else {
             moves.len()
         };

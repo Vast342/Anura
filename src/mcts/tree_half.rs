@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Range};
 
 use crate::types::moves::Move;
 
@@ -74,5 +74,12 @@ impl Index<usize> for TreeHalf {
 impl IndexMut<usize> for TreeHalf {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.nodes[index]
+    }
+}
+
+impl Index<Range<usize>> for TreeHalf {
+    type Output = [Node];
+    fn index(&self, index: Range<usize>) -> &Self::Output {
+        &self.nodes[index]
     }
 }
