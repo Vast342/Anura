@@ -62,6 +62,7 @@ impl SearchTree {
 
     pub fn push(&mut self, node: Node) {
         if self.halves[self.current_half].is_full() {
+            println!("switching halves");
             // switch halves
             self.current_half = 1 - self.current_half;
             self.halves[self.current_half].clear();
