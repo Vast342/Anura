@@ -16,7 +16,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 use super::{node::Node, tree_half::TreeHalf};
-use std::ops::{Index, IndexMut, Range};
 
 pub const DEFAULT_HASH_SIZE: usize = 64;
 
@@ -32,14 +31,26 @@ impl Default for SearchTree {
 }
 impl SearchTree {
     pub fn new() -> Self {
+        let size_mb = DEFAULT_HASH_SIZE / 2;
+        let size_b = size_mb * 1024 * 1024;
+        let size_entries = size_b / std::mem::size_of::<Node>();
         Self {
             halves: [
-                TreeHalf::new(DEFAULT_HASH_SIZE / 2),
-                TreeHalf::new(DEFAULT_HASH_SIZE / 2),
+                TreeHalf::new(size_entries),
+                TreeHalf::new(size_entries),
             ],
             current_half: 0,
-            half_size: DEFAULT_HASH_SIZE / 2,
+            half_size: size_entries,
         }
+    }
+    pub fn resize(&mut self, new_size: usize) {
+        let size_mb = new_size / 2;
+        let size_b = size_mb * 1024 * 1024;
+        let size_entries = size_b / std::mem::size_of::<Node>();
+        self.halves = [TreeHalf::new(size_entries), TreeHalf::new(size_entries)];
+        self.current_half = 0;
+        self.half_size = size_entries;
+        self.reset();
     }
     #[allow(clippy::len_without_is_empty)]
     pub fn next(&self) -> usize {
@@ -58,22 +69,32 @@ impl SearchTree {
         // push node to current half
         self.halves[self.current_half].push(node);
     }
-}
-impl Index<usize> for SearchTree {
-    type Output = Node;
-    fn index(&self, index: usize) -> &Self::Output {
+    pub fn index(&mut self, index: usize) -> &Node {
         // if it's on previous half, copy it over and pass reference to the new one
+        let half = index / self.half_size;
+        let mut ind = index % self.half_size;
+        if half != self.current_half {
+            let mut node = self.halves[half][ind];
+            node.child_count = 0;
+            node.first_child = 0;
+            ind = self.halves[self.current_half].len();
+            self.halves[self.current_half].push(node);
+        }
+
+        &self.halves[self.current_half][ind]
     }
-}
-impl IndexMut<usize> for SearchTree {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        //&mut self.halves[index]
-    }
-}
-impl Index<Range<usize>> for SearchTree {
-    type Output = [Node];
-    fn index(&self, index: Range<usize>) -> &Self::Output {
-        // maybe copy all of these over? idk
-        //&self.halves[index]
+    pub fn index_mut(&mut self, index: usize) -> &mut Node {
+        // if it's on previous half, copy it over and pass reference to the new one
+        let half = index / self.half_size;
+        let mut ind = index % self.half_size;
+        if half != self.current_half {
+            let mut node = self.halves[half][ind];
+            node.child_count = 0;
+            node.first_child = 0;
+            ind = self.halves[self.current_half].len();
+            self.halves[self.current_half].push(node);
+        }
+
+        &mut self.halves[self.current_half][ind]
     }
 }

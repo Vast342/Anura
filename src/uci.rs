@@ -111,6 +111,7 @@ impl Manager {
             "uci" => CommandTypes::Uci,
             "isready" => CommandTypes::IsReady,
             "position" => CommandTypes::Position,
+            "ucinewgame" => CommandTypes::NewGame,
             "go" => CommandTypes::Go,
             "quit" => CommandTypes::Quit,
             "printstate" | "show" | "print" => CommandTypes::PrintState,
@@ -138,6 +139,7 @@ impl Manager {
             CommandTypes::IsReady => println!("readyok"),
             CommandTypes::Position => self.position(command_text),
             CommandTypes::Go => self.go(command_text),
+            CommandTypes::NewGame => self.new_game(),
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
             CommandTypes::Value => println!("evaluation {}", self.board.evaluate()),
@@ -162,6 +164,7 @@ impl Manager {
                 self.options.tree_size = command_sections[4]
                     .parse::<u64>()
                     .expect("not a parsable hash size");
+                self.engine.resize(self.options.tree_size as usize);
             }
             "Threads" => {
                 self.options.thread_count = command_sections[4]
@@ -175,6 +178,10 @@ impl Manager {
             }
             _ => panic!("Invalid option: {}", command_sections[2]),
         }
+    }
+
+    pub fn new_game(&mut self) {
+        self.engine.new_game();
     }
 
     pub fn output_policy(&mut self, command_text: &str) {

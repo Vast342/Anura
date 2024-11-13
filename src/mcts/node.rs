@@ -39,6 +39,8 @@ impl GameResult {
         self != Self::Ongoing
     }
 }
+
+#[derive(Clone, Copy)]
 pub struct Node {
     pub mov: Move,
     pub first_child: u32,
