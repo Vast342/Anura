@@ -44,18 +44,23 @@ impl TreeHalf {
         }
         half
     }
+
     pub fn clear(&mut self) {
         self.length = 0;
     }
+
     pub fn len(&self) -> usize {
         self.length as usize
     }
+
     pub fn size(&self) -> usize {
         self.nodes.len()
     }
+
     pub fn is_full(&self) -> bool {
         self.len() >= self.nodes.len()
     }
+
     pub fn push(&mut self, node: Node) -> usize {
         let len = self.length;
         self[len] = node;

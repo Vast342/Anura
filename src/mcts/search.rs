@@ -86,7 +86,8 @@ impl Engine {
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
 
-        for child_idx in node.children_range() {
+        for child_idx in node.children_range() {    
+            println!("child_idx: {child_idx}");
             let child = self.tree.index(child_idx);
             let average_score = if child.visits == 0 {
                 params.fpu
@@ -101,13 +102,13 @@ impl Engine {
                 best_child_uct = uct;
             }
         }
-
+        println!("selected node {}", node.first_child as usize + best_child);
         node.first_child as usize + best_child
     }
 
     fn expand(&mut self, node_idx: usize) {
         let next = self.tree.next() as u32;
-        let node = &mut self.tree.index_mut(node_idx);
+        let node = self.tree.index_mut(node_idx);
 
         if self.board.is_drawn() {
             node.result = GameResult::Draw;
@@ -141,6 +142,7 @@ impl Engine {
 
         node.first_child = next;
         node.child_count = moves.len() as u8;
+        dbg!(node);
 
         for i in 0..moves.len() {
             let node = Node::new(moves[i], policy[i]);
@@ -163,15 +165,18 @@ impl Engine {
             && (self.tree.index(current_node).result.is_terminal()
                 || self.tree.index(current_node).visits == 0)
         {
+            println!("simulates");
             self.simulate(current_node)
         } else {
             if self.tree.index(current_node).child_count == 0 {
+                println!("expands");
                 self.expand(current_node);
                 if self.tree.index(current_node).result.is_terminal() {
+                    println!("then simulates");
                     return self.simulate(current_node);
                 }
             }
-
+            println!("selects");
             let next_index = self.select(current_node, params);
 
             self.board.make_move(self.tree.index(next_index).mov);
@@ -179,7 +184,9 @@ impl Engine {
 
             self.mcts(next_index, false, params)
         };
+        println!("score is {score}");
         score = 1.0 - score;
+        println!("score inverted, now {score}");
 
         self.tree.index_mut(current_node).visits += 1;
         self.tree.index_mut(current_node).total_score += score;
@@ -306,6 +313,8 @@ impl Engine {
 
         let (index, _best_score) = self.get_best_move(root_node);
         let best_move = self.tree.index(index).mov;
+
+        self.tree.reset();
 
         best_move
     }

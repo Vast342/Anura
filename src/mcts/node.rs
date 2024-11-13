@@ -40,7 +40,7 @@ impl GameResult {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct Node {
     pub mov: Move,
     pub first_child: u32,
@@ -69,5 +69,9 @@ impl Node {
         let start = self.first_child as usize;
         let end = start + self.child_count as usize;
         start..end
+    }
+    pub fn dereference(&mut self) {
+        self.first_child = 0;
+        self.child_count = 0;
     }
 }
