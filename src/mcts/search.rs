@@ -105,13 +105,13 @@ impl Engine {
         best_child
     }
 
-    fn expand(&mut self, node_idx: usize) {
+    fn expand(&mut self, node_idx: usize) -> Option<()> {
         let next = self.tree.next() as u32;
         let node = self.tree.index_mut(node_idx);
 
         if self.board.is_drawn() {
             node.result = GameResult::Draw;
-            return;
+            return Some(());
         }
 
         let mut moves = MoveList::new();
@@ -136,7 +136,7 @@ impl Engine {
             } else {
                 GameResult::Draw
             };
-            return;
+            return Some(());
         }
 
         node.first_child = next;
@@ -144,8 +144,10 @@ impl Engine {
 
         for i in 0..moves.len() {
             let node = Node::new(moves[i], policy[i]);
-            self.tree.push(node);
+            self.tree.push(node)?;
         }
+
+        Some(())
     }
 
     // using my normal eval as a value net here so it actually just evaluates
@@ -158,32 +160,37 @@ impl Engine {
             })
     }
 
-    fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> f32 {
+    fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> Option<f32> {
+        let current_node_clone = self.tree.index(current_node).clone();
         let mut score = if !root
-            && (self.tree.index(current_node).result.is_terminal()
-                || self.tree.index(current_node).visits == 0)
+            && (current_node_clone.result.is_terminal()
+                || current_node_clone.visits == 0)
         {
             self.simulate(current_node)
         } else {
-            if self.tree.index(current_node).child_count == 0 {
-                self.expand(current_node);
-                if self.tree.index(current_node).result.is_terminal() {
-                    return self.simulate(current_node);
+            if current_node_clone.child_count == 0 {
+                self.expand(current_node)?;
+                if current_node_clone.result.is_terminal() {
+                    return Some(self.simulate(current_node));
                 }
             }
+
+            self.tree.copy_children(current_node);
+            
             let next_index = self.select(current_node, params);
 
             self.board.make_move(self.tree.index(next_index).mov);
             self.depth += 1;
 
-            self.mcts(next_index, false, params)
+            self.mcts(next_index, false, params)?
         };
         score = 1.0 - score;
+        
+        let current_node_ref = self.tree.index_mut(current_node);
+        current_node_ref.visits += 1;
+        current_node_ref.total_score += score;
 
-        self.tree.index_mut(current_node).visits += 1;
-        self.tree.index_mut(current_node).total_score += score;
-
-        score
+        Some(score)
     }
 
     fn get_best_move(&mut self, root_node: usize) -> (usize, f32) {
@@ -293,6 +300,10 @@ impl Engine {
                     self.print_info(root_node, avg_depth - 1, seldepth, duration, false, options);
                 }
                 prev_avg_depth = avg_depth;
+            }
+            
+            if self.tree.is_full() {
+                self.tree.switch_halves();
             }
         }
         if !limiters.use_depth {

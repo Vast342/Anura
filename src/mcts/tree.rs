@@ -31,9 +31,9 @@ impl Default for SearchTree {
 }
 impl SearchTree {
     pub fn new() -> Self {
-        let size_mb = DEFAULT_HASH_SIZE / 2;
+        let size_mb = DEFAULT_HASH_SIZE;
         let size_b = size_mb * 1024 * 1024;
-        let size_entries = size_b / std::mem::size_of::<Node>();
+        let size_entries = (size_b / std::mem::size_of::<Node>()) / 2;
         Self {
             halves: [TreeHalf::new(size_entries), TreeHalf::new(size_entries)],
             current_half: 0,
@@ -42,13 +42,17 @@ impl SearchTree {
     }
 
     pub fn resize(&mut self, new_size: usize) {
-        let size_mb = new_size / 2;
+        let size_mb = new_size;
         let size_b = size_mb * 1024 * 1024;
-        let size_entries = size_b / std::mem::size_of::<Node>();
+        let size_entries = (size_b / std::mem::size_of::<Node>()) / 2;
         self.halves = [TreeHalf::new(size_entries), TreeHalf::new(size_entries)];
         self.current_half = 0;
         self.half_size = size_entries;
         self.reset();
+    }
+
+    pub fn is_full(&self) -> bool {
+        self.halves[self.current_half].is_full()
     }
 
     pub fn next(&self) -> usize {
@@ -60,43 +64,72 @@ impl SearchTree {
         self.halves[1].clear();
     }
 
-    pub fn push(&mut self, node: Node) {
+    pub fn push(&mut self, node: Node) -> Option<()> {
         if self.halves[self.current_half].is_full() {
-            println!("switching halves");
-            // switch halves
-            self.current_half = 1 - self.current_half;
-            self.halves[self.current_half].clear();
-            // ensure root node is first in the new entry
-            self.halves[self.current_half].push(self.halves[1 - self.current_half][0]);
+            println!("is_full");
+            return None;
         }
         // push node to current half
         self.halves[self.current_half].push(node);
+        Some(())
     }
 
     pub fn index(&mut self, index: usize) -> &Node {
         // if it's on previous half, copy it over and pass reference to the new one
         let half = index / self.half_size;
-        let mut ind = index % self.half_size;
+        let ind = index % self.half_size;
         if half != self.current_half {
-            let mut node = self.halves[half][ind];
-            node.dereference();
-            ind = self.halves[self.current_half].len();
-            self.halves[self.current_half].push(node);
+            panic!("shucks");
         }
-
         &self.halves[self.current_half][ind]
     }
 
     pub fn index_mut(&mut self, index: usize) -> &mut Node {
         // if it's on previous half, copy it over and pass reference to the new one
         let half = index / self.half_size;
-        let mut ind = index % self.half_size;
+        let ind = index % self.half_size;
         if half != self.current_half {
-            let mut node = self.halves[half][ind];
-            node.dereference();
-            ind = self.halves[self.current_half].len();
-            self.halves[self.current_half].push(node);
+            panic!("shucks");    
         }
         &mut self.halves[self.current_half][ind]
+    }
+
+    pub fn copy_children(&mut self, parent: usize) {
+        let parent_half = parent / self.half_size;
+
+        if parent_half != self.current_half {
+            let parent_ind = parent % self.half_size;
+            let parent_node = self.halves[self.current_half][parent_ind];
+            let child = parent_node.first_child as usize;
+            let child_half = child / self.half_size;
+            
+            if child_half == self.current_half {
+                return;
+            }
+
+            let child_count = parent_node.child_count;
+            
+            for this_child in child..(child + child_count as usize) {
+                let this_child_ind = this_child % self.half_size;
+                let this_child_node = self.halves[child_half][this_child_ind];
+                self.halves[self.current_half].push(this_child_node);
+            }
+        }
+    }
+
+    pub fn switch_halves(&mut self) {
+        println!("switching halves");
+        // switch halves
+        self.current_half = 1 - self.current_half;
+        self.halves[self.current_half].clear();
+        // ensure root node is first in the new entry
+        self.halves[self.current_half].push(self.halves[1 - self.current_half][0]);
+        self.dereference_all();
+    }
+
+    fn dereference_all(&mut self) {
+        for i in 0..self.half_size {
+            self.halves[self.current_half][i].dereference();
+        }
     }
 }
