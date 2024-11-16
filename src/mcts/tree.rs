@@ -78,20 +78,14 @@ impl SearchTree {
         // if it's on previous half, copy it over and pass reference to the new one
         let half = index / self.half_size;
         let ind = index % self.half_size;
-        if half != self.current_half {
-            panic!("shucks");
-        }
-        &self.halves[self.current_half][ind]
+        &self.halves[half][ind]
     }
 
     pub fn index_mut(&mut self, index: usize) -> &mut Node {
         // if it's on previous half, copy it over and pass reference to the new one
         let half = index / self.half_size;
         let ind = index % self.half_size;
-        if half != self.current_half {
-            panic!("shucks");    
-        }
-        &mut self.halves[self.current_half][ind]
+        &mut self.halves[half][ind]
     }
 
     pub fn copy_children(&mut self, parent: usize) {
@@ -107,9 +101,9 @@ impl SearchTree {
                 return;
             }
 
-            let child_count = parent_node.child_count;
+            let child_count = parent_node.child_count as usize;
             
-            for this_child in child..(child + child_count as usize) {
+            for this_child in child..(child + child_count) {
                 let this_child_ind = this_child % self.half_size;
                 let this_child_node = self.halves[child_half][this_child_ind];
                 self.halves[self.current_half].push(this_child_node);
