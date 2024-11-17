@@ -79,31 +79,27 @@ impl SearchTree {
     }
 
     pub fn copy_children(&mut self, parent: usize) -> Option<()> {
-        let parent_half = parent >> 31;
+        let parent_ind = parent & IND_MASK;
+        let parent_node = self.halves[self.current_half][parent_ind];
+        let child = parent_node.first_child as usize;
+        let child_half = child >> 31;
 
-        if parent_half != self.current_half {
-            let parent_ind = parent & IND_MASK;
-            let parent_node = self.halves[self.current_half][parent_ind];
-            let child = parent_node.first_child as usize;
-            let child_half = child >> 31;
-
-            if child_half == self.current_half {
-                return Some(());
-            }
-
-            let child_count = parent_node.child_count as usize;
-
-            for this_child in child..(child + child_count) {
-                let this_child_ind = this_child & IND_MASK;
-                let this_child_node = self.halves[child_half][this_child_ind];
-                self.halves[self.current_half].push(this_child_node)?;
-            }
+        if child_half == self.current_half {
+            return Some(());
         }
+
+        let child_count = parent_node.child_count as usize;
+
+        for this_child in child..(child + child_count) {
+            let this_child_ind = this_child & IND_MASK;
+            let this_child_node = self.halves[child_half][this_child_ind];
+            self.halves[self.current_half].push(this_child_node)?;
+        }
+        self[parent].first_child = self.next() as u32 - child_count as u32;
         Some(())
     }
 
     pub fn switch_halves(&mut self) {
-        println!("switching halves");
         // switch halves
         self.current_half = 1 - self.current_half;
         self.halves[self.current_half].clear();
@@ -115,7 +111,8 @@ impl SearchTree {
     pub fn dereference(&mut self) {
         for i in 0..self.half_size {
             if self.halves[1 - self.current_half][i].first_child >> 31 == self.current_half as u32 {
-                self.halves[1 - self.current_half][i].first_child = u32::MAX;
+                self.halves[1 - self.current_half][i].first_child = IND_MASK as u32;
+                self.halves[1 - self.current_half][i].child_count = 0;
             }
         }
     }

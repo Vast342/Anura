@@ -85,7 +85,6 @@ impl Engine {
 
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
-
         for child_idx in node.children_range() {
             let child = self.tree[child_idx];
             let average_score = if child.visits == 0 {
@@ -127,7 +126,7 @@ impl Engine {
             return Some(());
         }
 
-        if (next as usize & IND_MASK) + moves.len() as usize >= 1677721 { 
+        if (next as usize & IND_MASK) + moves.len() as usize >= 1677721 {
             return None;
         }
 
@@ -166,6 +165,7 @@ impl Engine {
 
     fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> Option<f32> {
         let current_node_ref = &self.tree[current_node];
+
         let mut score =
             if !root && (current_node_ref.result.is_terminal() || current_node_ref.visits == 0) {
                 self.simulate(current_node)
