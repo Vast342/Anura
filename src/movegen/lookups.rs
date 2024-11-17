@@ -1,12 +1,3 @@
-use std::arch::x86_64::_pdep_u64;
-
-use crate::{
-    rays::{init_between, init_intersection},
-    types::{bitboard::Bitboard, square::Square},
-};
-
-use super::slideys::{get_bishop_attacks_old, get_rook_attacks_old};
-
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -24,6 +15,15 @@ use super::slideys::{get_bishop_attacks_old, get_rook_attacks_old};
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use std::arch::x86_64::_pdep_u64;
+
+use crate::{
+    rays::{init_between, init_intersection},
+    types::{bitboard::Bitboard, square::Square},
+};
+
+use super::slideys::{get_bishop_attacks_old, get_rook_attacks_old};
+
 // initialize the lookups on startup as needed
 pub fn initialize() {
     unsafe { generate_pext_lookups() };

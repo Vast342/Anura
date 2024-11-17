@@ -1,9 +1,3 @@
-use crate::{
-    board::Position,
-    search::EVAL_SCALE,
-    types::{bitboard::Bitboard, piece::Piece, square::Square},
-};
-
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -21,9 +15,15 @@ use crate::{
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+
+use crate::{
+    board::Position,
+    mcts::search::EVAL_SCALE,
+    types::{bitboard::Bitboard, piece::Piece, square::Square},
+};
 // value net:
-// avn_004.vn
-// 768->128->1x8 activated by SCReLU
+// avn_006.vn
+// 768->512->1x16 activated by SCReLU
 const INPUT_SIZE: usize = 768;
 const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 512;

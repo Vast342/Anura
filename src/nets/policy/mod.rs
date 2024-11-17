@@ -16,8 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_001.pn
+// apn_003.pn
 // (768->1)x384
+// notes:
+// quantised!
 
 use crate::{
     board::Position,

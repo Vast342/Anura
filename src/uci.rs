@@ -19,12 +19,11 @@
 use std::io;
 use std::time::Instant;
 
-use crate::time::Limiters;
 use crate::{
     board::Board,
+    mcts::{search::Engine, time::Limiters},
     movegen::lookups::BENCH_FENS,
     perft::{perft, run_perft_suite},
-    search::Engine,
     types::{moves::Move, MoveList},
 };
 
@@ -112,6 +111,7 @@ impl Manager {
             "uci" => CommandTypes::Uci,
             "isready" => CommandTypes::IsReady,
             "position" => CommandTypes::Position,
+            "ucinewgame" => CommandTypes::NewGame,
             "go" => CommandTypes::Go,
             "quit" => CommandTypes::Quit,
             "printstate" | "show" | "print" => CommandTypes::PrintState,
@@ -139,6 +139,7 @@ impl Manager {
             CommandTypes::IsReady => println!("readyok"),
             CommandTypes::Position => self.position(command_text),
             CommandTypes::Go => self.go(command_text),
+            CommandTypes::NewGame => self.new_game(),
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
             CommandTypes::Value => println!("evaluation {}", self.board.evaluate()),
@@ -149,7 +150,7 @@ impl Manager {
             CommandTypes::PerftSuite => self.perft_suite(),
             CommandTypes::Bench => self.bench(),
             CommandTypes::GetFen => self.get_fen(),
-            CommandTypes::Policy => self.output_policy(),
+            CommandTypes::Policy => self.output_policy(command_text),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
@@ -163,6 +164,7 @@ impl Manager {
                 self.options.tree_size = command_sections[4]
                     .parse::<u64>()
                     .expect("not a parsable hash size");
+                self.engine.resize(self.options.tree_size as usize);
             }
             "Threads" => {
                 self.options.thread_count = command_sections[4]
@@ -178,11 +180,23 @@ impl Manager {
         }
     }
 
-    pub fn output_policy(&mut self) {
+    pub fn new_game(&mut self) {
+        self.engine.new_game();
+    }
+
+    pub fn output_policy(&mut self, command_text: &str) {
         let mut moves = MoveList::new();
         self.board.get_moves(&mut moves);
+        let command_split: Vec<&str> = command_text.split_ascii_whitespace().collect();
+        let output_count = if command_split.len() != 1 {
+            command_split[1]
+                .parse::<usize>()
+                .expect("invalid number of moves to write")
+        } else {
+            moves.len()
+        };
 
-        // get initial policy values
+        // get policy values
         let mut policy: Vec<f32> = vec![0.0; moves.len()];
         let mut policy_sum: f32 = 0.0;
         for i in 0..moves.len() {
@@ -193,6 +207,11 @@ impl Manager {
         // could prob do some like .iter().enumerate() shenanigans here but ehhhhhh
         for i in 0..moves.len() {
             policy[i] = policy[i].exp() / policy_sum;
+        }
+        // sort
+        policy.sort_by(|a, b| b.partial_cmp(a).expect("bruh what"));
+        // print
+        for i in 0..output_count {
             println!("{}: {}", moves[i], policy[i]);
         }
     }
