@@ -61,11 +61,14 @@ impl TreeHalf {
         self.len() >= self.nodes.len()
     }
 
-    pub fn push(&mut self, node: Node) -> usize {
+    pub fn push(&mut self, node: Node) -> Option<usize> {
+        if self.is_full() {
+            return None;
+        }
         let len = self.length;
         self[len] = node;
         self.length += 1;
-        len
+        Some(len)
     }
 }
 

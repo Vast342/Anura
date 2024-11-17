@@ -86,7 +86,7 @@ impl Engine {
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
 
-        for child_idx in node.children_range() {    
+        for child_idx in node.children_range() {
             let child = self.tree.index(child_idx);
             let average_score = if child.visits == 0 {
                 params.fpu
@@ -162,21 +162,21 @@ impl Engine {
 
     fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> Option<f32> {
         let current_node_clone = self.tree.index(current_node).clone();
+        
         let mut score = if !root
-            && (current_node_clone.result.is_terminal()
-                || current_node_clone.visits == 0)
+            && (current_node_clone.result.is_terminal() || current_node_clone.visits == 0)
         {
             self.simulate(current_node)
         } else {
             if current_node_clone.child_count == 0 {
                 self.expand(current_node)?;
-                if current_node_clone.result.is_terminal() {
+                if self.tree.index(current_node).result.is_terminal() {
                     return Some(self.simulate(current_node));
                 }
             }
 
-            self.tree.copy_children(current_node);
-            
+            self.tree.copy_children(current_node)?;
+
             let next_index = self.select(current_node, params);
 
             self.board.make_move(self.tree.index(next_index).mov);
@@ -184,8 +184,9 @@ impl Engine {
 
             self.mcts(next_index, false, params)?
         };
+
         score = 1.0 - score;
-        
+
         let current_node_ref = self.tree.index_mut(current_node);
         current_node_ref.visits += 1;
         current_node_ref.total_score += score;
@@ -276,14 +277,13 @@ impl Engine {
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
-        let root_node = 0;
         let params = SearchParams::default();
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
-            self.mcts(root_node, true, &params);
+            let result = self.mcts(self.tree.root_node(), true, &params);
 
             self.nodes += 1;
             total_depth += self.depth as usize;
@@ -297,12 +297,19 @@ impl Engine {
             if avg_depth > prev_avg_depth {
                 let duration = self.start.elapsed().as_millis();
                 if info {
-                    self.print_info(root_node, avg_depth - 1, seldepth, duration, false, options);
+                    self.print_info(
+                        self.tree.root_node(),
+                        avg_depth - 1,
+                        seldepth,
+                        duration,
+                        false,
+                        options,
+                    );
                 }
                 prev_avg_depth = avg_depth;
             }
-            
-            if self.tree.is_full() {
+
+            if result == None {
                 self.tree.switch_halves();
             }
         }
@@ -310,11 +317,18 @@ impl Engine {
             let duration = self.start.elapsed().as_millis();
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32 - 1;
             if info {
-                self.print_info(root_node, avg_depth, seldepth, duration, true, options);
+                self.print_info(
+                    self.tree.root_node(),
+                    avg_depth,
+                    seldepth,
+                    duration,
+                    true,
+                    options,
+                );
             }
         }
 
-        let (index, _best_score) = self.get_best_move(root_node);
+        let (index, _best_score) = self.get_best_move(self.tree.root_node());
         let best_move = self.tree.index(index).mov;
 
         self.tree.reset();

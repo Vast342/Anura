@@ -51,6 +51,10 @@ impl SearchTree {
         self.reset();
     }
 
+    pub fn root_node(&self) -> usize {
+        self.current_half * self.half_size
+    }
+
     pub fn is_full(&self) -> bool {
         self.halves[self.current_half].is_full()
     }
@@ -65,30 +69,24 @@ impl SearchTree {
     }
 
     pub fn push(&mut self, node: Node) -> Option<()> {
-        if self.halves[self.current_half].is_full() {
-            println!("is_full");
-            return None;
-        }
         // push node to current half
-        self.halves[self.current_half].push(node);
+        self.halves[self.current_half].push(node)?;
         Some(())
     }
 
     pub fn index(&mut self, index: usize) -> &Node {
-        // if it's on previous half, copy it over and pass reference to the new one
         let half = index / self.half_size;
         let ind = index % self.half_size;
         &self.halves[half][ind]
     }
 
     pub fn index_mut(&mut self, index: usize) -> &mut Node {
-        // if it's on previous half, copy it over and pass reference to the new one
         let half = index / self.half_size;
         let ind = index % self.half_size;
         &mut self.halves[half][ind]
     }
 
-    pub fn copy_children(&mut self, parent: usize) {
+    pub fn copy_children(&mut self, parent: usize) -> Option<()> {
         let parent_half = parent / self.half_size;
 
         if parent_half != self.current_half {
@@ -96,19 +94,20 @@ impl SearchTree {
             let parent_node = self.halves[self.current_half][parent_ind];
             let child = parent_node.first_child as usize;
             let child_half = child / self.half_size;
-            
+
             if child_half == self.current_half {
-                return;
+                return Some(());
             }
 
             let child_count = parent_node.child_count as usize;
-            
+
             for this_child in child..(child + child_count) {
                 let this_child_ind = this_child % self.half_size;
                 let this_child_node = self.halves[child_half][this_child_ind];
-                self.halves[self.current_half].push(this_child_node);
+                self.halves[self.current_half].push(this_child_node)?;
             }
         }
+        Some(())
     }
 
     pub fn switch_halves(&mut self) {
