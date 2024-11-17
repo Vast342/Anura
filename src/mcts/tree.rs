@@ -24,7 +24,7 @@ pub const DEFAULT_HASH_SIZE: usize = 64;
 pub struct SearchTree {
     halves: [TreeHalf; 2],
     current_half: usize,
-    half_size: usize,
+    pub half_size: usize,
 }
 impl Default for SearchTree {
     fn default() -> Self {
@@ -92,6 +92,7 @@ impl SearchTree {
 
         for this_child in child..(child + child_count) {
             let this_child_ind = this_child & IND_MASK;
+            // this_child_ind ends up overflowing
             let this_child_node = self.halves[child_half][this_child_ind];
             self.halves[self.current_half].push(this_child_node)?;
         }

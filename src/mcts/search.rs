@@ -106,6 +106,7 @@ impl Engine {
 
     fn expand(&mut self, node_idx: usize) -> Option<()> {
         let next = self.tree.next() as u32;
+        let half_size = self.tree.half_size;
         let node = &mut self.tree[node_idx];
 
         if self.board.is_drawn() {
@@ -126,7 +127,7 @@ impl Engine {
             return Some(());
         }
 
-        if (next as usize & IND_MASK) + moves.len() as usize >= 1677721 {
+        if (next as usize & IND_MASK) + moves.len() as usize >= half_size {
             return None;
         }
 
