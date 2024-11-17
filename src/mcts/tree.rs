@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -29,6 +31,8 @@ impl Default for SearchTree {
         Self::new()
     }
 }
+
+pub const IND_MASK: usize = 0x7fffffff;
 impl SearchTree {
     pub fn new() -> Self {
         let size_mb = DEFAULT_HASH_SIZE;
@@ -52,7 +56,7 @@ impl SearchTree {
     }
 
     pub fn root_node(&self) -> usize {
-        self.current_half * self.half_size
+        self.current_half << 31
     }
 
     pub fn is_full(&self) -> bool {
@@ -60,7 +64,7 @@ impl SearchTree {
     }
 
     pub fn next(&self) -> usize {
-        self.current_half * self.half_size + self.halves[self.current_half].len()
+        (self.current_half << 31) | self.halves[self.current_half].len()
     }
 
     pub fn reset(&mut self) {
@@ -74,26 +78,14 @@ impl SearchTree {
         Some(())
     }
 
-    pub fn index(&mut self, index: usize) -> &Node {
-        let half = index / self.half_size;
-        let ind = index % self.half_size;
-        &self.halves[half][ind]
-    }
-
-    pub fn index_mut(&mut self, index: usize) -> &mut Node {
-        let half = index / self.half_size;
-        let ind = index % self.half_size;
-        &mut self.halves[half][ind]
-    }
-
     pub fn copy_children(&mut self, parent: usize) -> Option<()> {
-        let parent_half = parent / self.half_size;
+        let parent_half = parent >> 31;
 
         if parent_half != self.current_half {
-            let parent_ind = parent % self.half_size;
+            let parent_ind = parent & IND_MASK;
             let parent_node = self.halves[self.current_half][parent_ind];
             let child = parent_node.first_child as usize;
-            let child_half = child / self.half_size;
+            let child_half = child >> 31;
 
             if child_half == self.current_half {
                 return Some(());
@@ -102,7 +94,7 @@ impl SearchTree {
             let child_count = parent_node.child_count as usize;
 
             for this_child in child..(child + child_count) {
-                let this_child_ind = this_child % self.half_size;
+                let this_child_ind = this_child & IND_MASK;
                 let this_child_node = self.halves[child_half][this_child_ind];
                 self.halves[self.current_half].push(this_child_node)?;
             }
@@ -117,12 +109,31 @@ impl SearchTree {
         self.halves[self.current_half].clear();
         // ensure root node is first in the new entry
         self.halves[self.current_half].push(self.halves[1 - self.current_half][0]);
-        self.dereference_all();
+        self.dereference();
     }
 
-    fn dereference_all(&mut self) {
+    pub fn dereference(&mut self) {
         for i in 0..self.half_size {
-            self.halves[self.current_half][i].dereference();
+            if self.halves[1 - self.current_half][i].first_child >> 31 == self.current_half as u32 {
+                self.halves[1 - self.current_half][i].first_child = u32::MAX;
+            }
         }
+    }
+}
+
+impl Index<usize> for SearchTree {
+    type Output = Node;
+    fn index(&self, index: usize) -> &Self::Output {
+        let half = index >> 31;
+        let ind = index & IND_MASK;
+        &self.halves[half][ind]
+    }
+}
+
+impl IndexMut<usize> for SearchTree {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        let half = index >> 31;
+        let ind = index & IND_MASK;
+        &mut self.halves[half][ind]
     }
 }
