@@ -338,7 +338,7 @@ impl Engine {
 
         best_move
     }
-    #[cfg(feature = "datagen")]
+    //#[cfg(feature = "datagen")]
     pub fn datagen_search(&mut self, board: Board) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
@@ -369,8 +369,7 @@ impl Engine {
             visit_points.push((child_node.mov, child_node.visits as u16));
         }
 
-        self.tree.clear();
-        self.tree.shrink_to_fit();
+        self.tree.reset();
 
         (best_move, to_cp(best_score), visit_points)
     }

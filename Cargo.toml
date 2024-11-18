@@ -16,6 +16,7 @@ codegen-units = 1
 [dependencies]
 arrayvec = "0.7.6"
 rand = { version = "0.8.5", optional = true }
+montyformat = { git = 'https://github.com/official-monty/montyformat.git', tag = "v0.5.0" }
 
 [features]
 datagen = ["rand"]

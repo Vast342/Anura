@@ -127,13 +127,44 @@ impl Position {
     pub fn switch_color(&mut self) {
         self.hash ^= zobrist_ctm();
     }
+    pub fn bb(&self) -> [u64; 8] {
+        let mut thing = [0; 8];
+        thing[0] = self.colors[1].0;
+        thing[1] = self.colors[0].0;
+        thing[2] = self.pieces[0].0;
+        thing[3] = self.pieces[1].0;
+        thing[4] = self.pieces[2].0;
+        thing[5] = self.pieces[3].0;
+        thing[6] = self.pieces[4].0;
+        thing[7] = self.pieces[5].0;
+        thing
+    }
+    pub fn rights(&self) -> u8 {
+        let rights = self.castling;
+        let mut lefts = 0;
+
+        if rights & 1 != 0 {
+            lefts |= 0b0100;
+        }
+        if rights & 2 != 0 {
+            lefts |= 0b1000;
+        }
+        if rights & 4 != 0 {
+            lefts |= 0b0001;
+        }
+        if rights & 8 != 0 {
+            lefts |= 0b0010;
+        }
+
+        lefts
+    }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct Board {
     pub states: Vec<Position>,
     pub ctm: u8,
-    ply: i16,
+    pub ply: i16,
     // phase: i8
 }
 
