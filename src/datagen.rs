@@ -15,24 +15,24 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// #[cfg(feature = "datagen")]
-// #[cfg(feature = "policy")]
+#[cfg(feature = "datagen")]
+#[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
 };
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 #[cfg(feature = "value")]
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     types::{piece::Piece, square::Square, MoveList},
 };
-use montyformat::{MontyFormat, SearchData};
-// #[cfg(feature = "datagen")]
+use montyformat::{chess::Castling, MontyFormat, SearchData};
+#[cfg(feature = "datagen")]
 use rand::Rng;
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 #[allow(unused_imports)]
 use std::{
     fs::File,
@@ -45,20 +45,20 @@ use std::{
     thread::{self},
     time::Instant,
 };
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 pub const NODE_LIMIT: u128 = 1000;
 
 // policy net datapoint, montyformat now
-// #[cfg(feature = "datagen")]
-// #[cfg(feature = "policy")]
+#[cfg(feature = "datagen")]
+#[cfg(feature = "policy")]
 pub type Datapoint = MontyFormat;
 
 // value net datapoint, just text rn
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 #[cfg(feature = "value")]
 struct Datapoint(pub String);
 
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 #[cfg(feature = "value")]
 impl AddAssign for Datapoint {
     fn add_assign(&mut self, rhs: Self) {
@@ -66,7 +66,7 @@ impl AddAssign for Datapoint {
     }
 }
 
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 pub fn datagen_main(args: Vec<String>) {
     let thread_count: usize = args[2].parse().expect("invalid thread count");
     println!("generating data on {thread_count} threads");
@@ -96,7 +96,7 @@ pub fn datagen_main(args: Vec<String>) {
     }
 }
 
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 fn thread_function(
     directory: String,
     thread_id: u8,
@@ -126,7 +126,7 @@ fn thread_function(
     }
 }
 
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 #[allow(unused_assignments)]
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
 fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
@@ -157,7 +157,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         board.ply as u16,
     );
 
-    let castling = montyformat::chess::Castling::from_raw(&starting_position, [[0, 7], [0, 7]]);
+    let castling = Castling::default();
 
     let mut game = MontyFormat::new(starting_position, castling);
 
@@ -165,6 +165,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     // the rest of the moves
     for _ in 0..1000 {
         if board.is_drawn() {
+            #[cfg(feature = "policy")]
             _datapoints.push(game);
             return 1;
         }
@@ -176,6 +177,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
 
         // checkmate or stalemate
         if list.len() == 0 {
+            #[cfg(feature = "policy")]
             _datapoints.push(game);
             if board.in_check() {
                 // checkmate opponnent wins
@@ -188,6 +190,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         let (mov, score, mut visit_points) = engine.datagen_search(board.clone());
         board.make_move(mov);
         if board.is_drawn() {
+            #[cfg(feature = "policy")]
             _datapoints.push(game);
             return 1;
         }
@@ -199,6 +202,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
 
         // checkmate or stalemate
         if list.len() == 0 {
+            #[cfg(feature = "policy")]
             _datapoints.push(game);
             if board.in_check() {
                 // checkmate opponnent wins
@@ -211,6 +215,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         if cfg!(feature = "policy") {
             let state: &Position = board.states.last().expect("bruh");
             let best_move = montyformat::chess::Move::from(mov.to_mf(state));
+            // convert to montyformat move
             let mut thing = vec![(montyformat::chess::Move::from(0), 0)];
             for point in &mut visit_points {
                 thing.push((
@@ -223,10 +228,11 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
                 score as f32 * (-1 + i32::from(board.ctm) * 2) as f32,
                 Some(thing),
             );
+            #[cfg(feature = "policy")]
             game.push(data);
         } else if cfg!(feature = "value") {
             #[cfg(feature = "value")]
-            datapoints.push(Datapoint(format!(
+            _datapoints.push(Datapoint(format!(
                 "{} | {} | ",
                 board.get_fen(),
                 score * (-1 + i32::from(board.ctm) * 2)
@@ -235,6 +241,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         board.make_move(mov);
     }
     let score = board.evaluate_non_stm();
+    #[cfg(feature = "policy")]
     _datapoints.push(game);
     if score < -100 {
         return 0;
@@ -245,13 +252,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     }
 }
 
-// #[cfg(feature = "datagen")]
-// #[cfg(feature = "policy")]
-unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    ::core::slice::from_raw_parts((p as *const T) as *const u8, ::core::mem::size_of::<T>())
-}
-
-// #[cfg(feature = "datagen")]
+#[cfg(feature = "datagen")]
 fn dump_to_file(
     datapoints: Vec<Datapoint>,
     writer: &mut BufWriter<File>,
@@ -291,11 +292,11 @@ fn dump_to_file(
                 .write_all(point.0.as_bytes())
                 .expect("failed to write to file");
         }
-        // #[cfg(feature = "policy")]
-        unsafe {
-            writer
-                .write_all(any_as_u8_slice(&point))
-                .expect("failed to write to file");
+        #[cfg(feature = "policy")]
+        {
+            let mut stuff = vec![];
+            point.serialise_into_buffer(&mut stuff);
+            writer.write_all(stuff.as_slice()).expect("failed to write to file");
         }
     }
 }

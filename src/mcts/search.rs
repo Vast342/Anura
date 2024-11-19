@@ -256,11 +256,10 @@ impl Engine {
         (pv, root_best_score, ends_in_mate)
     }
 
-    // todo 1: LRU
-    // todo 2: Tree Reuse
-    // todo 3: SMP
-    // todo 4: Better value net
-    // todo 5: Actual policy net
+    // todo 1: Tree Reuse
+    // todo 2: SMP
+    // todo 3: Better value net
+    // todo 4: Actual policy net
     pub fn search(
         &mut self,
         board: Board,
@@ -338,7 +337,7 @@ impl Engine {
 
         best_move
     }
-    //#[cfg(feature = "datagen")]
+    #[cfg(feature = "datagen")]
     pub fn datagen_search(&mut self, board: Board) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
