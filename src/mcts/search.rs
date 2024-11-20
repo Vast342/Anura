@@ -369,7 +369,6 @@ impl Engine {
         }
 
         self.tree.reset();
-
         (best_move, to_cp(best_score), visit_points)
     }
     fn print_info(

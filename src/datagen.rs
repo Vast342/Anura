@@ -131,7 +131,7 @@ fn thread_function(
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
 fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     // 8 random moves
-    use crate::types::moves::Move;
+    use crate::{mcts::search::EVAL_SCALE, types::moves::Move};
     for _ in 0..8 {
         // generate the moves
         let mut list: MoveList = MoveList::new();
@@ -151,7 +151,11 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     let starting_position = montyformat::chess::Position::from_raw(
         board_state.bb(),
         board.ctm == 0,
-        board_state.ep_index.0,
+        if board_state.ep_index.0 == 64 {
+            0
+        } else {
+            board_state.ep_index.0
+        },
         board_state.rights(),
         board_state.hm_clock,
         board.ply as u16,
@@ -216,18 +220,15 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
             let state: &Position = board.states.last().expect("bruh");
             let best_move = montyformat::chess::Move::from(mov.to_mf(state));
             // convert to montyformat move
-            let mut thing = vec![(montyformat::chess::Move::from(0), 0)];
+            let mut thing = vec![];
             for point in &mut visit_points {
                 thing.push((
                     montyformat::chess::Move::from(point.0.to_mf(state)),
                     point.1 as u32,
                 ));
             }
-            let data = SearchData::new(
-                best_move,
-                score as f32 * (-1 + i32::from(board.ctm) * 2) as f32,
-                Some(thing),
-            );
+            let sigmoided_score = 1.0 / (1.0 + (-score as f32 / EVAL_SCALE as f32).exp());
+            let data = SearchData::new(best_move, sigmoided_score, Some(thing));
             #[cfg(feature = "policy")]
             game.push(data);
         } else if cfg!(feature = "value") {
@@ -295,8 +296,9 @@ fn dump_to_file(
         #[cfg(feature = "policy")]
         {
             let mut stuff = vec![];
-            point.serialise_into_buffer(&mut stuff);
-            writer.write_all(stuff.as_slice()).expect("failed to write to file");
+            point.serialise_into_buffer(&mut stuff).unwrap();
+            writer.write_all(&stuff).expect("failed to write to file");
+            stuff.clear();
         }
     }
 }
