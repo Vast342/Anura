@@ -22,6 +22,7 @@
 )]
 
 pub mod board;
+#[cfg(feature = "datagen")]
 pub mod datagen;
 pub mod hash;
 pub mod mcts;

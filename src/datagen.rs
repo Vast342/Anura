@@ -15,24 +15,23 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-#[cfg(feature = "datagen")]
+
 #[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
 };
-#[cfg(feature = "datagen")]
+
 #[cfg(feature = "value")]
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     types::{piece::Piece, square::Square, MoveList},
 };
+#[cfg(feature = "policy")]
 use montyformat::{chess::Castling, MontyFormat, SearchData};
-#[cfg(feature = "datagen")]
 use rand::Rng;
-#[cfg(feature = "datagen")]
 #[allow(unused_imports)]
 use std::{
     fs::File,
@@ -45,20 +44,16 @@ use std::{
     thread::{self},
     time::Instant,
 };
-#[cfg(feature = "datagen")]
 pub const NODE_LIMIT: u128 = 1000;
 
 // policy net datapoint, montyformat now
-#[cfg(feature = "datagen")]
 #[cfg(feature = "policy")]
 pub type Datapoint = MontyFormat;
 
 // value net datapoint, just text rn
-#[cfg(feature = "datagen")]
 #[cfg(feature = "value")]
 struct Datapoint(pub String);
 
-#[cfg(feature = "datagen")]
 #[cfg(feature = "value")]
 impl AddAssign for Datapoint {
     fn add_assign(&mut self, rhs: Self) {
@@ -66,7 +61,6 @@ impl AddAssign for Datapoint {
     }
 }
 
-#[cfg(feature = "datagen")]
 pub fn datagen_main(args: Vec<String>) {
     let thread_count: usize = args[2].parse().expect("invalid thread count");
     println!("generating data on {thread_count} threads");
@@ -96,7 +90,6 @@ pub fn datagen_main(args: Vec<String>) {
     }
 }
 
-#[cfg(feature = "datagen")]
 fn thread_function(
     directory: String,
     thread_id: u8,
@@ -126,7 +119,6 @@ fn thread_function(
     }
 }
 
-#[cfg(feature = "datagen")]
 #[allow(unused_assignments)]
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
 fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
@@ -253,7 +245,6 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     }
 }
 
-#[cfg(feature = "datagen")]
 fn dump_to_file(
     datapoints: Vec<Datapoint>,
     writer: &mut BufWriter<File>,
