@@ -97,7 +97,7 @@ impl Move {
             _ => 0,
         };
         // if capture add 4
-        if position.piece_on_square(Square(self.from())) != Piece(0) {
+        if position.piece_on_square(Square(self.to())) != Piece(6) {
             flag += 4;
         }
         ((self.from() as u16) << 10) | ((self.to() as u16) << 4) | flag
