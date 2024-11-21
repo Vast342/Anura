@@ -18,7 +18,11 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board, mcts::time::Limiters, nets::policy::PolicyAccumulator, types::{moves::Move, MoveList}, uci::UciOptions
+    board::Board,
+    mcts::time::Limiters,
+    nets::policy::PolicyAccumulator,
+    types::{moves::Move, MoveList},
+    uci::UciOptions,
 };
 use std::time::Instant;
 
