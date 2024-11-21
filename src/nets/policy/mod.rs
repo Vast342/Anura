@@ -17,59 +17,62 @@
 */
 // policy "net":
 // apn_003.pn
-// (768->1)x384
+// (768->1)x1880
 // notes:
-// quantised!
+// back to unquantised, will need to quantise later
 
+
+
+mod outs;
 use crate::{
     board::Position,
     types::{moves::Move, piece::Piece, square::Square},
 };
 const INPUT_SIZE: usize = 768;
-const OUTPUT_SIZE: usize = 384;
-const OW_SIZE: usize = INPUT_SIZE * OUTPUT_SIZE;
-
-const QA: f32 = 512.0;
+const HL_SIZE: usize = 32;
+const OUTPUT_SIZE: usize = 1880;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
-#[repr(align(64))]
 pub struct PolicyNetwork {
-    pub output_weights: [i16; OW_SIZE],
-    pub output_biases: [i16; OUTPUT_SIZE],
+    pub l1_weights: [[f32; HL_SIZE]; INPUT_SIZE], // [input][hl]
+    pub l1_biases: [f32; HL_SIZE], // [hl]
+    pub l2_weights: [[f32; OUTPUT_SIZE]; HL_SIZE], // [hl][output]
+    pub l2_biases: [f32; OUTPUT_SIZE], // [output]
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_003.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("apn_004.pn")) };
 
-/* will need for more layers but not rn with my glorified psqts
-pub struct PolicyNetworkState{
-
-}*/
-
-pub const PIECE_STEP: usize = 64;
-pub const COLOR_STEP: usize = 64 * 6;
-
-pub fn calculate_index(move_piece: Piece, move_to: usize, piece: Piece, square: usize) -> usize {
-    let move_number = PIECE_STEP * move_piece.piece() as usize + move_to;
-    let input_number =
-        COLOR_STEP * piece.color() as usize + PIECE_STEP * piece.piece() as usize + square;
-    INPUT_SIZE * move_number + input_number
-    // highest possible would be uhhhh
-    // 768 * (64 * 5 + 63) + (384 + 64 * 5 + 63)
+pub struct PolicyAccumulator{
+    pub l1: [f32; HL_SIZE]
 }
 
-pub fn get_score(pos: &Position, mov: Move) -> f32 {
-    let piece = pos.piece_on_square(Square(mov.from()));
-    let to = mov.to();
-    // infer
-    let mut result = POLICY_NET.output_biases[(64 * piece.0 + to) as usize];
-    for piece_index in 0..64 {
-        let this_piece = pos.piece_on_square(Square(piece_index));
-        if this_piece != Piece(6) {
-            let index = calculate_index(piece, to as usize, this_piece, piece_index as usize);
-            result += POLICY_NET.output_weights[index];
+impl Default for PolicyAccumulator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl PolicyAccumulator {
+    fn new() -> Self {
+        Self{l1: POLICY_NET.l1_biases}
+    }
+    pub fn load_position(&mut self, pos: &Position) {
+        // pos -> hl
+        // could be more efficient with poplsb loop through occupied bitboard
+        for piece_index in 0..64 {
+            let this_piece = pos.piece_on_square(Square(piece_index));
+            if this_piece != Piece(6) {
+                for hl_node in 0..HL_SIZE {
+                    self.l1[hl_node] += // the corresponding input weight
+                }
+            }
         }
     }
-    result as f32 / QA
+    pub fn get_score(&mut self, mov: Move) -> f32 {
+        // hl -> output
+        
+        0.0
+    }
 }
