@@ -18,10 +18,7 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board,
-    mcts::time::Limiters,
-    types::{moves::Move, MoveList},
-    uci::UciOptions,
+    board::Board, mcts::time::Limiters, nets::policy::PolicyAccumulator, types::{moves::Move, MoveList}, uci::UciOptions
 };
 use std::time::Instant;
 
@@ -64,6 +61,7 @@ pub struct Engine {
     pub nodes: u128,
     start: Instant,
     root_ctm: u8,
+    policy: PolicyAccumulator,
 }
 
 impl Engine {
@@ -76,6 +74,7 @@ impl Engine {
             nodes: 0,
             start: Instant::now(),
             root_ctm: 1,
+            policy: PolicyAccumulator::default(),
         }
     }
     fn select(&mut self, current: usize, params: &SearchParams) -> usize {
@@ -132,10 +131,11 @@ impl Engine {
         }
 
         // get initial policy values
+        self.board.policy_load(&mut self.policy);
         let mut policy: Vec<f32> = vec![0.0; moves.len()];
         let mut policy_sum: f32 = 0.0;
         for i in 0..moves.len() {
-            policy[i] = self.board.get_policy(moves[i]).exp();
+            policy[i] = self.board.get_policy(moves[i], &mut self.policy).exp();
             policy_sum += policy[i];
         }
         // normalize

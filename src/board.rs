@@ -40,7 +40,7 @@ use crate::{
         pawns::{get_pawn_attacks_lookup, get_pawn_attacks_setwise, get_pawn_pushes_setwise},
         slideys::{get_bishop_attacks, get_rook_attacks},
     },
-    nets::{policy::get_score, value::ValueNetworkState},
+    nets::{policy::PolicyAccumulator, value::ValueNetworkState},
     rays::{ray_between, ray_intersecting},
     types::{
         bitboard::Bitboard,
@@ -1081,8 +1081,12 @@ impl Board {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.current_state(), 1)
     }
-    pub fn get_policy(&self, mov: Move) -> f32 {
-        get_score(self.current_state(), mov)
+    pub fn policy_load(&mut self, policy: &mut PolicyAccumulator) {
+        let state = self.current_state();
+        policy.load_position(state, self.ctm);
+    }
+    pub fn get_policy(&self, mov: Move, policy: &mut PolicyAccumulator) -> f32 {
+        policy.get_score(mov, self.ctm)
     }
     #[must_use]
     pub fn get_fen(&self) -> String {

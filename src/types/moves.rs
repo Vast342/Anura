@@ -83,6 +83,10 @@ impl Move {
         Flag::from_u8((self.0 >> 12) as u8)
     }
 
+    pub fn is_promotion(&self) -> bool {
+        self.flag() >= Flag::KnightPromo
+    }
+
     pub fn to_mf(&self, position: &Position) -> u16 {
         let current_flag = self.flag();
         let mut flag = match current_flag {
