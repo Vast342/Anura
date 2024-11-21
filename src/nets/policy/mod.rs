@@ -47,7 +47,6 @@ pub static POLICY_NET: PolicyNetwork =
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
     pub l1: [f32; HL_SIZE],
-    pub clear: bool,
 }
 
 impl Default for PolicyAccumulator {
@@ -63,17 +62,17 @@ impl PolicyAccumulator {
     fn new() -> Self {
         Self {
             l1: POLICY_NET.l1_biases,
-            clear: true,
         }
     }
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {
+        self.clear();
         // pos -> hl
         // could be more efficient with poplsb loop through occupied bitboard
         for piece_index in 0..64 {
             let flipper = if ctm == 0 { 56 } else { 0 };
             let this_piece = pos.piece_on_square(Square(piece_index));
             if this_piece != Piece(6) {
-                let input = this_piece.color() as usize * COLOR_STRIDE
+                let input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
                     + this_piece.piece() as usize * PIECE_STRIDE
                     + piece_index as usize ^ flipper;
                 for hl_node in 0..HL_SIZE {
@@ -81,20 +80,16 @@ impl PolicyAccumulator {
                 }
             }
         }
-        self.clear = false;
     }
     pub fn clear(&mut self) {
-        if !self.clear {
-            self.l1 = POLICY_NET.l1_biases;
-            self.clear = true;
-        }
+        self.l1 = POLICY_NET.l1_biases;
     }
     pub fn get_score(&self, mov: Move, ctm: u8) -> f32 {
         let move_index = move_index(ctm, mov);
         let mut output = POLICY_NET.l2_biases[move_index];
         // hl -> output
         for hl_node in 0..HL_SIZE {
-            output += POLICY_NET.l2_weights[hl_node][move_index];
+            output += POLICY_NET.l2_weights[hl_node][move_index] * activation(self.l1[hl_node]);
         }
         output
     }
