@@ -35,9 +35,9 @@ const OUTPUT_SIZE: usize = 1880;
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct PolicyNetwork {
-    pub l1_weights: [[f32; HL_SIZE]; INPUT_SIZE], // [input][hl]
+    pub l1_weights: [[f32; INPUT_SIZE]; HL_SIZE], // [input][hl]
     pub l1_biases: [f32; HL_SIZE],                // [hl]
-    pub l2_weights: [[f32; OUTPUT_SIZE]; HL_SIZE], // [hl][output]
+    pub l2_weights: [[f32; HL_SIZE]; OUTPUT_SIZE], // [hl][output]
     pub l2_biases: [f32; OUTPUT_SIZE],            // [output]
 }
 
@@ -75,9 +75,10 @@ impl PolicyAccumulator {
             if this_piece != Piece(6) {
                 let input = this_piece.color() as usize * COLOR_STRIDE
                     + this_piece.piece() as usize * PIECE_STRIDE
-                    + piece_index as usize ^ flipper;
+                    + piece_index as usize
+                    ^ flipper;
                 for hl_node in 0..HL_SIZE {
-                    self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
+                    self.l1[hl_node] += POLICY_NET.l1_weights[hl_node][input];
                 }
             }
         }
@@ -94,7 +95,7 @@ impl PolicyAccumulator {
         let mut output = POLICY_NET.l2_biases[move_index];
         // hl -> output
         for hl_node in 0..HL_SIZE {
-            output += POLICY_NET.l2_weights[hl_node][move_index];
+            output += POLICY_NET.l2_weights[move_index][hl_node];
         }
         output
     }

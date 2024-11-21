@@ -20,7 +20,12 @@ use std::io;
 use std::time::Instant;
 
 use crate::{
-    board::Board, mcts::{search::Engine, time::Limiters}, movegen::lookups::BENCH_FENS, nets::policy::PolicyAccumulator, perft::{perft, run_perft_suite}, types::{moves::Move, MoveList}
+    board::Board,
+    mcts::{search::Engine, time::Limiters},
+    movegen::lookups::BENCH_FENS,
+    nets::policy::PolicyAccumulator,
+    perft::{perft, run_perft_suite},
+    types::{moves::Move, MoveList},
 };
 
 pub enum CommandTypes {
@@ -193,7 +198,7 @@ impl Manager {
         };
 
         // get policy values
-        let mut policy_acc= PolicyAccumulator::default();
+        let mut policy_acc = PolicyAccumulator::default();
         self.board.policy_load(&mut policy_acc);
         let mut policy: Vec<f32> = vec![0.0; moves.len()];
         let mut policy_sum: f32 = 0.0;
@@ -219,7 +224,7 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::new();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, 5, 0);
+        limiters.load_values(0, 0, 0, 10, 0);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine
