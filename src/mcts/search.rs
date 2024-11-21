@@ -107,7 +107,7 @@ impl Engine {
         best_child
     }
 
-    fn expand(&mut self, node_idx: usize) -> Option<()> {
+    fn expand(&mut self, node_idx: usize, root: bool) -> Option<()> {
         let next = self.tree.next() as u32;
         let half_size = self.tree.half_size;
         let node = &mut self.tree[node_idx];
@@ -139,7 +139,7 @@ impl Engine {
         let mut policy: Vec<f32> = vec![0.0; moves.len()];
         let mut policy_sum: f32 = 0.0;
         for i in 0..moves.len() {
-            policy[i] = self.board.get_policy(moves[i], &mut self.policy).exp();
+            policy[i] = (self.board.get_policy(moves[i], &mut self.policy) / (1.0 + 2.5 * root as i32 as f32)).exp();
             policy_sum += policy[i];
         }
         // normalize
@@ -176,7 +176,7 @@ impl Engine {
                 self.simulate(current_node)
             } else {
                 if current_node_ref.child_count == 0 {
-                    self.expand(current_node)?;
+                    self.expand(current_node, root)?;
                     if self.tree[current_node].result.is_terminal() {
                         return Some(self.simulate(current_node));
                     }
