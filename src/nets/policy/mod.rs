@@ -21,9 +21,9 @@
 // notes:
 // back to unquantised, will need to quantise later
 
-
-
 mod outs;
+use outs::move_index;
+
 use crate::{
     board::Position,
     types::{moves::Move, piece::Piece, square::Square},
@@ -36,16 +36,18 @@ const OUTPUT_SIZE: usize = 1880;
 #[repr(C)]
 pub struct PolicyNetwork {
     pub l1_weights: [[f32; HL_SIZE]; INPUT_SIZE], // [input][hl]
-    pub l1_biases: [f32; HL_SIZE], // [hl]
+    pub l1_biases: [f32; HL_SIZE],                // [hl]
     pub l2_weights: [[f32; OUTPUT_SIZE]; HL_SIZE], // [hl][output]
-    pub l2_biases: [f32; OUTPUT_SIZE], // [output]
+    pub l2_biases: [f32; OUTPUT_SIZE],            // [output]
 }
 
 pub static POLICY_NET: PolicyNetwork =
     unsafe { std::mem::transmute(*include_bytes!("apn_004.pn")) };
 
-pub struct PolicyAccumulator{
-    pub l1: [f32; HL_SIZE]
+#[derive(Debug, Clone)]
+pub struct PolicyAccumulator {
+    pub l1: [f32; HL_SIZE],
+    pub clear: bool,
 }
 
 impl Default for PolicyAccumulator {
@@ -54,25 +56,51 @@ impl Default for PolicyAccumulator {
     }
 }
 
+const COLOR_STRIDE: usize = 64 * 6;
+const PIECE_STRIDE: usize = 64;
+
 impl PolicyAccumulator {
     fn new() -> Self {
-        Self{l1: POLICY_NET.l1_biases}
+        Self {
+            l1: POLICY_NET.l1_biases,
+            clear: true,
+        }
     }
-    pub fn load_position(&mut self, pos: &Position) {
+    pub fn load_position(&mut self, pos: &Position, ctm: u8) {
         // pos -> hl
         // could be more efficient with poplsb loop through occupied bitboard
         for piece_index in 0..64 {
+            let flipper = if ctm == 0 { 56 } else { 0 };
             let this_piece = pos.piece_on_square(Square(piece_index));
             if this_piece != Piece(6) {
+                let input = this_piece.color() as usize * COLOR_STRIDE
+                    + this_piece.piece() as usize * PIECE_STRIDE
+                    + piece_index as usize ^ flipper;
                 for hl_node in 0..HL_SIZE {
-                    self.l1[hl_node] += // the corresponding input weight
+                    self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
                 }
             }
         }
+        self.clear = false;
     }
-    pub fn get_score(&mut self, mov: Move) -> f32 {
+    pub fn clear(&mut self) {
+        if !self.clear {
+            self.l1 = POLICY_NET.l1_biases;
+            self.clear = true;
+        }
+    }
+    pub fn get_score(&self, mov: Move, ctm: u8) -> f32 {
+        let move_index = move_index(ctm, mov);
+        let mut output = POLICY_NET.l2_biases[move_index];
         // hl -> output
-        
-        0.0
+        for hl_node in 0..HL_SIZE {
+            output += POLICY_NET.l2_weights[hl_node][move_index];
+        }
+        output
     }
+}
+
+// CReLU
+pub fn activation(x: f32) -> f32 {
+    x.clamp(0.0, 1.0)
 }
