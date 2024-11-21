@@ -17,9 +17,12 @@
 */
 use std::fmt;
 
-use crate::board::{Board, SQUARE_NAMES};
+use crate::board::{Board, Position, SQUARE_NAMES};
 
-use super::{piece::Types, square::Square};
+use super::{
+    piece::{Piece, Types},
+    square::Square,
+};
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq)]
 pub struct Move(pub u16);
@@ -78,6 +81,26 @@ impl Move {
     #[must_use]
     pub fn flag(&self) -> Flag {
         Flag::from_u8((self.0 >> 12) as u8)
+    }
+
+    pub fn to_mf(&self, position: &Position) -> u16 {
+        let current_flag = self.flag();
+        let mut flag = match current_flag {
+            Flag::DoublePush => 1,
+            Flag::WKCastle | Flag::BKCastle => 2,
+            Flag::WQCastle | Flag::BQCastle => 3,
+            Flag::EnPassant => 5,
+            Flag::KnightPromo => 8,
+            Flag::BishopPromo => 9,
+            Flag::RookPromo => 10,
+            Flag::QueenPromo => 11,
+            _ => 0,
+        };
+        // if capture add 4
+        if position.piece_on_square(Square(self.to())) != Piece(6) {
+            flag += 4;
+        }
+        ((self.from() as u16) << 10) | ((self.to() as u16) << 4) | flag
     }
     // next: convert text format to move (look to board's ep index decoding)
     #[must_use]

@@ -256,11 +256,10 @@ impl Engine {
         (pv, root_best_score, ends_in_mate)
     }
 
-    // todo 1: LRU
-    // todo 2: Tree Reuse
-    // todo 3: SMP
-    // todo 4: Better value net
-    // todo 5: Actual policy net
+    // todo 1: Tree Reuse
+    // todo 2: SMP
+    // todo 3: Better value net
+    // todo 4: Actual policy net
     pub fn search(
         &mut self,
         board: Board,
@@ -369,9 +368,7 @@ impl Engine {
             visit_points.push((child_node.mov, child_node.visits as u16));
         }
 
-        self.tree.clear();
-        self.tree.shrink_to_fit();
-
+        self.tree.reset();
         (best_move, to_cp(best_score), visit_points)
     }
     fn print_info(

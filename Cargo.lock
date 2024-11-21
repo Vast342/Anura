@@ -7,6 +7,7 @@ name = "anura"
 version = "0.2.0"
 dependencies = [
  "arrayvec",
+ "montyformat",
  "rand",
 ]
 
@@ -44,6 +45,11 @@ name = "libc"
 version = "0.2.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
+
+[[package]]
+name = "montyformat"
+version = "0.5.0"
+source = "git+https://github.com/official-monty/montyformat.git?tag=v0.5.0#2f88b7b24b16a77c4bc5796b75ff1b152ab1ce5f"
 
 [[package]]
 name = "ppv-lite86"
