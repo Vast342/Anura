@@ -139,7 +139,9 @@ impl Engine {
         let mut policy: Vec<f32> = vec![0.0; moves.len()];
         let mut policy_sum: f32 = 0.0;
         for i in 0..moves.len() {
-            policy[i] = (self.board.get_policy(moves[i], &mut self.policy) / (1.0 + 2.5 * root as i32 as f32)).exp();
+            policy[i] = (self.board.get_policy(moves[i], &mut self.policy)
+                / (1.0 + 2.5 * root as i32 as f32))
+                .exp();
             policy_sum += policy[i];
         }
         // normalize

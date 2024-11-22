@@ -16,9 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_003.pn
-// (768->1)x1880
+// apn_005.pn
+// 768->64->1x1880
 // notes:
+// l1 SCReLU (current net is an early checkpoint in training, hoping for better later)
 // back to unquantised, will need to quantise later
 
 mod outs;
@@ -29,7 +30,7 @@ use crate::{
     types::{moves::Move, piece::Piece, square::Square},
 };
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 32;
+const HL_SIZE: usize = 64;
 const OUTPUT_SIZE: usize = 1880;
 
 #[derive(Clone, Copy, Debug)]
@@ -42,7 +43,7 @@ pub struct PolicyNetwork {
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_004.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("apn_005.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
@@ -66,6 +67,8 @@ impl PolicyAccumulator {
     }
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {
         self.clear();
+        let king = pos.king_sqs[ctm as usize];
+        let hm = if king.0 % 8 > 3 { 7 } else { 0 };
         // pos -> hl
         // could be more efficient with poplsb loop through occupied bitboard
         for piece_index in 0..64 {
@@ -74,8 +77,9 @@ impl PolicyAccumulator {
             if this_piece != Piece(6) {
                 let input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
                     + this_piece.piece() as usize * PIECE_STRIDE
-                    + piece_index as usize
-                    ^ flipper;
+            + (piece_index as usize
+                    ^ flipper
+                    ^ hm);
                 for hl_node in 0..HL_SIZE {
                     self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
                 }
@@ -85,8 +89,8 @@ impl PolicyAccumulator {
     pub fn clear(&mut self) {
         self.l1 = POLICY_NET.l1_biases;
     }
-    pub fn get_score(&self, mov: Move, ctm: u8) -> f32 {
-        let move_index = move_index(ctm, mov);
+    pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
+        let move_index = move_index(ctm, mov, king);
         let mut output = POLICY_NET.l2_biases[move_index];
         // hl -> output
         for hl_node in 0..HL_SIZE {
@@ -96,7 +100,7 @@ impl PolicyAccumulator {
     }
 }
 
-// CReLU
+// SCReLU
 pub fn activation(x: f32) -> f32 {
-    x.clamp(0.0, 1.0)
+    x.clamp(0.0, 1.0).powf(2.0)
 }

@@ -200,22 +200,22 @@ impl Manager {
         // get policy values
         let mut policy_acc = PolicyAccumulator::default();
         self.board.policy_load(&mut policy_acc);
-        let mut policy: Vec<f32> = vec![0.0; moves.len()];
+        let mut tuples = vec![];
         let mut policy_sum: f32 = 0.0;
         for i in 0..moves.len() {
-            policy[i] = self.board.get_policy(moves[i], &mut policy_acc);
-            policy_sum += policy[i].exp();
+            tuples.push((moves[i], self.board.get_policy(moves[i], &mut policy_acc).exp()));
+            policy_sum += tuples[i].1;
         }
         // normalize
         // could prob do some like .iter().enumerate() shenanigans here but ehhhhhh
         for i in 0..moves.len() {
-            policy[i] = policy[i].exp() / policy_sum;
+            tuples[i].1 = tuples[i].1 / policy_sum;
         }
         // sort
-        policy.sort_by(|a, b| b.partial_cmp(a).expect("bruh what"));
+        tuples.sort_by(|a, b| b.1.partial_cmp(&a.1).expect("bruh what"));
         // print
         for i in 0..output_count {
-            println!("{}: {}", moves[i], policy[i]);
+            println!("{}: {}", tuples[i].0, tuples[i].1);
         }
     }
 
