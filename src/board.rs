@@ -1086,7 +1086,11 @@ impl Board {
         policy.load_position(state, self.ctm);
     }
     pub fn get_policy(&self, mov: Move, policy: &mut PolicyAccumulator) -> f32 {
-        policy.get_score(mov, self.ctm)
+        policy.get_score(
+            mov,
+            self.ctm,
+            self.current_state().king_sqs[self.ctm as usize],
+        )
     }
     #[must_use]
     pub fn get_fen(&self) -> String {
