@@ -258,7 +258,10 @@ fn dump_to_file(
     if result == 1 {
         draw_count.fetch_add(1, Ordering::Relaxed);
     }
+    #[cfg(feature = "value")]
     position_count.fetch_add(datapoints.len() as u64, Ordering::Relaxed);
+    #[cfg(feature = "policy")]
+    position_count.fetch_add(datapoints[0].moves.len() as u64, Ordering::Relaxed);
     // check stuff in game_count and print stuff if necessary
     let games = game_count.load(Ordering::Relaxed);
     if games % 128 == 0 {
