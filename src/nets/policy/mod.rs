@@ -74,7 +74,8 @@ impl PolicyAccumulator {
             if this_piece != Piece(6) {
                 let input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
                     + this_piece.piece() as usize * PIECE_STRIDE
-                    + piece_index as usize ^ flipper;
+                    + piece_index as usize
+                    ^ flipper;
                 for hl_node in 0..HL_SIZE {
                     self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
                 }
