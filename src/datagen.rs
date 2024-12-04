@@ -16,6 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+// make datagen TYPE=value or policy
+// ./anura datagen 12 ../AnuraData/Text/ 124598902
+// fix yo dang draw detection, `5R2/5Qp1/P6k/7p/8/2P4P/5PP1/6K1 w - - | 1033 | 0.5` is bad
+
 #[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},
@@ -140,6 +144,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
     }
 
     let board_state = board.current_state();
+    #[cfg(feature = "policy")]
     let starting_position = montyformat::chess::Position::from_raw(
         board_state.bb(),
         board.ctm == 0,
@@ -152,9 +157,9 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         board_state.hm_clock,
         board.ply as u16,
     );
-
+    #[cfg(feature = "policy")]
     let castling = Castling::default();
-
+    #[cfg(feature = "policy")]
     let mut game = MontyFormat::new(starting_position, castling);
 
     let mut engine: Engine = Engine::new();
@@ -210,16 +215,20 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
         board.undo_move();
         if cfg!(feature = "policy") {
             let state: &Position = board.states.last().expect("bruh");
+            #[cfg(feature = "policy")]
             let best_move = montyformat::chess::Move::from(mov.to_mf(state));
             // convert to montyformat move
+            #[cfg(feature = "policy")]
             let mut thing = vec![];
             for point in &mut visit_points {
+                #[cfg(feature = "policy")]
                 thing.push((
                     montyformat::chess::Move::from(point.0.to_mf(state)),
                     point.1 as u32,
                 ));
             }
             let sigmoided_score = 1.0 / (1.0 + (-score as f32 / EVAL_SCALE as f32).exp());
+            #[cfg(feature = "policy")]
             let data = SearchData::new(best_move, sigmoided_score, Some(thing));
             #[cfg(feature = "policy")]
             game.push(data);
