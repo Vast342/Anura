@@ -16,6 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+// make datagen TYPE=value or policy
+// ./anura datagen 12 ../AnuraData/Text/ 124598902
+// fix yo dang draw detection, `5R2/5Qp1/P6k/7p/8/2P4P/5PP1/6K1 w - - | 1033 | 0.5` is bad
+
 #[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},

@@ -279,6 +279,7 @@ impl Engine {
         let mut prev_avg_depth = 1;
         let mut avg_depth = 0;
         self.start = Instant::now();
+        let mut last_print = Instant::now();
 
         self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
 
@@ -302,7 +303,7 @@ impl Engine {
 
             // info
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
-            if avg_depth > prev_avg_depth {
+            if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 1.0 {
                 let duration = self.start.elapsed().as_millis();
                 if info {
                     self.print_info(
@@ -315,6 +316,7 @@ impl Engine {
                     );
                 }
                 prev_avg_depth = avg_depth;
+                last_print = Instant::now();
             }
 
             if result == None {
