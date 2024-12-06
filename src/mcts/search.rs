@@ -156,7 +156,7 @@ impl Engine {
                 / (1.0 + 2.5 * root as i32 as f32))
                 .exp();
             policy_sum += policy[i];
-            sum_of_squares += policy[i] * policy[i]
+            sum_of_squares += policy[i] * policy[i];
         }
         // normalize
         for item in policy.iter_mut().take(moves.len()) {
