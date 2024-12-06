@@ -49,6 +49,7 @@ pub struct Node {
     pub total_score: f32,
     pub result: GameResult,
     pub policy: f32,
+    pub gini_impurity: f32,
 }
 impl Node {
     pub fn new(mov: Move, policy: f32) -> Self {
@@ -60,6 +61,7 @@ impl Node {
             total_score: 0.0,
             result: GameResult::Ongoing,
             policy,
+            gini_impurity: 0.0,
         }
     }
     pub fn average_score(&self) -> f32 {
@@ -74,4 +76,5 @@ impl Node {
         self.first_child = 0;
         self.child_count = 0;
     }
+    p
 }
