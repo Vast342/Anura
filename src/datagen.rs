@@ -280,6 +280,8 @@ fn dump_to_file(
             println!("draws: {}", draw_count.load(Ordering::Relaxed));
             println!("positions: {}", positions);
             println!("pos/sec: {}", positions / start.elapsed().as_secs());
+            println!("games/sec: {}", games / start.elapsed().as_secs());
+            println!("pos/game: {}", positions / games);
         }
         println!("finished with {games} games");
     }

@@ -16,18 +16,19 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_005.pn
-// 768->64->1x1880
+// apn_007.pn
+// 768->128->1x1880
 // notes:
 // l1 SCReLU (current net is an early checkpoint in training, hoping for better later)
 // back to unquantised, will need to quantise later
+// Exactly the same as apn_006 but i actually trained it on the right dataset and not the old one
 
 mod outs;
 use outs::move_index;
 
 use crate::{
     board::Position,
-    types::{moves::Move, piece::Piece, square::Square},
+    types::{moves::Move, square::Square},
 };
 const INPUT_SIZE: usize = 768;
 const HL_SIZE: usize = 128;
@@ -43,7 +44,7 @@ pub struct PolicyNetwork {
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_006.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("apn_007.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
@@ -70,19 +71,16 @@ impl PolicyAccumulator {
         let king = pos.king_sqs[ctm as usize];
         let hm = if king.0 % 8 > 3 { 7 } else { 0 };
         // pos -> hl
-        // could be more efficient with poplsb loop through occupied bitboard
-        for piece_index in 0..64 {
+        let mut occ = pos.occupied();
+        while !occ.is_empty() {
+            let piece_index = occ.pop_lsb();
             let flipper = if ctm == 0 { 56 } else { 0 };
             let this_piece = pos.piece_on_square(Square(piece_index));
-            if this_piece != Piece(6) {
-                let input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
-                    + this_piece.piece() as usize * PIECE_STRIDE
-            + (piece_index as usize
-                    ^ flipper
-                    ^ hm);
-                for hl_node in 0..HL_SIZE {
-                    self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
-                }
+            let input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
+                + this_piece.piece() as usize * PIECE_STRIDE
+                + (piece_index as usize ^ flipper ^ hm);
+            for hl_node in 0..HL_SIZE {
+                self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
             }
         }
     }

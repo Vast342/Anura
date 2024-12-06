@@ -203,7 +203,10 @@ impl Manager {
         let mut tuples = vec![];
         let mut policy_sum: f32 = 0.0;
         for i in 0..moves.len() {
-            tuples.push((moves[i], self.board.get_policy(moves[i], &mut policy_acc).exp()));
+            tuples.push((
+                moves[i],
+                self.board.get_policy(moves[i], &mut policy_acc).exp(),
+            ));
             policy_sum += tuples[i].1;
         }
         // normalize
