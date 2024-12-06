@@ -30,7 +30,7 @@ use crate::{
     types::{moves::Move, piece::Piece, square::Square},
 };
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 64;
+const HL_SIZE: usize = 128;
 const OUTPUT_SIZE: usize = 1880;
 
 #[derive(Clone, Copy, Debug)]
@@ -43,7 +43,7 @@ pub struct PolicyNetwork {
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_005.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("apn_006.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
