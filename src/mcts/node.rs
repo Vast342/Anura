@@ -76,5 +76,4 @@ impl Node {
         self.first_child = 0;
         self.child_count = 0;
     }
-    p
 }
