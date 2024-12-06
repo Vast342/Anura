@@ -1,4 +1,4 @@
-/*
+f/*
     Anura
     Copyright (C) 2024 Joseph Pasfield
 
@@ -84,7 +84,19 @@ impl Engine {
     fn select(&mut self, current: usize, params: &SearchParams) -> usize {
         let node = self.tree[current];
 
-        let e = params.cpuct * (node.visits as f32).sqrt();
+        
+        #[cfg(feature = "datagen")]
+        let e_scale = (node.visits as f32).sqrt();
+
+        #[cfg(not(feature = "datagen"))]
+        let e_scale = {
+            let mut scale = (node.visits as f32).sqrt();
+            // values from monty master, going to be tuned eventually:tm:
+            scale *= (0.463 - 1.567 * (node.gini_impurity + 0.001).ln()).min(2.26);
+            scale
+        };
+        
+        let e = params.cpuct * e_scale;
 
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
@@ -138,11 +150,13 @@ impl Engine {
         self.board.policy_load(&mut self.policy);
         let mut policy: Vec<f32> = vec![0.0; moves.len()];
         let mut policy_sum: f32 = 0.0;
+        let mut sum_of_squares: f32 = 0.0;
         for i in 0..moves.len() {
             policy[i] = (self.board.get_policy(moves[i], &mut self.policy)
                 / (1.0 + 2.5 * root as i32 as f32))
                 .exp();
             policy_sum += policy[i];
+            sum_of_squares += policy[i] * policy[i]
         }
         // normalize
         for item in policy.iter_mut().take(moves.len()) {
@@ -151,10 +165,11 @@ impl Engine {
 
         node.first_child = next;
         node.child_count = moves.len() as u8;
+        node.gini_impurity = (1.0 - sum_of_squares).clamp(0.0, 1.0);
 
         for i in 0..moves.len() {
-            let node = Node::new(moves[i], policy[i]);
-            self.tree.push(node)?;
+            let node2 = Node::new(moves[i], policy[i]);
+            self.tree.push(node2)?;
         }
 
         Some(())
