@@ -152,11 +152,12 @@ impl Engine {
         let mut policy_sum: f32 = 0.0;
         let mut sum_of_squares: f32 = 0.0;
         for i in 0..moves.len() {
-            policy[i] = (self.board.get_policy(moves[i], &mut self.policy)
+            let unscaled = self.board.get_policy(moves[i], &mut self.policy);
+            policy[i] = (unscaled
                 / (1.0 + 2.5 * root as i32 as f32))
                 .exp();
             policy_sum += policy[i];
-            sum_of_squares += policy[i] * policy[i];
+            sum_of_squares += unscaled * unscaled;
         }
         // normalize
         for item in policy.iter_mut().take(moves.len()) {
