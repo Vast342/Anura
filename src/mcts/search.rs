@@ -316,7 +316,7 @@ impl Engine {
                 seldepth = self.depth;
             }
 
-            // info
+            // info 
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
             if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 1.0 {
                 let duration = self.start.elapsed().as_millis();
