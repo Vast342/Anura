@@ -9,8 +9,6 @@ use crate::{
 pub fn move_index(ctm: u8, mov: Move, king: Square) -> usize {
     let hm = if king.0 % 8 > 3 { 7 } else { 0 };
 
-    
-
     if mov.is_promotion() {
         let ffile = (mov.from() ^ hm) % 8;
         let tfile = (mov.to() ^ hm) % 8;
