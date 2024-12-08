@@ -245,7 +245,7 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::new();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, 5, 0);
+        limiters.load_values(0, 0, 0, 5, 0, 20);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine.search(
@@ -267,7 +267,7 @@ impl Manager {
 
     pub fn go(&mut self, command_text: &str) {
         let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
-        self.limiter.load_values(0, 0, 0, 0, 0);
+        self.limiter.load_values(0, 0, 0, 0, 0, 20);
         let mut i: usize = 1;
         let mut time: u128 = 0;
         let mut inc: u128 = 0;
@@ -278,6 +278,7 @@ impl Manager {
         let mut binc: u128 = 0;
         let mut winc: u128 = 0;
         let mut movetime: u128 = 0;
+        let mut mtg = 0;
         while i < command_sections.len() {
             match command_sections[i] {
                 "depth" => {
@@ -335,6 +336,17 @@ impl Manager {
                         .expect("not a parsable move time");
                 }
                 "infinite" => (),
+                "movestogo" => {
+                    i += 1;
+                    if i >= command_sections.len() {
+                        eprintln!("missing movestogo");
+                        return;
+                    }
+
+                    mtg = command_sections[i]
+                        .parse::<u128>()
+                        .expect("not a parsable movestogo");
+                }
                 _ => println!("invalid go limiter: {}", command_sections[i]),
             }
 
@@ -347,7 +359,8 @@ impl Manager {
             time = wtime;
             inc = winc;
         }
-        self.limiter.load_values(time, inc, nodes, depth, movetime);
+        self.limiter
+            .load_values(time, inc, nodes, depth, movetime, mtg);
         let best_move = self.engine.search(
             self.board.clone(),
             self.limiter,

@@ -28,13 +28,22 @@ pub struct Limiters {
     depth_limit: u32,
     use_move_time: bool,
     move_time: u128,
+    moves_to_go: u128,
 }
 
 impl Limiters {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn load_values(&mut self, tim: u128, inc: u128, nodes: u128, depth: u32, movetime: u128) {
+    pub fn load_values(
+        &mut self,
+        tim: u128,
+        inc: u128,
+        nodes: u128,
+        depth: u32,
+        movetime: u128,
+        mtg: u128,
+    ) {
         self.use_time = tim != 0;
         self.use_nodes = nodes != 0;
         self.use_depth = depth != 0;
@@ -44,10 +53,13 @@ impl Limiters {
         self.node_lim = nodes;
         self.depth_limit = depth;
         self.move_time = movetime;
+        self.moves_to_go = mtg;
     }
     const fn time_allocated(&self, tunables: &Tunables) -> u128 {
-        self.time / tunables.time_divisor() as u128
-            + self.increment / tunables.inc_divisor() as u128
+        tunables.tm_mult() as u128
+            * (self.time / self.moves_to_go
+                + self.increment * tunables.tm_numerator() as u128
+                    / tunables.tm_denominator() as u128)
     }
     pub fn check(&self, tim: u128, nodes: u128, depth: u32, tunables: &Tunables) -> bool {
         if self.use_time && tim >= self.time_allocated(tunables) {
