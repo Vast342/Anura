@@ -21,6 +21,7 @@ use crate::{
     board::Board,
     mcts::time::Limiters,
     nets::policy::PolicyAccumulator,
+    tunable::Tunables,
     types::{moves::Move, MoveList},
     uci::UciOptions,
 };
@@ -33,20 +34,6 @@ use super::{
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
-
-pub struct SearchParams {
-    pub cpuct: f32,
-    pub fpu: f32,
-}
-
-impl Default for SearchParams {
-    fn default() -> Self {
-        Self {
-            cpuct: std::f32::consts::SQRT_2,
-            fpu: 0.5,
-        }
-    }
-}
 
 pub fn to_cp(score: f32) -> i32 {
     if score == 1.0 {
@@ -81,10 +68,9 @@ impl Engine {
             policy: PolicyAccumulator::default(),
         }
     }
-    fn select(&mut self, current: usize, params: &SearchParams) -> usize {
+    fn select(&mut self, current: usize, tunables: &Tunables) -> usize {
         let node = self.tree[current];
 
-        
         #[cfg(feature = "datagen")]
         let e_scale = (node.visits as f32).sqrt();
 
@@ -95,15 +81,15 @@ impl Engine {
             scale *= (0.463 - 1.567 * (node.gini_impurity + 0.001).ln()).min(2.26);
             scale
         };
-        
-        let e = params.cpuct * e_scale;
+
+        let e = tunables.default_cpuct() * e_scale;
 
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
         for child_idx in node.children_range() {
             let child = self.tree[child_idx];
             let average_score = if child.visits == 0 {
-                params.fpu
+                0.5
             } else {
                 child.average_score()
             };
@@ -153,9 +139,7 @@ impl Engine {
         let mut sum_of_squares: f32 = 0.0;
         for i in 0..moves.len() {
             let unscaled = self.board.get_policy(moves[i], &mut self.policy);
-            policy[i] = (unscaled
-                / (1.0 + 2.5 * root as i32 as f32))
-                .exp();
+            policy[i] = (unscaled / (1.0 + 2.5 * root as i32 as f32)).exp();
             policy_sum += policy[i];
         }
         // normalize
@@ -186,7 +170,7 @@ impl Engine {
             })
     }
 
-    fn mcts(&mut self, current_node: usize, root: bool, params: &SearchParams) -> Option<f32> {
+    fn mcts(&mut self, current_node: usize, root: bool, tunables: &Tunables) -> Option<f32> {
         let current_node_ref = &self.tree[current_node];
 
         let mut score =
@@ -202,12 +186,12 @@ impl Engine {
 
                 self.tree.copy_children(current_node)?;
 
-                let next_index = self.select(current_node, params);
+                let next_index = self.select(current_node, tunables);
 
                 self.board.make_move(self.tree[next_index].mov);
                 self.depth += 1;
 
-                self.mcts(next_index, false, params)?
+                self.mcts(next_index, false, tunables)?
             };
 
         score = 1.0 - score;
@@ -288,6 +272,7 @@ impl Engine {
         limiters: Limiters,
         info: bool,
         options: &UciOptions,
+        tunables: &Tunables,
     ) -> Move {
         self.nodes = 0;
         let mut seldepth = 0;
@@ -302,13 +287,12 @@ impl Engine {
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
-        let params = SearchParams::default();
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
-            let result = self.mcts(self.tree.root_node(), true, &params);
+            let result = self.mcts(self.tree.root_node(), true, &tunables);
 
             self.nodes += 1;
             total_depth += self.depth as usize;
@@ -317,7 +301,7 @@ impl Engine {
                 seldepth = self.depth;
             }
 
-            // info 
+            // info
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
             if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 1.0 {
                 let duration = self.start.elapsed().as_millis();

@@ -25,6 +25,7 @@ use crate::{
     movegen::lookups::BENCH_FENS,
     nets::policy::PolicyAccumulator,
     perft::{perft, run_perft_suite},
+    tunable::Tunables,
     types::{moves::Move, MoveList},
 };
 
@@ -44,6 +45,7 @@ pub enum CommandTypes {
     Bench,
     GetFen,
     Policy,
+    Tunables,
     Empty,
     Invalid,
     Quit,
@@ -70,6 +72,7 @@ pub struct Manager {
     engine: Engine,
     options: UciOptions,
     limiter: Limiters,
+    tunables: Tunables,
     // TT
 }
 
@@ -87,6 +90,7 @@ impl Manager {
             engine: Engine::new(),
             options: UciOptions::new(),
             limiter: Limiters::new(),
+            tunables: Tunables::default(),
         }
     }
     // read line from stdin and then interpret it
@@ -122,6 +126,7 @@ impl Manager {
             "perftsuite" => CommandTypes::PerftSuite,
             "makemove" => CommandTypes::MakeMove,
             "setoption" => CommandTypes::SetOption,
+            "tunables" => CommandTypes::Tunables,
             "bench" => CommandTypes::Bench,
             "policy" => CommandTypes::Policy,
             _ => CommandTypes::Invalid,
@@ -152,6 +157,7 @@ impl Manager {
             CommandTypes::Bench => self.bench(),
             CommandTypes::GetFen => self.get_fen(),
             CommandTypes::Policy => self.output_policy(command_text),
+            CommandTypes::Tunables => self.tunables.list(),
             CommandTypes::Quit => return false,
             _ => panic!("invalid command type"),
         }
@@ -177,6 +183,18 @@ impl Manager {
                     .parse::<bool>()
                     .expect("not a parsable hash size");
             }
+            #[cfg(feature = "tunable")]
+            _ => {
+                self.tunables
+                    .set(
+                        command_sections[2],
+                        command_sections[4]
+                            .parse::<i32>()
+                            .expect("not a parsable i32"),
+                    )
+                    .expect("teehee");
+            }
+            #[cfg(not(feature = "tunable"))]
             _ => panic!("Invalid option: {}", command_sections[2]),
         }
     }
@@ -230,8 +248,13 @@ impl Manager {
         limiters.load_values(0, 0, 0, 5, 0);
         for string in BENCH_FENS {
             board.load_fen(string);
-            self.engine
-                .search(board.clone(), limiters, false, &self.options);
+            self.engine.search(
+                board.clone(),
+                limiters,
+                false,
+                &self.options,
+                &self.tunables,
+            );
             total += self.engine.nodes;
         }
         let duration = start.elapsed();
@@ -325,9 +348,13 @@ impl Manager {
             inc = winc;
         }
         self.limiter.load_values(time, inc, nodes, depth, movetime);
-        let best_move = self
-            .engine
-            .search(self.board.clone(), self.limiter, true, &self.options);
+        let best_move = self.engine.search(
+            self.board.clone(),
+            self.limiter,
+            true,
+            &self.options,
+            &self.tunables,
+        );
         println!("bestmove {best_move}");
     }
 
@@ -433,6 +460,7 @@ impl Manager {
         println!("option name Hash type spin default 32 min 1 max 1048576");
         println!("option name Threads type spin default 1 min 1 max 1048576");
         println!("option name MoreInfo type check default false");
+        self.tunables.print_options();
         println!("uciok");
     }
 }
