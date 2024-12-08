@@ -9,7 +9,9 @@ use crate::{
 pub fn move_index(ctm: u8, mov: Move, king: Square) -> usize {
     let hm = if king.0 % 8 > 3 { 7 } else { 0 };
 
-    let idx = if mov.is_promotion() {
+    
+
+    if mov.is_promotion() {
         let ffile = (mov.from() ^ hm) % 8;
         let tfile = (mov.to() ^ hm) % 8;
         let promo_id = 2 * ffile + tfile;
@@ -22,9 +24,7 @@ pub fn move_index(ctm: u8, mov: Move, king: Square) -> usize {
         let below = ALL_DESTINATIONS[from] & ((1 << to) - 1);
 
         OFFSETS[from] + below.count_ones() as usize
-    };
-
-    idx
+    }
 }
 
 const OFFSETS: [usize; 65] = {

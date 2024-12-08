@@ -1,4 +1,4 @@
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 struct Tunable {
     val: f32,
     min: f32,
@@ -25,10 +25,10 @@ impl Tunable {
         println!(
             "{}, {}, {}, {}, {}, {}",
             name,
-            self.val * 1000.0,
-            self.min * 1000.0,
-            self.max * 1000.0,
-            step * 1000.0,
+            (self.val * 1000.0) as i32,
+            (self.min * 1000.0) as i32,
+            (self.max * 1000.0) as i32,
+            (step * 1000.0) as i32,
             r,
         );
     }
@@ -36,7 +36,7 @@ impl Tunable {
 
 macro_rules! make_tunables {
     ($($name:ident = $val:expr, $min:expr, $max:expr, $step:expr, $r:expr;)*) => {
-        #[derive(Clone, Default)]
+        #[derive(Clone, Debug)]
         pub struct Tunables {
             $($name: Tunable,)*
         }
@@ -66,9 +66,21 @@ macro_rules! make_tunables {
                 $(self.$name.list(stringify!($name), $step, $r);)*
             }
         }
+
+        impl Tunables {
+            pub fn new() -> Self {
+                Self {
+                    $($name: Tunable {
+                        val: $val,
+                        min: $min,
+                        max: $max,
+                    },)*
+                }
+            }
+        }
     };
 }
 
 make_tunables! {
-    default_cpuct = std::f32::consts::SQRT_2, 0, 10, 0.05, 0.002;
+    default_cpuct = std::f32::consts::SQRT_2, 0.0, 10.0, 0.05, 0.002;
 }

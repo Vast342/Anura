@@ -90,7 +90,7 @@ impl Manager {
             engine: Engine::new(),
             options: UciOptions::new(),
             limiter: Limiters::new(),
-            tunables: Tunables::default(),
+            tunables: Tunables::new(),
         }
     }
     // read line from stdin and then interpret it
@@ -230,7 +230,7 @@ impl Manager {
         // normalize
         // could prob do some like .iter().enumerate() shenanigans here but ehhhhhh
         for i in 0..moves.len() {
-            tuples[i].1 = tuples[i].1 / policy_sum;
+            tuples[i].1 /= policy_sum;
         }
         // sort
         tuples.sort_by(|a, b| b.1.partial_cmp(&a.1).expect("bruh what"));

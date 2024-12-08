@@ -128,7 +128,7 @@ impl Engine {
             return Some(());
         }
 
-        if (next as usize & IND_MASK) + moves.len() as usize >= half_size {
+        if (next as usize & IND_MASK) + moves.len() >= half_size {
             return None;
         }
 
@@ -292,7 +292,7 @@ impl Engine {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
-            let result = self.mcts(self.tree.root_node(), true, &tunables);
+            let result = self.mcts(self.tree.root_node(), true, tunables);
 
             self.nodes += 1;
             total_depth += self.depth as usize;
@@ -319,7 +319,7 @@ impl Engine {
                 last_print = Instant::now();
             }
 
-            if result == None {
+            if result.is_none() {
                 self.tree.switch_halves();
             }
         }
