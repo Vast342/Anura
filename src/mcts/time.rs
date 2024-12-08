@@ -1,3 +1,5 @@
+use crate::tunable::Tunables;
+
 /*
     Anura
     Copyright (C) 2024 Joseph Pasfield
@@ -43,11 +45,11 @@ impl Limiters {
         self.depth_limit = depth;
         self.move_time = movetime;
     }
-    const fn time_allocated(&self) -> u128 {
-        self.time / 20 + self.increment / 2
+    const fn time_allocated(&self, tunables: &Tunables) -> u128 {
+        self.time / tunables.time_divisor() as u128 + self.increment / tunables.inc_divisor() as u128
     }
-    pub fn check(&self, tim: u128, nodes: u128, depth: u32) -> bool {
-        if self.use_time && tim >= self.time_allocated() {
+    pub fn check(&self, tim: u128, nodes: u128, depth: u32, tunables: &Tunables) -> bool {
+        if self.use_time && tim >= self.time_allocated(tunables) {
             return false;
         }
         if self.use_nodes && nodes >= self.node_lim {

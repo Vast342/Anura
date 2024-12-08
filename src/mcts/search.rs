@@ -78,7 +78,7 @@ impl Engine {
         let e_scale = {
             let mut scale = (node.visits as f32).sqrt();
             // values from monty master, going to be tuned eventually:tm:
-            scale *= (0.463 - 1.567 * (node.gini_impurity + 0.001).ln()).min(2.26);
+            scale *= (tunables.gini_base() - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln()).min(tunables.gini_min());
             scale
         };
 
@@ -105,7 +105,7 @@ impl Engine {
         best_child
     }
 
-    fn expand(&mut self, node_idx: usize, root: bool) -> Option<()> {
+    fn expand(&mut self, node_idx: usize, root: bool, tunables: &Tunables) -> Option<()> {
         let next = self.tree.next() as u32;
         let half_size = self.tree.half_size;
         let node = &mut self.tree[node_idx];
@@ -139,7 +139,7 @@ impl Engine {
         let mut sum_of_squares: f32 = 0.0;
         for i in 0..moves.len() {
             let unscaled = self.board.get_policy(moves[i], &mut self.policy);
-            policy[i] = (unscaled / (1.0 + 2.5 * root as i32 as f32)).exp();
+            policy[i] = (unscaled / (tunables.default_pst() + tunables.root_pst_bonus() * root as i32 as f32)).exp();
             policy_sum += policy[i];
         }
         // normalize
@@ -178,7 +178,7 @@ impl Engine {
                 self.simulate(current_node)
             } else {
                 if current_node_ref.child_count == 0 {
-                    self.expand(current_node, root)?;
+                    self.expand(current_node, root, tunables)?;
                     if self.tree[current_node].result.is_terminal() {
                         return Some(self.simulate(current_node));
                     }
@@ -264,8 +264,6 @@ impl Engine {
 
     // todo 1: Tree Reuse
     // todo 2: SMP
-    // todo 3: Better value net
-    // todo 4: Actual policy net
     pub fn search(
         &mut self,
         board: Board,
@@ -288,7 +286,7 @@ impl Engine {
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
 
-        while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth) {
+        while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth, tunables) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
