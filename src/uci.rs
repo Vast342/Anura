@@ -278,7 +278,7 @@ impl Manager {
         let mut binc: u128 = 0;
         let mut winc: u128 = 0;
         let mut movetime: u128 = 0;
-        let mut mtg = 0;
+        let mut mtg = 20;
         while i < command_sections.len() {
             match command_sections[i] {
                 "depth" => {
