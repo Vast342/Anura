@@ -6,7 +6,7 @@ ifeq ($(OS),Windows_NT)
 endif
 
 all:
-	cargo rustc --release -- -C target-cpu=native --emit link=$(EXE)
+	cargo rustc --release --features "tunable" -- -C target-cpu=native --emit link=$(EXE)
 
 debug:
 	cargo rustc -- -C target-cpu=native --emit link=$(EXE)
