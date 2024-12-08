@@ -55,11 +55,11 @@ impl Limiters {
         self.move_time = movetime;
         self.moves_to_go = mtg;
     }
-    const fn time_allocated(&self, tunables: &Tunables) -> u128 {
-        tunables.tm_mult() as u128
-            * (self.time / self.moves_to_go
-                + self.increment * tunables.tm_numerator() as u128
-                    / tunables.tm_denominator() as u128)
+    fn time_allocated(&self, tunables: &Tunables) -> u128 {
+        (tunables.tm_mult()
+            * (self.time as f32 / self.moves_to_go as f32
+                + self.increment as f32 * tunables.tm_numerator()
+                    / tunables.tm_denominator())) as u128
     }
     pub fn check(&self, tim: u128, nodes: u128, depth: u32, tunables: &Tunables) -> bool {
         if self.use_time && tim >= self.time_allocated(tunables) {
