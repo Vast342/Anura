@@ -31,6 +31,7 @@ pub mod nets;
 pub mod perft;
 pub mod prng;
 pub mod rays;
+pub mod tunable;
 pub mod types;
 pub mod uci;
 
