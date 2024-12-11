@@ -97,7 +97,7 @@ impl PolicyAccumulator {
         for hl_node in 0..HL_SIZE {
             output += POLICY_NET.l2_weights[hl_node][move_index] * activation(self.l1[hl_node]);
         }
-        (output as f32 / QA as f32 + POLICY_NET.l2_biases[move_index] as f32) / QB as f32
+        (output as f32 / QA as f32 + POLICY_NET.l2_biases[move_index] as f32) / (QA as f32 * QB as f32)
     }
 }
 
