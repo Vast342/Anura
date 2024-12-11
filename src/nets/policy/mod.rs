@@ -34,21 +34,24 @@ const INPUT_SIZE: usize = 768;
 const HL_SIZE: usize = 128;
 const OUTPUT_SIZE: usize = 1880;
 
+const QA: i16 = 128;
+const QB: i16 = 128;
+
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct PolicyNetwork {
-    pub l1_weights: [[f32; HL_SIZE]; INPUT_SIZE], // [input][hl]
-    pub l1_biases: [f32; HL_SIZE],                // [hl]
-    pub l2_weights: [[f32; OUTPUT_SIZE]; HL_SIZE], // [hl][output]
-    pub l2_biases: [f32; OUTPUT_SIZE],            // [output]
+    pub l1_weights: [[i16; HL_SIZE]; INPUT_SIZE], // [input][hl]
+    pub l1_biases: [i16; HL_SIZE],                // [hl]
+    pub l2_weights: [[i16; OUTPUT_SIZE]; HL_SIZE], // [hl][output]
+    pub l2_biases: [i16; OUTPUT_SIZE],            // [output]
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_007.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("apn_007q.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
-    pub l1: [f32; HL_SIZE],
+    pub l1: [i16; HL_SIZE],
 }
 
 impl Default for PolicyAccumulator {
@@ -89,16 +92,16 @@ impl PolicyAccumulator {
     }
     pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
         let move_index = move_index(ctm, mov, king);
-        let mut output = POLICY_NET.l2_biases[move_index];
+        let mut output = 0;
         // hl -> output
         for hl_node in 0..HL_SIZE {
             output += POLICY_NET.l2_weights[hl_node][move_index] * activation(self.l1[hl_node]);
         }
-        output
+        (output as f32 / QA as f32 + POLICY_NET.l2_biases[move_index] as f32) / QB as f32
     }
 }
 
 // SCReLU
-pub fn activation(x: f32) -> f32 {
-    x.clamp(0.0, 1.0).powf(2.0)
+pub fn activation(x: i16) -> i16 {
+    x.clamp(0, QA).pow(2)
 }
