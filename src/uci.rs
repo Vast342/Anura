@@ -29,6 +29,8 @@ use crate::{
     types::{moves::Move, MoveList},
 };
 
+const BENCH_DEPTH: u32 = 6;
+
 pub enum CommandTypes {
     Uci,
     IsReady,
@@ -245,7 +247,7 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::new();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, 5, 0);
+        limiters.load_values(0, 0, 0, BENCH_DEPTH, 0);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine.search(

@@ -25,6 +25,7 @@ use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
+    tunable::Tunables
 };
 
 #[cfg(feature = "value")]
@@ -32,6 +33,7 @@ use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     types::{piece::Piece, square::Square, MoveList},
+    tunable::Tunables
 };
 #[cfg(feature = "policy")]
 use montyformat::{chess::Castling, MontyFormat, SearchData};
@@ -72,11 +74,13 @@ pub fn datagen_main(args: Vec<String>) {
     let game_count = Arc::new(AtomicU64::new(0));
     let pos_count = Arc::new(AtomicU64::new(0));
     let start = Instant::now();
+    let tunables = Tunables::new();
     let mut threads = Vec::new();
     for i in 0..thread_count {
         let game_count_clone = Arc::clone(&game_count);
         let pos_count_clone = Arc::clone(&pos_count);
         let draw_count_clone = Arc::clone(&draw_count);
+        let tunables_clone = tunables.clone();
         let value = args[3].clone();
         threads.push(thread::spawn(move || {
             thread_function(
@@ -86,6 +90,7 @@ pub fn datagen_main(args: Vec<String>) {
                 &pos_count_clone,
                 &draw_count_clone,
                 start,
+                &tunables_clone,
             )
         }));
     }
@@ -101,6 +106,7 @@ fn thread_function(
     position_count: &AtomicU64,
     draw_count: &AtomicU64,
     start: Instant,
+    tunables: &Tunables
 ) {
     let mut board: Board = Board::new();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -108,7 +114,7 @@ fn thread_function(
     let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));
     loop {
         let mut data: Vec<Datapoint> = vec![];
-        let result = run_game(&mut data, board.clone());
+        let result = run_game(&mut data, board.clone(), tunables);
         if result != 3 {
             dump_to_file(
                 data,
@@ -125,7 +131,7 @@ fn thread_function(
 
 #[allow(unused_assignments)]
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
-fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
+fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> u8 {
     // 8 random moves
     use crate::{mcts::search::EVAL_SCALE, types::moves::Move};
     for _ in 0..8 {
@@ -188,7 +194,7 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board) -> u8 {
             }
         }
         #[allow(unused_variables)]
-        let (mov, score, mut visit_points) = engine.datagen_search(board.clone());
+        let (mov, score, mut visit_points) = engine.datagen_search(board.clone(), params);
         board.make_move(mov);
         if board.is_drawn() {
             #[cfg(feature = "policy")]
