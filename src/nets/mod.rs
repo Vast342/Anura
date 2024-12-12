@@ -26,4 +26,4 @@ pub struct Networks {
     pub value: ValueNetwork,
 }
 
-pub static NETS: Networks = unsafe { std::mem::transmute(*include_bytes!(concat!("../../", env!("NETSFILE"))))
+pub static NETS: Networks = unsafe { std::mem::transmute(*include_bytes!(env!("NETSFILE"))) };
