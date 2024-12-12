@@ -22,13 +22,14 @@ use crate::{
     types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
 // value net:
-// avn_006.vn
-// 768->512->1x16 activated by SCReLU
+// avn_008.vn
+// 768->768->1x16 activated by SCReLU
 const INPUT_SIZE: usize = 768;
 const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 768;
 const OUTPUT_BUCKET_COUNT: usize = 16;
 
+// why did i do this this is useless
 #[rustfmt::skip]
 const INPUT_BUCKET_SCHEME: [usize; 64] = [
     0, 0, 0, 0, 0, 0, 0, 0,
@@ -79,7 +80,7 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
 }
 
 pub static VALUE_NET: ValueNetwork =
-    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("avn_008.vn")) });
+    transpose_output_weights(NETS.value);
 
 const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
 
