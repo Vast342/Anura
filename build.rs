@@ -28,7 +28,7 @@ fn main() {
     println!("cargo:rerun-if-changed={}", nets_txt_path);
     println!("cargo:rerun-if-changed={}", netfile_path.display());
 
-    println!("cargo:netfile_path={}", netfile_path.display());
+    println!("cargo:NETFILE={}", netfile_path.display());
 }
 
 fn download_file(url: &str, dest: &Path) -> io::Result<()> {
