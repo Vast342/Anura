@@ -17,3 +17,13 @@
 */
 pub mod policy;
 pub mod value;
+
+// may need some usings here, i'll figure that out when i have access to an ide
+
+#[repr(C)]
+pub struct Networks {
+    pub policy: PolicyNetwork,
+    pub value: ValueNetwork,
+}
+
+pub static NETS: Networks = unsafe { std::mem::transmute(*include_bytes!(concat!("../../", env!("NETSFILE"))))
