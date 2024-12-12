@@ -16,12 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_007.pn
+// apn_007q.pn
 // 768->128->1x1880
 // notes:
-// l1 SCReLU (current net is an early checkpoint in training, hoping for better later)
-// back to unquantised, will need to quantise later
-// Exactly the same as apn_006 but i actually trained it on the right dataset and not the old one
+// l1 SCReLU
+// is now quantised
 
 mod outs;
 use outs::move_index;
@@ -46,8 +45,7 @@ pub struct PolicyNetwork {
     pub l2_biases: [i16; OUTPUT_SIZE],            // [output]
 }
 
-pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_007q.pn")) };
+pub static POLICY_NET: PolicyNetwork = NETS.policy;
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
