@@ -16,12 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_007.pn
-// 768->128->1x1880
+// apn_008.pn
+// 768->256->1x1880
 // notes:
-// l1 SCReLU (current net is an early checkpoint in training, hoping for better later)
-// back to unquantised, will need to quantise later
-// Exactly the same as apn_006 but i actually trained it on the right dataset and not the old one
+// l1 SCReLU
+// quantised
+// this will probably be the last new net that is stored in this repo
 
 mod outs;
 use outs::move_index;
@@ -31,7 +31,7 @@ use crate::{
     types::{moves::Move, square::Square},
 };
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 128;
+const HL_SIZE: usize = 256;
 const OUTPUT_SIZE: usize = 1880;
 
 const QA: i16 = 128;
@@ -43,11 +43,11 @@ pub struct PolicyNetwork {
     pub l1_weights: [[i16; HL_SIZE]; INPUT_SIZE], // [input][hl]
     pub l1_biases: [i16; HL_SIZE],                // [hl]
     pub l2_weights: [[i16; OUTPUT_SIZE]; HL_SIZE], // [hl][output]
-    pub l2_biases: [i16; OUTPUT_SIZE],            // [output]
+    pub l2_biases: [i32; OUTPUT_SIZE],            // [output]
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_007q.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("apn_008.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
