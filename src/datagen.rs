@@ -24,16 +24,16 @@
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
-    tunable::Tunables,
     types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
+    tunable::Tunables
 };
 
 #[cfg(feature = "value")]
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
-    tunable::Tunables,
     types::{piece::Piece, square::Square, MoveList},
+    tunable::Tunables
 };
 #[cfg(feature = "policy")]
 use montyformat::{chess::Castling, MontyFormat, SearchData};
@@ -106,7 +106,7 @@ fn thread_function(
     position_count: &AtomicU64,
     draw_count: &AtomicU64,
     start: Instant,
-    tunables: &Tunables,
+    tunables: &Tunables
 ) {
     let mut board: Board = Board::new();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
