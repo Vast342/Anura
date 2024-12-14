@@ -78,7 +78,9 @@ impl Engine {
         let e_scale = {
             let mut scale = (node.visits as f32).sqrt();
             // values from monty master, going to be tuned eventually:tm:
-            scale *= (tunables.gini_base() - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln()).min(tunables.gini_min());
+            scale *= (tunables.gini_base()
+                - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln())
+            .min(tunables.gini_min());
             scale
         };
 
@@ -139,7 +141,9 @@ impl Engine {
         let mut sum_of_squares: f32 = 0.0;
         for i in 0..moves.len() {
             let unscaled = self.board.get_policy(moves[i], &mut self.policy);
-            policy[i] = (unscaled / (tunables.default_pst() + tunables.root_pst_bonus() * root as i32 as f32)).exp();
+            policy[i] = (unscaled
+                / (tunables.default_pst() + tunables.root_pst_bonus() * root as i32 as f32))
+                .exp();
             policy_sum += policy[i];
         }
         // normalize
@@ -286,7 +290,12 @@ impl Engine {
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
 
-        while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth, tunables) {
+        while limiters.check(
+            self.start.elapsed().as_millis(),
+            self.nodes,
+            avg_depth,
+            tunables,
+        ) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
@@ -344,7 +353,11 @@ impl Engine {
         best_move
     }
     #[cfg(feature = "datagen")]
-    pub fn datagen_search(&mut self, board: Board, params: &Tunables) -> (Move, i32, Vec<(Move, u16)>) {
+    pub fn datagen_search(
+        &mut self,
+        board: Board,
+        params: &Tunables,
+    ) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
 
