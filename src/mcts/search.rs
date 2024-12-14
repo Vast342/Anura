@@ -84,12 +84,14 @@ impl Engine {
 
         let e = tunables.default_cpuct() * e_scale;
 
+        let parent_q = node.average_score();
+
         let mut best_child = 0;
         let mut best_child_uct = f32::NEG_INFINITY;
         for child_idx in node.children_range() {
             let child = self.tree[child_idx];
             let average_score = if child.visits == 0 {
-                0.5
+                1.0 - parent_q
             } else {
                 child.average_score()
             };
@@ -174,7 +176,7 @@ impl Engine {
         let current_node_ref = &self.tree[current_node];
 
         let mut score =
-            if !root && (current_node_ref.result.is_terminal() || current_node_ref.visits == 0) {
+            if current_node_ref.result.is_terminal() || current_node_ref.visits == 0 {
                 self.simulate(current_node)
             } else {
                 if current_node_ref.child_count == 0 {
