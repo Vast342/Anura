@@ -318,7 +318,7 @@ impl Engine {
         } else {
             let root = self.tree.root_node();
             let found = self.find(root, root_state, 2);
-            if found != (1 << 31) - 1 {
+            if found != (1 << 31) - 1 && self.tree[found].child_count != 0 {
                 self.tree[root] = self.tree[found];
             } else {
                 self.tree.reset();
