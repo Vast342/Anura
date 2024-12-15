@@ -462,6 +462,7 @@ impl Manager {
         println!("option name Hash type spin default 32 min 1 max 1048576");
         println!("option name Threads type spin default 1 min 1 max 1048576");
         println!("option name MoreInfo type check default false");
+        #[cfg(feature = "tunable")]
         self.tunables.print_options();
         println!("uciok");
     }
