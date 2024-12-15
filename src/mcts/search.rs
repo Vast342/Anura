@@ -18,7 +18,7 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board,
+    board::{Board, Position},
     mcts::time::Limiters,
     nets::policy::PolicyAccumulator,
     tunable::Tunables,
@@ -265,38 +265,29 @@ impl Engine {
     }
 
     pub fn find(&mut self, start: usize, state: &Position, depth: u8) -> usize {
-        println!("find(&mut self, start: {start}, depth: {depth});");
         let start_node = self.tree[start];
-        dbg!(start_node);
+
         if self.board.current_state() == state {
-            println!("equal at {start}");
             return start
         }
         if start == (1 << 31) - 1 || depth == 0 {
-            println!("start is null or depth == 0");
             return (1 << 31) - 1
         }
 
         //let start_node = self.tree[start];
         //dbg!(start_node);
 
-        println!("looping through range {}..{}", start_node.children_range().start, start_node.children_range().end);
         for i in start_node.children_range() {
-            println!("i: {i}");
             let i_node = self.tree[i];
             self.board.make_move(i_node.mov);
-            println!("made move {}, position now position fen {}", i_node.mov, self.board.get_fen());
             let found = self.find(i, state, depth - 1);
             self.board.undo_move();
-            println!("undone move {} position fen {}", i_node.mov, self.board.get_fen());
 
             if found != (1 << 31) - 1 {
-                println!("found at index {found}");
                 return found
             }
         }
 
-        println!("nothing");
         (1 << 31) - 1
     }
 
@@ -323,9 +314,19 @@ impl Engine {
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
-
         // attempt to reuse tree
-        
+        if self.tree.is_empty() {
+            self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+        } else {
+            let root = self.tree.root_node();
+            let found = self.find(root, root_state, 2);
+            if found != (1 << 31) - 1 {
+                self.tree[root] = self.tree[found];
+            } else {
+                self.tree.reset();
+                self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+            }
+        };
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth, tunables) {
             self.board.load_state(root_state, root_ctm);
