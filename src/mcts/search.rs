@@ -394,21 +394,34 @@ impl Engine {
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
-        let root_node = 0;
+
+        // attempt to reuse tree
+        if self.tree.is_empty() {
+            self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+        } else {
+            let root = self.tree.root_node();
+            let found = self.find(root, root_state, 2);
+            if found != (1 << 31) - 1 {
+                self.tree[root] = self.tree[found];
+            } else {
+                self.tree.reset();
+                self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+            }
+        };
 
         while self.nodes < NODE_LIMIT {
             self.board.load_state(root_state, root_ctm);
 
-            self.mcts(root_node, true, &params);
+            self.mcts(self.tree.root_node(), true, &params);
 
             self.nodes += 1;
         }
 
-        let (best_node_idx, best_score) = self.get_best_move(root_node);
+        let (best_node_idx, best_score) = self.get_best_move(self.tree.root_node());
         let best_move = self.tree[best_node_idx].mov;
 
         // get visit distribution
-        let root_node = self.tree[0];
+        let root_node = self.tree[self.tree.root_node()];
         let mut visit_points: Vec<(Move, u16)> = vec![];
         for child_idx in root_node.children_range() {
             let child_node = self.tree[child_idx];
