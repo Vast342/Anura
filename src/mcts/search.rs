@@ -78,7 +78,9 @@ impl Engine {
         let e_scale = {
             let mut scale = (node.visits as f32).sqrt();
             // values from monty master, going to be tuned eventually:tm:
-            scale *= (tunables.gini_base() - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln()).min(tunables.gini_min());
+            scale *= (tunables.gini_base()
+                - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln())
+            .min(tunables.gini_min());
             scale
         };
 
@@ -141,7 +143,9 @@ impl Engine {
         let mut sum_of_squares: f32 = 0.0;
         for i in 0..moves.len() {
             let unscaled = self.board.get_policy(moves[i], &mut self.policy);
-            policy[i] = (unscaled / (tunables.default_pst() + tunables.root_pst_bonus() * root as i32 as f32)).exp();
+            policy[i] = (unscaled
+                / (tunables.default_pst() + tunables.root_pst_bonus() * root as i32 as f32))
+                .exp();
             policy_sum += policy[i];
         }
         // normalize
@@ -175,26 +179,25 @@ impl Engine {
     fn mcts(&mut self, current_node: usize, root: bool, tunables: &Tunables) -> Option<f32> {
         let current_node_ref = &self.tree[current_node];
 
-        let mut score =
-            if current_node_ref.result.is_terminal() || current_node_ref.visits == 0 {
-                self.simulate(current_node)
-            } else {
-                if current_node_ref.child_count == 0 {
-                    self.expand(current_node, root, tunables)?;
-                    if self.tree[current_node].result.is_terminal() {
-                        return Some(self.simulate(current_node));
-                    }
+        let mut score = if current_node_ref.result.is_terminal() || current_node_ref.visits == 0 {
+            self.simulate(current_node)
+        } else {
+            if current_node_ref.child_count == 0 {
+                self.expand(current_node, root, tunables)?;
+                if self.tree[current_node].result.is_terminal() {
+                    return Some(self.simulate(current_node));
                 }
+            }
 
-                self.tree.copy_children(current_node)?;
+            self.tree.copy_children(current_node)?;
 
-                let next_index = self.select(current_node, tunables);
+            let next_index = self.select(current_node, tunables);
 
-                self.board.make_move(self.tree[next_index].mov);
-                self.depth += 1;
+            self.board.make_move(self.tree[next_index].mov);
+            self.depth += 1;
 
-                self.mcts(next_index, false, tunables)?
-            };
+            self.mcts(next_index, false, tunables)?
+        };
 
         score = 1.0 - score;
 
@@ -268,10 +271,10 @@ impl Engine {
         let start_node = self.tree[start];
 
         if self.board.current_state() == state {
-            return start
+            return start;
         }
         if start == (1 << 31) - 1 || depth == 0 {
-            return (1 << 31) - 1
+            return (1 << 31) - 1;
         }
 
         //let start_node = self.tree[start];
@@ -284,7 +287,7 @@ impl Engine {
             self.board.undo_move();
 
             if found != (1 << 31) - 1 {
-                return found
+                return found;
             }
         }
 
@@ -326,7 +329,12 @@ impl Engine {
             }
         };
 
-        while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth, tunables) {
+        while limiters.check(
+            self.start.elapsed().as_millis(),
+            self.nodes,
+            avg_depth,
+            tunables,
+        ) {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
@@ -384,7 +392,11 @@ impl Engine {
         best_move
     }
     #[cfg(feature = "datagen")]
-    pub fn datagen_search(&mut self, board: Board, params: &Tunables) -> (Move, i32, Vec<(Move, u16)>) {
+    pub fn datagen_search(
+        &mut self,
+        board: Board,
+        params: &Tunables,
+    ) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
 
