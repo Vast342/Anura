@@ -309,8 +309,6 @@ impl Engine {
         self.start = Instant::now();
         let mut last_print = Instant::now();
 
-        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
-
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
@@ -381,7 +379,7 @@ impl Engine {
         let (index, _best_score) = self.get_best_move(self.tree.root_node());
         let best_move = self.tree[index].mov;
 
-        self.tree.reset();
+        self.board.load_state(root_state, root_ctm);
 
         best_move
     }
@@ -389,8 +387,6 @@ impl Engine {
     pub fn datagen_search(&mut self, board: Board, params: &Tunables) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
-
-        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
@@ -428,7 +424,7 @@ impl Engine {
             visit_points.push((child_node.mov, child_node.visits as u16));
         }
 
-        self.tree.reset();
+        self.board.load_state(root_state, root_ctm);
         (best_move, to_cp(best_score), visit_points)
     }
     fn print_info(
