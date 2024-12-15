@@ -179,26 +179,25 @@ impl Engine {
     fn mcts(&mut self, current_node: usize, root: bool, tunables: &Tunables) -> Option<f32> {
         let current_node_ref = &self.tree[current_node];
 
-        let mut score =
-            if current_node_ref.result.is_terminal() || current_node_ref.visits == 0 {
-                self.simulate(current_node)
-            } else {
-                if current_node_ref.child_count == 0 {
-                    self.expand(current_node, root, tunables)?;
-                    if self.tree[current_node].result.is_terminal() {
-                        return Some(self.simulate(current_node));
-                    }
+        let mut score = if current_node_ref.result.is_terminal() || current_node_ref.visits == 0 {
+            self.simulate(current_node)
+        } else {
+            if current_node_ref.child_count == 0 {
+                self.expand(current_node, root, tunables)?;
+                if self.tree[current_node].result.is_terminal() {
+                    return Some(self.simulate(current_node));
                 }
+            }
 
-                self.tree.copy_children(current_node)?;
+            self.tree.copy_children(current_node)?;
 
-                let next_index = self.select(current_node, tunables);
+            let next_index = self.select(current_node, tunables);
 
-                self.board.make_move(self.tree[next_index].mov);
-                self.depth += 1;
+            self.board.make_move(self.tree[next_index].mov);
+            self.depth += 1;
 
-                self.mcts(next_index, false, tunables)?
-            };
+            self.mcts(next_index, false, tunables)?
+        };
 
         score = 1.0 - score;
 
@@ -272,10 +271,10 @@ impl Engine {
         let start_node = self.tree[start];
 
         if self.board.current_state() == state {
-            return start
+            return start;
         }
         if start == (1 << 31) - 1 || depth == 0 {
-            return (1 << 31) - 1
+            return (1 << 31) - 1;
         }
 
         //let start_node = self.tree[start];
@@ -288,7 +287,7 @@ impl Engine {
             self.board.undo_move();
 
             if found != (1 << 31) - 1 {
-                return found
+                return found;
             }
         }
 
