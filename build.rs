@@ -75,11 +75,12 @@ fn download_network_if_not_exists(network_name: &str, dest_path: &Path, file_ext
     println!("Network Name: {}", network_name);
     println!("Full URL: {}", url);
     
-    // Try curl first
+    // Try curl first, with SSL verification disabled
     let curl_result = Command::new("curl")
         .args(&[
             "-sL",     // Silent mode, follow redirects
             "-f",      // Fail silently on server errors
+            "-k",      // Allow insecure server connections
             "-v",      // Verbose output
             "-o", dest_path.to_str().unwrap(), 
             &url
@@ -102,9 +103,10 @@ fn download_network_if_not_exists(network_name: &str, dest_path: &Path, file_ext
         }
     }
     
-    // Try wget as a fallback
+    // If curl fails, try wget with SSL verification disabled
     let wget_result = Command::new("wget")
         .args(&[
+            "--no-check-certificate",  // Disable SSL verification
             "-O", dest_path.to_str().unwrap(),
             &url
         ])
