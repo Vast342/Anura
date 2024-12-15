@@ -18,7 +18,7 @@
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
 use crate::{
-    board::Board,
+    board::{Board, Position},
     mcts::time::Limiters,
     nets::policy::PolicyAccumulator,
     tunable::Tunables,
@@ -264,6 +264,33 @@ impl Engine {
         (pv, root_best_score, ends_in_mate)
     }
 
+    pub fn find(&mut self, start: usize, state: &Position, depth: u8) -> usize {
+        let start_node = self.tree[start];
+
+        if self.board.current_state() == state {
+            return start
+        }
+        if start == (1 << 31) - 1 || depth == 0 {
+            return (1 << 31) - 1
+        }
+
+        //let start_node = self.tree[start];
+        //dbg!(start_node);
+
+        for i in start_node.children_range() {
+            let i_node = self.tree[i];
+            self.board.make_move(i_node.mov);
+            let found = self.find(i, state, depth - 1);
+            self.board.undo_move();
+
+            if found != (1 << 31) - 1 {
+                return found
+            }
+        }
+
+        (1 << 31) - 1
+    }
+
     // todo 1: Tree Reuse
     // todo 2: SMP
     pub fn search(
@@ -282,11 +309,22 @@ impl Engine {
         self.start = Instant::now();
         let mut last_print = Instant::now();
 
-        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
-
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
         self.root_ctm = root_ctm;
+        // attempt to reuse tree
+        if self.tree.is_empty() {
+            self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+        } else {
+            let root = self.tree.root_node();
+            let found = self.find(root, root_state, 2);
+            if found != (1 << 31) - 1 && self.tree[found].child_count != 0 {
+                self.tree[root] = self.tree[found];
+            } else {
+                self.tree.reset();
+                self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+            }
+        };
 
         while limiters.check(self.start.elapsed().as_millis(), self.nodes, avg_depth, tunables) {
             self.board.load_state(root_state, root_ctm);
@@ -341,7 +379,7 @@ impl Engine {
         let (index, _best_score) = self.get_best_move(self.tree.root_node());
         let best_move = self.tree[index].mov;
 
-        self.tree.reset();
+        self.board.load_state(root_state, root_ctm);
 
         best_move
     }
@@ -350,32 +388,43 @@ impl Engine {
         self.nodes = 0;
         self.start = Instant::now();
 
-        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
-
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
-        let root_node = 0;
+
+        // attempt to reuse tree
+        if self.tree.is_empty() {
+            self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+        } else {
+            let root = self.tree.root_node();
+            let found = self.find(root, root_state, 2);
+            if found != (1 << 31) - 1 {
+                self.tree[root] = self.tree[found];
+            } else {
+                self.tree.reset();
+                self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
+            }
+        };
 
         while self.nodes < NODE_LIMIT {
             self.board.load_state(root_state, root_ctm);
 
-            self.mcts(root_node, true, &params);
+            self.mcts(self.tree.root_node(), true, &params);
 
             self.nodes += 1;
         }
 
-        let (best_node_idx, best_score) = self.get_best_move(root_node);
+        let (best_node_idx, best_score) = self.get_best_move(self.tree.root_node());
         let best_move = self.tree[best_node_idx].mov;
 
         // get visit distribution
-        let root_node = self.tree[0];
+        let root_node = self.tree[self.tree.root_node()];
         let mut visit_points: Vec<(Move, u16)> = vec![];
         for child_idx in root_node.children_range() {
             let child_node = self.tree[child_idx];
             visit_points.push((child_node.mov, child_node.visits as u16));
         }
 
-        self.tree.reset();
+        self.board.load_state(root_state, root_ctm);
         (best_move, to_cp(best_score), visit_points)
     }
     fn print_info(

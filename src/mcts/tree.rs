@@ -59,6 +59,10 @@ impl SearchTree {
         self.current_half << 31
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.halves[0].is_empty() && self.halves[1].is_empty()
+    }
+
     pub fn is_full(&self) -> bool {
         self.halves[self.current_half].is_full()
     }

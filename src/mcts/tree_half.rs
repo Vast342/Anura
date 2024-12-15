@@ -57,6 +57,10 @@ impl TreeHalf {
         self.nodes.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn is_full(&self) -> bool {
         self.len() >= self.nodes.len()
     }

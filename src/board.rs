@@ -51,7 +51,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Position {
     colors: [Bitboard; 2],
     pieces: [Bitboard; 6],
