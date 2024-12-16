@@ -68,7 +68,7 @@ impl Engine {
             policy: PolicyAccumulator::default(),
         }
     }
-    fn select(&mut self, current: usize, tunables: &Tunables) -> usize {
+    fn select(&mut self, current: usize, tunables: &Tunables, root: bool) -> usize {
         let node = self.tree[current];
 
         #[cfg(feature = "datagen")]
@@ -77,14 +77,13 @@ impl Engine {
         #[cfg(not(feature = "datagen"))]
         let e_scale = {
             let mut scale = (node.visits as f32).sqrt();
-            // values from monty master, going to be tuned eventually:tm:
             scale *= (tunables.gini_base()
                 - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln())
             .min(tunables.gini_min());
             scale
         };
 
-        let mut cpuct = tunables.default_cpuct();
+        let mut cpuct = if root { tunables.root_cpuct() } else { tunables.default_cpuct() };
         let vis_scale = tunables.cpuct_visits_scale() * 128.0;
         cpuct *= 1.0 + ((node.visits as f32 + vis_scale) / vis_scale).ln();
 
@@ -195,7 +194,7 @@ impl Engine {
 
             self.tree.copy_children(current_node)?;
 
-            let next_index = self.select(current_node, tunables);
+            let next_index = self.select(current_node, tunables, root);
 
             self.board.make_move(self.tree[next_index].mov);
             self.depth += 1;
