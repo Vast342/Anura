@@ -23,7 +23,7 @@ impl Tunable {
 
     fn list(&self, name: &str, step: f32, r: f32) {
         println!(
-            "{}, {}, {}, {}, {}, {}",
+            "{}, int, {}, {}, {}, {}, {}",
             name,
             (self.val * 1000.0) as i32,
             (self.min * 1000.0) as i32,
