@@ -84,7 +84,11 @@ impl Engine {
             scale
         };
 
-        let e = tunables.default_cpuct() * e_scale;
+        let mut cpuct = tunables.default_cpuct();
+        let vis_scale = tunables.cpuct_visits_scale() * 128.0;
+        cpuct *= 1.0 + ((node.visits as f32 + vis_scale) / vis_scale).ln();
+
+        let e = cpuct * e_scale;
 
         let parent_q = node.average_score();
 

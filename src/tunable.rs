@@ -82,7 +82,7 @@ macro_rules! make_tunables {
 }
 
 make_tunables! {
-    default_cpuct = std::f32::consts::SQRT_2, 0.0, 10.0, 0.5, 0.002;
+    default_cpuct = 0.7, 0.0, 10.0, 0.5, 0.002;
     gini_base = 0.463, 0.0, 2.0, 0.05, 0.002;
     gini_log_mult = 1.567, 0.0, 3.0, 0.16, 0.002;
     gini_min = 2.26, 0.0, 4.0, 0.20, 0.002;
@@ -90,4 +90,5 @@ make_tunables! {
     root_pst_bonus = 2.5, 0.1, 5.0, 0.25, 0.002;
     time_divisor = 20.0, 1.0, 50.0, 2.25, 0.002;
     inc_divisor = 2.0, 1.0, 5.0, 0.225, 0.002;
+    cpuct_visits_scale = 40.0, 1.0, 512.0, 3.2, 0.002;
 }
