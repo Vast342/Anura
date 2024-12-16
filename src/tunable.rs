@@ -82,7 +82,8 @@ macro_rules! make_tunables {
 }
 
 make_tunables! {
-    default_cpuct = 0.7, 0.0, 10.0, 0.5, 0.002;
+    default_cpuct = 0.5, 0.0, 10.0, 0.05, 0.002;
+    root_cpuct = 0.7, 0.0, 10.0, 0.05, 0.002;
     gini_base = 0.463, 0.0, 2.0, 0.05, 0.002;
     gini_log_mult = 1.567, 0.0, 3.0, 0.16, 0.002;
     gini_min = 2.26, 0.0, 4.0, 0.20, 0.002;
