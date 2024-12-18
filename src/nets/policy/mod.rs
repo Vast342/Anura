@@ -16,12 +16,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy "net":
-// apn_008.pn
-// 768->256->1x1880
+// apn_009-att2.pn
+// 768->512->1x1880
 // notes:
 // l1 SCReLU
 // quantised
-// this will probably be the last new net that is stored in this repo
 
 mod outs;
 use outs::move_index;
@@ -31,7 +30,7 @@ use crate::{
     types::{moves::Move, square::Square},
 };
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 256;
+const HL_SIZE: usize = 512;
 const OUTPUT_SIZE: usize = 1880;
 
 const QA: i16 = 128;
