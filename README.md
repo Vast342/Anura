@@ -1,8 +1,17 @@
 # Anura
 
-My attempt to learn rust, by making another chess engine and a tuner using rust.
+My attempt to learn rust, by making another chess engine in it.
 
 Anura was chosen as the name because it's the biological order of frogs.
+
+Current notes:
+- Anura 1.0 will be released when it hits or surpasses 3000 Elo CCRL Blitz, + 30 or so for some margin of error.
+- Goals:
+    - Multilayer value inference
+    - Threat Inputs (value and policy)
+    - SEE outputs (policy)
+    - generally increase HLs overall
+    - anything else I can think of
 
 This has been quite the project so far and it wouldn't be possible without the programs, resources, and people who've helped me out each step of the way:
 
