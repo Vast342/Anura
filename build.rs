@@ -1,19 +1,9 @@
 use std::env;
 use std::fs;
-use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-fn check_internet_connectivity() -> bool {
-    TcpStream::connect("github.com:443").is_ok()
-}
-
 fn main() {
-    // Check internet connectivity first
-    if !check_internet_connectivity() {
-        panic!("No internet connection available");
-    }
-
     // Print current working directory and environment for debugging
     println!(
         "Current directory: {}",
@@ -40,15 +30,8 @@ fn main() {
         panic!("policy.txt contains no network name");
     }
 
-    let value_filename = format!("{}.vn", value_network_name);
-    let policy_filename = format!("{}.pn", policy_network_name);
-
-    // Ensure directories exist
-    fs::create_dir_all("src/nets/value").expect("Failed to create value network directory");
-    fs::create_dir_all("src/nets/policy").expect("Failed to create policy network directory");
-
-    let value_path = PathBuf::from(format!("src/nets/value/{}", value_filename));
-    let policy_path = PathBuf::from(format!("src/nets/policy/{}", policy_filename));
+    let value_path = PathBuf::from(format!("src/nets/value/net.vn"));
+    let policy_path = PathBuf::from(format!("src/nets/policy/net.pn"));
 
     // Print full paths for debugging
     println!("Value network path: {}", value_path.display());

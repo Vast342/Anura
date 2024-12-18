@@ -47,7 +47,7 @@ pub struct PolicyNetwork {
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("apn_008.pn")) };
+    unsafe { std::mem::transmute(*include_bytes!("net.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
