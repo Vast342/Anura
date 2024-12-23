@@ -169,13 +169,13 @@ impl Engine {
         Some(())
     }
 
-    // using my normal eval as a value net here so it actually just evaluates
+    // value net go brrr
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
         node.result
             .score(self.board.ctm, self.root_ctm)
             .unwrap_or_else(|| {
-                1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+                self.board.evaluate()
             })
     }
 
