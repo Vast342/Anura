@@ -27,10 +27,10 @@ pub enum GameResult {
     Ongoing,
 }
 impl GameResult {
-    pub fn score(self, ctm: u8, root_ctm: u8) -> Option<f32> {
+    pub fn score(self) -> Option<f32> {
         match self {
             GameResult::Win => Some(1.0),
-            GameResult::Draw => Some(0.5 - 0.01 + 0.02 * (ctm == root_ctm) as u32 as f32),
+            GameResult::Draw => Some(0.5),
             GameResult::Loss => Some(0.0),
             GameResult::Ongoing => None,
         }
