@@ -1,6 +1,7 @@
 # Anura
 
-My attempt to learn rust, by making another chess engine in it.
+My attempt to learn Rust, by making another chess engine in it.
+
 
 Anura was chosen as the name because it's the biological order of frogs.
 
