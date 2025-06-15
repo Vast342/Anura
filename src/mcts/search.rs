@@ -51,7 +51,6 @@ pub struct Engine {
     depth: u32,
     pub nodes: u128,
     start: Instant,
-    root_ctm: u8,
     policy: PolicyAccumulator,
 }
 
@@ -64,7 +63,6 @@ impl Engine {
             depth: 0,
             nodes: 0,
             start: Instant::now(),
-            root_ctm: 1,
             policy: PolicyAccumulator::default(),
         }
     }
@@ -173,7 +171,7 @@ impl Engine {
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
         node.result
-            .score(self.board.ctm, self.root_ctm)
+            .score()
             .unwrap_or_else(|| {
                 1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
             })
@@ -317,7 +315,6 @@ impl Engine {
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
-        self.root_ctm = root_ctm;
         // attempt to reuse tree
         if self.tree.is_empty() {
             self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
