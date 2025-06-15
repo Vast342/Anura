@@ -5,6 +5,14 @@ ifeq ($(OS),Windows_NT)
     override EXE := $(EXE).exe
 endif
 
+TARGET_TUPLE := $(shell rustc --print host-tuple)
+
+ifeq ($(OS),Windows_NT)
+	PGO_MOVE := move /Y "target/$(TARGET_TUPLE)/release/$(EXE)" "$(EXE)"
+else
+	PGO_MOVE := mv "target/$(TARGET_TUPLE)/release/$(EXE)" "$(EXE)"
+endif
+
 all:
 	cargo rustc --release -- -C target-cpu=native --emit link=$(EXE)
 
@@ -29,3 +37,9 @@ debug-run: debug
 
 bench: all
 	./$(EXE) bench
+
+pgo:
+	cargo pgo instrument
+	cargo pgo run -- bench
+	cargo pgo optimize
+	$(PGO_MOVE)
