@@ -81,7 +81,11 @@ impl Engine {
             scale
         };
 
-        let mut cpuct = if root { tunables.root_cpuct() } else { tunables.default_cpuct() };
+        let mut cpuct = if root {
+            tunables.root_cpuct()
+        } else {
+            tunables.default_cpuct()
+        };
         let vis_scale = tunables.cpuct_visits_scale() * 128.0;
         cpuct *= 1.0 + ((node.visits as f32 + vis_scale) / vis_scale).ln();
 
@@ -170,11 +174,9 @@ impl Engine {
     // using my normal eval as a value net here so it actually just evaluates
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
-        node.result
-            .score()
-            .unwrap_or_else(|| {
-                1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
-            })
+        node.result.score().unwrap_or_else(|| {
+            1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+        })
     }
 
     fn mcts(&mut self, current_node: usize, root: bool, tunables: &Tunables) -> Option<f32> {

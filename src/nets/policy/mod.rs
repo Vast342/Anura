@@ -46,8 +46,7 @@ pub struct PolicyNetwork {
     pub l2_biases: [i32; OUTPUT_SIZE],            // [output]
 }
 
-pub static POLICY_NET: PolicyNetwork =
-    unsafe { std::mem::transmute(*include_bytes!("net.pn")) };
+pub static POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("net.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
