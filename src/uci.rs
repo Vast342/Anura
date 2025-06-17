@@ -57,6 +57,7 @@ pub struct UciOptions {
     pub more_info: bool,
     pub tree_size: u64,
     pub thread_count: u64,
+    pub move_overhead: u128,
 }
 
 impl UciOptions {
@@ -65,6 +66,7 @@ impl UciOptions {
             more_info: false,
             tree_size: u64::MAX,
             thread_count: 1,
+            move_overhead: 10,
         }
     }
 }
@@ -75,7 +77,6 @@ pub struct Manager {
     options: UciOptions,
     limiter: Limiters,
     tunables: Tunables,
-    // TT
 }
 
 impl Default for Manager {
@@ -180,10 +181,16 @@ impl Manager {
                     .parse::<u64>()
                     .expect("not a parsable thread count");
             }
+            "MoveOverhead" => {
+                self.options.move_overhead = command_sections[4]
+                    .parse::<u128>()
+                    .expect("not a parsable move overhead");
+                self.engine.resize(self.options.tree_size as usize);
+            }
             "MoreInfo" => {
                 self.options.more_info = command_sections[4]
                     .parse::<bool>()
-                    .expect("not a parsable hash size");
+                    .expect("not a parsable bool");
             }
             #[cfg(feature = "tunable")]
             _ => {
@@ -349,6 +356,7 @@ impl Manager {
             time = wtime;
             inc = winc;
         }
+        time -= self.options.move_overhead;
         self.limiter.load_values(time, inc, nodes, depth, movetime);
         let best_move = self.engine.search(
             self.board.clone(),
@@ -460,7 +468,8 @@ impl Manager {
         println!("id name Anura {}", env!("CARGO_PKG_VERSION"));
         println!("id author Vast");
         println!("option name Hash type spin default 32 min 1 max 1048576");
-        println!("option name Threads type spin default 1 min 1 max 1048576");
+        println!("option name Threads type spin default 1 min 1 max 1");
+        println!("option name MoveOverhead type spin default 10 min 1 max 1048576");
         println!("option name MoreInfo type check default false");
         #[cfg(feature = "tunable")]
         self.tunables.print_options();
