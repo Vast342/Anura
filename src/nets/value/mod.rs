@@ -78,8 +78,9 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
     }
 }
 
-pub static VALUE_NET: ValueNetwork =
-    transpose_output_weights(unsafe { std::mem::transmute::<[u8; 1205824], ValueNetwork>(*include_bytes!("net.vn")) });
+pub static VALUE_NET: ValueNetwork = transpose_output_weights(unsafe {
+    std::mem::transmute::<[u8; 1205824], ValueNetwork>(*include_bytes!("net.vn"))
+});
 
 const OUTPUT_BUCKET_DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKET_COUNT);
 

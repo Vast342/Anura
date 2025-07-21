@@ -64,11 +64,11 @@ fn init_intersection_table() -> [[Bitboard; 64]; 64] {
                 if (rook_attacks & dst_mask).is_not_empty() {
                     src_mask
                         | get_rook_attacks(src, Bitboard::EMPTY)
-                        & (dst_mask | get_rook_attacks(dst, Bitboard::EMPTY))
+                            & (dst_mask | get_rook_attacks(dst, Bitboard::EMPTY))
                 } else if (bishop_attacks & dst_mask).is_not_empty() {
                     src_mask
                         | get_bishop_attacks(src, Bitboard::EMPTY)
-                        & (dst_mask | get_bishop_attacks(dst, Bitboard::EMPTY))
+                            & (dst_mask | get_bishop_attacks(dst, Bitboard::EMPTY))
                 } else {
                     Bitboard::EMPTY
                 }

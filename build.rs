@@ -128,7 +128,5 @@ fn download_network_if_not_exists(network_name: &str, dest_path: &Path, file_ext
 
     // If both methods fail, panic with detailed error
     let _ = fs::remove_file(dest_path);
-    panic!(
-        "Failed to download network file. URL: {url}. Check network connectivity and URL."
-    );
+    panic!("Failed to download network file. URL: {url}. Check network connectivity and URL.");
 }
