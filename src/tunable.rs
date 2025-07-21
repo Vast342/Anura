@@ -67,6 +67,12 @@ macro_rules! make_tunables {
             }
         }
 
+        impl Default for Tunables {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+
         impl Tunables {
             pub fn new() -> Self {
                 Self {

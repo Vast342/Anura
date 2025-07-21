@@ -25,7 +25,9 @@ pub fn perft(board: &mut Board, depth: u8) -> u64 {
         return 1;
     };
     if depth == 1 {
-        return board.get_move_count();
+        let mut list: MoveList = MoveList::new();
+        board.get_moves(&mut list);
+        return list.len() as u64;
     }
     let mut list: MoveList = MoveList::new();
     board.get_moves(&mut list);
@@ -912,7 +914,7 @@ pub fn run_perft_suite() {
     let mut failed = 0;
     for test in test_suite {
         i += 1;
-        let mut board: Board = Board::new();
+        let mut board: Board = Board::default();
         board.load_fen(&test.fen);
         let nodes: u64 = perft(&mut board, test.depth);
         total += nodes;

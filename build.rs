@@ -16,11 +16,11 @@ fn main() {
 
     let value_network_name = match fs::read_to_string("value.txt") {
         Ok(name) => name.trim().to_string(),
-        Err(e) => panic!("Error reading value.txt: {}", e),
+        Err(e) => panic!("Error reading value.txt: {e}"),
     };
     let policy_network_name = match fs::read_to_string("policy.txt") {
         Ok(name) => name.trim().to_string(),
-        Err(e) => panic!("Error reading policy.txt: {}", e),
+        Err(e) => panic!("Error reading policy.txt: {e}"),
     };
 
     if value_network_name.is_empty() {
@@ -30,8 +30,8 @@ fn main() {
         panic!("policy.txt contains no network name");
     }
 
-    let value_path = PathBuf::from(format!("src/nets/value/net.vn"));
-    let policy_path = PathBuf::from(format!("src/nets/policy/net.pn"));
+    let value_path = PathBuf::from("src/nets/value/net.vn".to_string());
+    let policy_path = PathBuf::from("src/nets/policy/net.pn".to_string());
 
     // Print full paths for debugging
     println!("Value network path: {}", value_path.display());
@@ -55,18 +55,17 @@ fn download_network_if_not_exists(network_name: &str, dest_path: &Path, file_ext
     }
 
     let url = format!(
-        "https://github.com/Vast342/anura-nets/releases/download/{}/{}{}",
-        network_name, network_name, file_extension
+        "https://github.com/Vast342/anura-nets/releases/download/{network_name}/{network_name}{file_extension}"
     );
 
     // Print detailed URL information
     println!("Attempting to download:");
-    println!("Network Name: {}", network_name);
-    println!("Full URL: {}", url);
+    println!("Network Name: {network_name}");
+    println!("Full URL: {url}");
 
     // Try curl first, with SSL verification disabled
     let curl_result = Command::new("curl")
-        .args(&[
+        .args([
             "-sL", // Silent mode, follow redirects
             "-f",  // Fail silently on server errors
             "-k",  // Allow insecure server connections
@@ -93,13 +92,13 @@ fn download_network_if_not_exists(network_name: &str, dest_path: &Path, file_ext
             }
         }
         Err(e) => {
-            eprintln!("Failed to execute curl: {}", e);
+            eprintln!("Failed to execute curl: {e}");
         }
     }
 
     // If curl fails, try wget with SSL verification disabled
     let wget_result = Command::new("wget")
-        .args(&[
+        .args([
             "--no-check-certificate", // Disable SSL verification
             "-O",
             dest_path.to_str().unwrap(),
@@ -123,14 +122,13 @@ fn download_network_if_not_exists(network_name: &str, dest_path: &Path, file_ext
             }
         }
         Err(e) => {
-            eprintln!("Failed to execute wget: {}", e);
+            eprintln!("Failed to execute wget: {e}");
         }
     }
 
     // If both methods fail, panic with detailed error
     let _ = fs::remove_file(dest_path);
     panic!(
-        "Failed to download network file. URL: {}. Check network connectivity and URL.",
-        url
+        "Failed to download network file. URL: {url}. Check network connectivity and URL."
     );
 }

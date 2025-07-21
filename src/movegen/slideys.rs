@@ -29,10 +29,10 @@ pub const MAX_BISHOP_ENTRIES: usize = 512;
 pub const ROOK_TABLE_SIZE: usize = 2097152;
 pub const BISHOP_TABLE_SIZE: usize = 262144;
 
-const ROOK_MOVES: [[u64; MAX_ROOK_ENTRIES]; 64] =
+static ROOK_MOVES: [[u64; MAX_ROOK_ENTRIES]; 64] =
     unsafe { std::mem::transmute(*include_bytes!("tables/rooks.bin")) };
 
-const BISHOP_MOVES: [[u64; MAX_BISHOP_ENTRIES]; 64] =
+static BISHOP_MOVES: [[u64; MAX_BISHOP_ENTRIES]; 64] =
     unsafe { std::mem::transmute(*include_bytes!("tables/bishops.bin")) };
 
 #[must_use]

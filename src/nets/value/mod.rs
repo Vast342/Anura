@@ -79,9 +79,9 @@ pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
 }
 
 pub static VALUE_NET: ValueNetwork =
-    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("net.vn")) });
+    transpose_output_weights(unsafe { std::mem::transmute::<[u8; 1205824], ValueNetwork>(*include_bytes!("net.vn")) });
 
-const OUTPUT_BUCKET_DIVISOR: usize = (32 + OUTPUT_BUCKET_COUNT - 1) / OUTPUT_BUCKET_COUNT;
+const OUTPUT_BUCKET_DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKET_COUNT);
 
 const fn get_output_bucket(piece_count: usize) -> usize {
     (piece_count - 2) / OUTPUT_BUCKET_DIVISOR
@@ -106,7 +106,7 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
 }
 
 pub fn activation(x: i16) -> i32 {
-    ((x as i32).max(0).min(QA)).pow(2)
+    (x as i32).clamp(0, QA).pow(2)
 }
 
 impl ValueNetworkState {

@@ -59,7 +59,7 @@ impl Engine {
     pub fn new() -> Self {
         Self {
             tree: SearchTree::default(),
-            board: Board::new(),
+            board: Board::default(),
             depth: 0,
             nodes: 0,
             start: Instant::now(),
@@ -479,7 +479,7 @@ impl Engine {
         }
         print!("pv");
         for mov in &pv {
-            print!(" {}", mov);
+            print!(" {mov}");
         }
         println!();
     }

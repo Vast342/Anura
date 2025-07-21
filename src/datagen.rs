@@ -108,7 +108,7 @@ fn thread_function(
     start: Instant,
     tunables: &Tunables,
 ) {
-    let mut board: Board = Board::new();
+    let mut board: Board = Board::default();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let this_directory = directory + "thread" + &thread_id.to_string() + ".txt";
     let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));

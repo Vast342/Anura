@@ -89,7 +89,7 @@ impl Manager {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            board: Board::new(),
+            board: Board::default(),
             engine: Engine::new(),
             options: UciOptions::new(),
             limiter: Limiters::new(),
@@ -237,22 +237,21 @@ impl Manager {
             policy_sum += tuples[i].1;
         }
         // normalize
-        // could prob do some like .iter().enumerate() shenanigans here but ehhhhhh
-        for i in 0..moves.len() {
-            tuples[i].1 /= policy_sum;
+        for tuple in tuples.iter_mut().take(moves.len()) {
+            tuple.1 /= policy_sum;
         }
         // sort
         tuples.sort_by(|a, b| b.1.partial_cmp(&a.1).expect("bruh what"));
         // print
-        for i in 0..output_count {
-            println!("{}: {}", tuples[i].0, tuples[i].1);
+        for tuple in tuples.iter().take(output_count) {
+            println!("{}: {}", tuple.0, tuple.1);
         }
     }
 
     pub fn bench(&mut self) {
         let mut total = 0;
         let start = Instant::now();
-        let mut board: Board = Board::new();
+        let mut board: Board = Board::default();
         let mut limiters = Limiters::new();
         limiters.load_values(0, 0, 0, BENCH_DEPTH, 0);
         for string in BENCH_FENS {
@@ -315,7 +314,7 @@ impl Manager {
 
                     i += 1;
                     if i >= command_sections.len() {
-                        eprintln!("Missing {}", token);
+                        eprintln!("Missing {token}");
                         return;
                     }
 
@@ -451,7 +450,7 @@ impl Manager {
                 }
             }
         }
-        self.board = Board::new();
+        self.board = Board::default();
         self.board.load_fen(&fen);
         // if there are moves
         if let Some(_moves_token) = command_split.next() {
