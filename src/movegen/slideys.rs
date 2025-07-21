@@ -20,59 +20,39 @@ use std::arch::x86_64::_pext_u64;
 use crate::types::bitboard::Bitboard;
 use crate::types::square::Square;
 
-use super::lookups::{BISHOP_MASKS, BISHOP_MOVES, ROOK_MASKS, ROOK_MOVES, SLIDEY_PIECE_RAYS};
+use super::lookups::{BISHOP_MASKS, ROOK_MASKS};
 
 // slidey pieces
 
-// Rooks
-// Classical Approach
-#[must_use]
-pub fn get_rook_attacks_old(sq: Square, occupied: Bitboard) -> Bitboard {
-    let mut total_attacks: Bitboard = Bitboard::EMPTY;
-    for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().take(4) {
-        let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
+pub const MAX_ROOK_ENTRIES: usize = 4096;
+pub const MAX_BISHOP_ENTRIES: usize = 512;
+pub const ROOK_TABLE_SIZE: usize = 2097152;
+pub const BISHOP_TABLE_SIZE: usize = 262144;
 
-        if (current_attack & occupied).is_not_empty() {
-            if (dir & 1) == 0 {
-                current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
-            } else {
-                current_attack ^= Bitboard(item[63 - (current_attack & occupied).msb() as usize]);
-            }
-        }
-        total_attacks |= current_attack;
-    }
-    total_attacks
-}
+const ROOK_MOVES: [[u64; MAX_ROOK_ENTRIES]; 64] =
+    unsafe { std::mem::transmute(*include_bytes!("tables/rooks.bin")) };
+
+const BISHOP_MOVES: [[u64; MAX_BISHOP_ENTRIES]; 64] =
+    unsafe { std::mem::transmute(*include_bytes!("tables/bishops.bin")) };
+
 #[must_use]
+#[inline(always)]
 pub fn get_rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
-    unsafe { Bitboard(ROOK_MOVES[sq.as_usize()][get_rook_index_pext(sq, occupied)]) }
+    Bitboard(ROOK_MOVES[sq.as_usize()][get_rook_index_pext(sq, occupied)])
 }
+
+#[inline(always)]
 fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
     unsafe { _pext_u64(occupied.as_u64(), ROOK_MASKS[sq.as_usize()]) as usize }
 }
-// Bishops
-// Classical Approach
-#[must_use]
-pub fn get_bishop_attacks_old(sq: Square, occupied: Bitboard) -> Bitboard {
-    let mut total_attacks: Bitboard = Bitboard::EMPTY;
-    for (dir, item) in SLIDEY_PIECE_RAYS.iter().enumerate().skip(4) {
-        let mut current_attack: Bitboard = Bitboard(item[sq.as_usize()]);
 
-        if (current_attack & occupied).is_not_empty() {
-            if (dir & 1) == 0 {
-                current_attack ^= Bitboard(item[(current_attack & occupied).lsb() as usize]);
-            } else {
-                current_attack ^= Bitboard(item[63 - (current_attack & occupied).msb() as usize]);
-            }
-        }
-        total_attacks |= current_attack;
-    }
-    total_attacks
-}
 #[must_use]
+#[inline(always)]
 pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
-    unsafe { Bitboard(BISHOP_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)]) }
+    Bitboard(BISHOP_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)])
 }
+
+#[inline(always)]
 fn get_bishop_index_pext(sq: Square, occupied: Bitboard) -> usize {
     unsafe { _pext_u64(occupied.as_u64(), BISHOP_MASKS[sq.as_usize()]) as usize }
 }
