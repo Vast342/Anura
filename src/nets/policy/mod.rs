@@ -15,13 +15,12 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-// policy "net":
+// policy net:
 // apn_008.pn
 // 768->256->1x1880
 // notes:
 // l1 SCReLU
 // quantised
-// this will probably be the last new net that is stored in this repo
 
 mod outs;
 use outs::move_index;
@@ -69,6 +68,7 @@ impl PolicyAccumulator {
             l1: POLICY_NET.l1_biases,
         }
     }
+    
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {
         self.clear();
         let king = pos.king_sqs[ctm as usize];
@@ -87,9 +87,11 @@ impl PolicyAccumulator {
             }
         }
     }
+    
     pub fn clear(&mut self) {
         self.l1 = POLICY_NET.l1_biases;
     }
+    
     pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
         let move_index = move_index(ctm, mov, king);
         let mut output: i32 = 0;

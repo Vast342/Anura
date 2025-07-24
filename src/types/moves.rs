@@ -69,15 +69,19 @@ impl Move {
         //debug_assert!(to <= 63, "invalid to square {to}");
         Self(((flag as u16) << 12) | ((to as u16) << 6) | from as u16)
     }
+    
     pub const NULL_MOVE: Self = Self::new_unchecked(0, 0, 0);
+    
     #[must_use]
     pub const fn from(&self) -> u8 {
         (self.0 & 0b11_1111) as u8
     }
+    
     #[must_use]
     pub const fn to(&self) -> u8 {
         ((self.0 >> 6) & 0b11_1111) as u8
     }
+    
     #[must_use]
     pub fn flag(&self) -> Flag {
         Flag::from_u8((self.0 >> 12) as u8)
@@ -106,6 +110,7 @@ impl Move {
         }
         ((self.from() as u16) << 10) | ((self.to() as u16) << 4) | flag
     }
+    
     // next: convert text format to move (look to board's ep index decoding)
     #[must_use]
     pub fn from_text(text: &str, board: &Board) -> Self {
@@ -158,6 +163,7 @@ impl Move {
 
         Self::new_unchecked(from, to, flag as u8)
     }
+    
     pub fn to_other_string(&self) -> String {
         self.0.to_string()
     }

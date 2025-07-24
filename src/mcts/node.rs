@@ -35,6 +35,7 @@ impl GameResult {
             GameResult::Ongoing => None,
         }
     }
+    
     pub fn is_terminal(self) -> bool {
         self != Self::Ongoing
     }
@@ -64,14 +65,17 @@ impl Node {
             gini_impurity: 0.0,
         }
     }
+    
     pub fn average_score(&self) -> f32 {
         self.total_score / self.visits as f32
     }
+    
     pub fn children_range(&self) -> Range<usize> {
         let start = self.first_child as usize;
         let end = start + self.child_count as usize;
         start..end
     }
+    
     pub fn dereference(&mut self) {
         self.first_child = 0;
         self.child_count = 0;

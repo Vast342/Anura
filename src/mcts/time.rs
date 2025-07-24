@@ -34,6 +34,7 @@ impl Limiters {
     pub fn new() -> Self {
         Self::default()
     }
+    
     pub fn load_values(&mut self, tim: u128, inc: u128, nodes: u128, depth: u32, movetime: u128) {
         self.use_time = tim != 0;
         self.use_nodes = nodes != 0;
@@ -45,12 +46,14 @@ impl Limiters {
         self.depth_limit = depth;
         self.move_time = movetime;
     }
+    
     // maybe gainer idea, give slightly less for the min part
     fn time_allocated(&self, tunables: &Tunables) -> u128 {
         ((self.time as f32 / tunables.time_divisor()) as u128
             + (self.increment as f32 / tunables.inc_divisor()) as u128)
             .min(self.time)
     }
+    
     pub fn check(&self, tim: u128, nodes: u128, depth: u32, tunables: &Tunables) -> bool {
         if self.use_time && tim >= self.time_allocated(tunables) {
             return false;

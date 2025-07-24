@@ -170,8 +170,8 @@ impl Engine {
 
         Some(())
     }
-
-    // using my normal eval as a value net here so it actually just evaluates
+    
+    // not an actual simulation, but for nomenclature consistent with normal mcts, i decided to call it that.
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
         node.result.score().unwrap_or_else(|| {
@@ -231,12 +231,10 @@ impl Engine {
     }
 
     pub fn get_pv(&mut self, root_node: usize) -> (Vec<Move>, f32, bool) {
-        let (root_best_child, root_best_score) = self.get_best_move(root_node);
         let mut pv = vec![];
-        pv.push(self.tree[root_best_child].mov);
         let mut ends_in_mate = false;
-
-        let mut node_idx = root_best_child;
+        let mut root_score = 0.0;
+        let mut node_idx = root_node;
         loop {
             let node = self.tree[node_idx];
             if node.result.is_terminal() || node.child_count == 0 {
@@ -264,10 +262,13 @@ impl Engine {
                 break;
             }
             pv.push(self.tree[best_child_idx].mov);
+            if node_idx == root_node {
+                root_score = best_child_score;
+            }
             node_idx = best_child_idx;
         }
 
-        (pv, root_best_score, ends_in_mate)
+        (pv, root_score, ends_in_mate)
     }
 
     pub fn find(&mut self, start: usize, state: &Position, depth: u8) -> usize {
@@ -351,7 +352,7 @@ impl Engine {
 
             // info
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
-            if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 1.0 {
+            if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 3.0 {
                 let duration = self.start.elapsed().as_millis();
                 if info {
                     self.print_info(
@@ -451,15 +452,25 @@ impl Engine {
         options: &UciOptions,
     ) {
         if final_info && options.more_info {
-            // potential todo: even more information
+            let mut results = Vec::new();
             for node_idx in self.tree[0].children_range() {
                 let this_node = self.tree[node_idx];
                 let score = this_node.average_score();
-
-                println!(
-                    "{}: visits: {}, average score: {}",
-                    this_node.mov, this_node.visits, score,
+                let pv = self.get_pv(node_idx).0;
+                results.push((this_node.mov, this_node.visits, score, pv));
+            }
+            results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+            for (mov, visits, score, pv) in results {
+                print!(
+                    "{:<6} visits: {:>8} | average score: {:>4} cp | pv",
+                    format!("{}:", mov),
+                    visits,
+                    to_cp(score),
                 );
+                for pv_move in &pv {
+                    print!(" {pv_move}");
+                }
+                println!();
             }
         }
         let (pv, score, ends_in_mate) = self.get_pv(root_node);

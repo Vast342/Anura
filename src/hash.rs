@@ -28,7 +28,6 @@ const CTM_STRIDE: usize = PIECE_SQUARE_STRIDE + PIECE_SQUARE_SIZE;
 
 const TOTAL_SIZE: usize = PIECE_SQUARE_SIZE + CTM_SIZE;
 
-//                                                read this as "tastelesscascade"
 const ZOBRIST_VALUES: [u64; TOTAL_SIZE] = fill_array();
 
 pub fn zobrist_psq(piece: Piece, sq: Square) -> u64 {

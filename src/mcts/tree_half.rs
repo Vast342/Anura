@@ -22,13 +22,6 @@ use crate::types::moves::Move;
 
 use super::node::Node;
 
-/*
-    Stuff to figure out:
-    - external indexing (maybe keep track of which half it is on?)
-    - maybe adjust the node internally so that the values are as they should be for indexing
-    - when do nodes get copied over and which ones (i think it's as they're read but idk)
-*/
-
 pub struct TreeHalf {
     nodes: Vec<Node>,
     length: usize,

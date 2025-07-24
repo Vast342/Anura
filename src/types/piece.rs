@@ -45,10 +45,12 @@ impl Piece {
     pub const fn color(self) -> u8 {
         self.0 >> 3
     }
+    
     #[must_use]
     pub const fn piece(self) -> u8 {
         self.0 & 0b0111
     }
+    
     #[must_use]
     pub fn new_unchecked(piece: u8, color: u8) -> Self {
         debug_assert!(piece < 6, "invalid piece");
@@ -56,6 +58,7 @@ impl Piece {
         Self((color << 3) | piece)
     }
 }
+
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut c: char = match self.piece() {

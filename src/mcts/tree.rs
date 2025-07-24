@@ -26,6 +26,7 @@ pub struct SearchTree {
     current_half: usize,
     pub half_size: usize,
 }
+
 impl Default for SearchTree {
     fn default() -> Self {
         Self::new()

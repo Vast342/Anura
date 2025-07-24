@@ -22,8 +22,9 @@ use crate::{
     types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
 // value net:
-// avn_006.vn
-// 768->512->1x16 activated by SCReLU
+// avn_008.vn
+// 768->768->1x16
+// l1 SCReLU
 const INPUT_SIZE: usize = 768;
 const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 768;
@@ -116,13 +117,16 @@ impl ValueNetworkState {
             state: VALUE_NET.feature_biases,
         }
     }
+    
     pub fn reset(&mut self) {
         self.state = VALUE_NET.feature_biases
     }
+    
     pub fn evaluate(&mut self, position: &Position, ctm: u8) -> i32 {
         self.load_position(position, ctm);
         self.forward(position.occupied().popcount() as usize)
     }
+    
     pub fn load_position(&mut self, position: &Position, ctm: u8) {
         self.reset();
         let king = position.king_sqs[ctm as usize];
@@ -133,12 +137,14 @@ impl ValueNetworkState {
             self.activate_feature(piece, idx, ctm, king);
         }
     }
+    
     pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8, king: Square) {
         let idx = get_feature_index(piece, sq, ctm, king);
         for hl_node in 0..HL_SIZE {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
     }
+    
     pub fn forward(&self, piece_count: usize) -> i32 {
         let mut sum = 0;
         let output_bucket = get_output_bucket(piece_count);
