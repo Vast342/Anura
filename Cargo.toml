@@ -1,12 +1,12 @@
 [package]
 name = "anura"
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 description = "Soon to be a UCI Chess Engine"
 repository = "https://github.com/Vast342/Anura"
 readme = "README.md"
 license = "GPL v3"
-keywords = ["rust", "chess-engine", "chess", "uci", "uci-chess-engine", "engine-development"]
+keywords = ["rust", "chess-engine", "chess", "uci", "uci-chess-engine"]
 
 [profile.release]
 opt-level = 3
@@ -16,7 +16,7 @@ codegen-units = 1
 [dependencies]
 arrayvec = "0.7.6"
 rand = { version = "0.9.2", optional = true }
-montyformat = { git = 'https://github.com/official-monty/montyformat.git', tag = "v0.5.0", optional = true }
+montyformat = { git = 'https://github.com/official-monty/montyformat.git', tag = "v0.7.0", optional = true }
 
 [features]
 datagen = ["rand"]

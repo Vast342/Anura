@@ -43,7 +43,6 @@ use crate::uci::Manager;
 use std::env;
 
 fn main() {
-    env::set_var("RUST_BACKTRACE", "1");
     initialize();
     let args: Vec<String> = env::args().collect();
     let mut manager: Manager = Manager::new();

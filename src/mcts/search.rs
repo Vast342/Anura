@@ -22,14 +22,14 @@ use crate::{
     mcts::time::Limiters,
     nets::policy::PolicyAccumulator,
     tunable::Tunables,
-    types::{moves::Move, MoveList},
+    types::{MoveList, moves::Move},
     uci::UciOptions,
 };
 use std::time::Instant;
 
 use super::{
     node::{GameResult, Node},
-    tree::{SearchTree, IND_MASK},
+    tree::{IND_MASK, SearchTree},
 };
 
 const MATE_SCORE: i32 = 32000;
