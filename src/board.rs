@@ -184,7 +184,7 @@ impl Board {
         self.states.push(*position);
         self.ctm = ctm;
     }
-    
+
     pub fn print_state(&self) {
         let state = self.current_state();
 
@@ -227,7 +227,7 @@ impl Board {
         );
         println!("ep square: {}", SQUARE_NAMES[state.ep_index.0 as usize]);
     }
-    
+
     #[allow(clippy::cast_possible_truncation)]
     pub fn load_fen(&mut self, fen: &str) {
         let mut state: Position = Position::empty();
@@ -379,7 +379,7 @@ impl Board {
         self.states.push(state);
         self.update_pins_and_checkers();
     }
-    
+
     pub fn get_moves(&self, list: &mut MoveList) {
         let state = self.current_state();
         let occ: Bitboard = state.occupied();
@@ -656,7 +656,7 @@ impl Board {
             }
         }
     }
-    
+
     pub fn make_move(&mut self, mov: Move) {
         self.states.push(*self.current_state());
         //                         not using self.current_state_mut() because of borrowing shenanigans
@@ -758,13 +758,13 @@ impl Board {
         state.switch_color();
         self.update_pins_and_checkers();
     }
-    
+
     pub fn undo_move(&mut self) {
         self.states.pop();
         self.ply -= 1;
         self.ctm = 1 - self.ctm;
     }
-    
+
     #[must_use]
     pub fn in_check(&self) -> bool {
         !self
@@ -774,7 +774,7 @@ impl Board {
             .checkers
             .is_empty()
     }
-    
+
     #[must_use]
     pub fn square_attacked(&self, sq: Square) -> bool {
         let opp = 1 - self.ctm as usize;
@@ -813,7 +813,7 @@ impl Board {
 
         false
     }
-    
+
     #[must_use]
     pub fn square_attacked_occ(&self, sq: Square, occ: Bitboard) -> bool {
         let opp = 1 - self.ctm as usize;
@@ -851,32 +851,32 @@ impl Board {
 
         false
     }
-    
+
     pub fn current_state(&self) -> &Position {
         self.states.last().expect("No current state")
     }
-    
+
     pub fn current_state_mut(&mut self) -> &mut Position {
         self.states.last_mut().expect("No current state")
     }
-    
+
     #[must_use]
     pub fn evaluate(&self) -> i32 {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.current_state(), self.ctm)
     }
-    
+
     #[must_use]
     pub fn evaluate_non_stm(&self) -> i32 {
         let mut net = ValueNetworkState::new();
         net.evaluate(self.current_state(), 1)
     }
-    
+
     pub fn policy_load(&mut self, policy: &mut PolicyAccumulator) {
         let state = self.current_state();
         policy.load_position(state, self.ctm);
     }
-    
+
     pub fn get_policy(&self, mov: Move, policy: &mut PolicyAccumulator) -> f32 {
         policy.get_score(
             mov,
@@ -884,7 +884,7 @@ impl Board {
             self.current_state().king_sqs[self.ctm as usize],
         )
     }
-    
+
     #[must_use]
     pub fn get_fen(&self) -> String {
         let mut fen: String = String::new();
@@ -965,7 +965,7 @@ impl Board {
         // nobody cares about 50mr or the other thing right???
         fen
     }
-    
+
     fn get_attackers(&self, sq: Square) -> Bitboard {
         let state = self.current_state();
         let occupied = state.occupied();
@@ -977,7 +977,7 @@ impl Board {
             | (get_rook_attacks(sq, occupied) & (state.colored_piece(3, opp) | opp_queens))
             | (get_king_attacks(sq) & state.colored_piece(5, opp))
     }
-    
+
     fn update_pins_and_checkers(&mut self) {
         // info gathering
         let us_idx = self.ctm as usize;
@@ -1019,7 +1019,7 @@ impl Board {
             }
         }
     }
-    
+
     pub fn is_drawn(&self) -> bool {
         let state = self.current_state();
 

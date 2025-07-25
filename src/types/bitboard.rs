@@ -36,12 +36,12 @@ impl Bitboard {
     pub const fn from_square(sq: Square) -> Self {
         Self(1 << sq.0)
     }
-    
+
     #[must_use]
     pub const fn from_rank(rank: u8) -> Self {
         Self(RANKMASK << (8 * rank))
     }
-    
+
     #[must_use]
     pub const fn from_file(file: u8) -> Self {
         Self(FILEMASK << file)
@@ -53,50 +53,50 @@ impl Bitboard {
         debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
         self.0.trailing_zeros() as u8
     }
-    
+
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn msb(&self) -> u8 {
         debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
         self.0.leading_zeros() as u8
     }
-    
+
     pub fn pop_lsb(&mut self) -> u8 {
         let lsb: u8 = self.lsb();
         self.0 &= self.0 - 1;
         lsb
     }
-    
+
     #[must_use]
     pub const fn popcount(&self) -> u32 {
         self.0.count_ones()
     }
-    
+
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.0 == 0
     }
-    
+
     #[must_use]
     pub const fn is_not_empty(&self) -> bool {
         self.0 != 0
     }
-    
+
     #[must_use]
     pub const fn has_bits(&self) -> bool {
         self.0 != 0
     }
-    
+
     #[must_use]
     pub const fn as_u64(&self) -> u64 {
         self.0
     }
-    
+
     #[must_use]
     pub const fn contains_multiple(self) -> bool {
         (self.0 & self.0.wrapping_sub(1)) != 0
     }
-    
+
     #[must_use]
     pub const fn contains_one(self) -> bool {
         !self.is_empty() && !self.contains_multiple()

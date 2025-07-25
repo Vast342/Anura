@@ -68,7 +68,7 @@ impl PolicyAccumulator {
             l1: POLICY_NET.l1_biases,
         }
     }
-    
+
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {
         self.clear();
         let king = pos.king_sqs[ctm as usize];
@@ -87,11 +87,11 @@ impl PolicyAccumulator {
             }
         }
     }
-    
+
     pub fn clear(&mut self) {
         self.l1 = POLICY_NET.l1_biases;
     }
-    
+
     pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
         let move_index = move_index(ctm, mov, king);
         let mut output: i32 = 0;

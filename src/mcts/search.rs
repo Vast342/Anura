@@ -170,7 +170,7 @@ impl Engine {
 
         Some(())
     }
-    
+
     // not an actual simulation, but for nomenclature consistent with normal mcts, i decided to call it that.
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
