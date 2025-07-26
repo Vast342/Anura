@@ -26,7 +26,7 @@ use crate::{
     nets::policy::PolicyAccumulator,
     perft::{perft, run_perft_suite},
     tunable::Tunables,
-    types::{moves::Move, MoveList},
+    types::{MoveList, moves::Move},
 };
 
 const BENCH_DEPTH: u32 = 6;

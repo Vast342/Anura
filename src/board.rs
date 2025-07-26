@@ -43,11 +43,11 @@ use crate::{
     nets::{policy::PolicyAccumulator, value::ValueNetworkState},
     rays::{ray_between, ray_intersecting},
     types::{
+        MoveList,
         bitboard::Bitboard,
         moves::{Flag, Move},
         piece::{Colors, Piece, Types},
         square::Square,
-        MoveList,
     },
 };
 

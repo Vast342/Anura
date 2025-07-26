@@ -25,7 +25,7 @@ use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     tunable::Tunables,
-    types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
+    types::{MoveList, bitboard::Bitboard, moves::Move, piece::Piece, square::Square},
 };
 
 #[cfg(feature = "value")]
@@ -33,10 +33,10 @@ use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     tunable::Tunables,
-    types::{piece::Piece, square::Square, MoveList},
+    types::{MoveList, piece::Piece, square::Square},
 };
 #[cfg(feature = "policy")]
-use montyformat::{chess::Castling, MontyFormat, SearchData};
+use montyformat::{MontyFormat, SearchData, chess::Castling};
 use rand::Rng;
 #[allow(unused_imports)]
 use std::{
@@ -44,8 +44,8 @@ use std::{
     io::{BufWriter, Write},
     ops::AddAssign,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc,
+        atomic::{AtomicU64, Ordering},
     },
     thread::{self},
     time::Instant,
