@@ -442,23 +442,29 @@ impl Manager {
                 + command_split.next().expect("not enough tokens")
                 + " ";
             let next_token = command_split.next();
-            if let Some(string) = next_token {
-                if string != "moves" {
-                    fen += &(string.to_owned()
-                        + " "
-                        + command_split.next().expect("not enough tokens"));
+            match next_token {
+                Some(string) => {
+                    if string != "moves" {
+                        fen += &(string.to_owned()
+                            + " "
+                            + command_split.next().expect("not enough tokens"));
+                    }
                 }
+                None => {}
             }
         }
         self.board = Board::default();
         self.board.load_fen(&fen);
         // if there are moves
-        if let Some(_moves_token) = command_split.next() {
-            // loop through the rest of the moves
-            for move_text in command_split {
-                let mov: Move = Move::from_text(move_text, &self.board);
-                self.board.make_move(mov);
+        match command_split.next() {
+            Some(_moves_token) => {
+                // loop through the rest of the moves
+                for move_text in command_split {
+                    let mov: Move = Move::from_text(move_text, &self.board);
+                    self.board.make_move(mov);
+                }
             }
+            None => {}
         }
     }
 
