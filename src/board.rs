@@ -43,11 +43,11 @@ use crate::{
     nets::{policy::PolicyAccumulator, value::ValueNetworkState},
     rays::{ray_between, ray_intersecting},
     types::{
-        MoveList,
         bitboard::Bitboard,
         moves::{Flag, Move},
         piece::{Colors, Piece, Types},
         square::Square,
+        MoveList,
     },
 };
 
@@ -113,31 +113,19 @@ impl Position {
 
     #[must_use]
     pub fn piece_on_square(&self, sq: Square) -> Piece {
-        let square_bb = Bitboard::from_square(sq);
-        if (self.colors[0].0 | self.colors[1].0) & square_bb.0 == 0 {
-            return Piece::NONE
+        let sq_bb = Bitboard::from_square(sq);
+        for stm in 0..=1 {
+            if self.colors[stm] & sq_bb != Bitboard::EMPTY {
+                // potential fractional speedup: (0..=4).into_iter().rev() for checking checker piece
+                for piece in 0..=5 {
+                    if self.pieces[piece] & sq_bb != Bitboard::EMPTY {
+                        return Piece::new_unchecked(piece as u8, stm as u8);
+                    }
+                }
+            }
         }
 
-        let color = if self.colors[0].0 & square_bb.0 != 0 {
-            0
-        } else {
-            1
-        };
-        let piece_type = if self.pieces[0].0 & square_bb.0 != 0 {
-            0
-        } else if self.pieces[1].0 & square_bb.0 != 0 {
-            1
-        } else if self.pieces[2].0 & square_bb.0 != 0 {
-            2
-        } else if self.pieces[3].0 & square_bb.0 != 0 {
-            3
-        } else if self.pieces[4].0 & square_bb.0 != 0 {
-            4
-        } else {
-            5
-        };
-
-        Piece::new_unchecked(piece_type, color) // Assuming you have a constructor like this
+        Piece::NONE
     }
 
     #[must_use]
@@ -805,41 +793,8 @@ impl Board {
 
     #[must_use]
     pub fn square_attacked(&self, sq: Square) -> bool {
-        let opp = 1 - self.ctm as usize;
-
-        let state = self.current_state();
-        let occ = state.occupied();
-        let opp_queens: Bitboard = state.pieces[Types::Queen as usize] & state.colors[opp];
-
-        let mut mask: Bitboard = get_rook_attacks(sq, occ)
-            & (opp_queens | (state.pieces[Types::Rook as usize] & state.colors[opp]));
-        if mask.is_not_empty() {
-            return true;
-        }
-
-        mask = get_bishop_attacks(sq, occ)
-            & (opp_queens | (state.pieces[Types::Bishop as usize] & state.colors[opp]));
-        if mask.is_not_empty() {
-            return true;
-        }
-
-        mask = get_knight_attacks(sq) & (state.pieces[Types::Knight as usize] & state.colors[opp]);
-        if mask.is_not_empty() {
-            return true;
-        }
-
-        mask = get_pawn_attacks_lookup(sq, self.ctm)
-            & (state.pieces[Types::Pawn as usize] & state.colors[opp]);
-        if mask.is_not_empty() {
-            return true;
-        }
-
-        mask = get_king_attacks(sq) & (state.pieces[Types::King as usize] & state.colors[opp]);
-        if mask.is_not_empty() {
-            return true;
-        }
-
-        false
+        let occ = self.current_state().occupied();
+        self.square_attacked_occ(sq, occ)
     }
 
     #[must_use]
