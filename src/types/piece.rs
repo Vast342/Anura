@@ -41,6 +41,7 @@ pub enum Colors {
 }
 
 impl Piece {
+    pub const NONE: Self = Self(6);
     #[must_use]
     pub const fn color(self) -> u8 {
         self.0 >> 3

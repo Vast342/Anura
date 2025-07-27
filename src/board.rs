@@ -55,7 +55,6 @@ use crate::{
 pub struct Position {
     colors: [Bitboard; 2],
     pieces: [Bitboard; 6],
-    mailbox: [Piece; 64],
     pub king_sqs: [Square; 2],
     hash: u64,
     pub ep_index: Square,
@@ -71,7 +70,6 @@ impl Position {
     pub const fn empty() -> Self {
         let col: [Bitboard; 2] = [Bitboard::EMPTY; 2];
         let pcs: [Bitboard; 6] = [Bitboard::EMPTY; 6];
-        let mail: [Piece; 64] = [Piece(Types::None as u8); 64];
         let ksqs: [Square; 2] = [Square(64); 2];
         let epsq: Square = Square(64);
         let hmc: u8 = 0;
@@ -80,7 +78,6 @@ impl Position {
         Self {
             colors: col,
             pieces: pcs,
-            mailbox: mail,
             king_sqs: ksqs,
             ep_index: epsq,
             hm_clock: hmc,
@@ -91,20 +88,21 @@ impl Position {
             hash: 0,
         }
     }
+
     pub fn add_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
-        self.mailbox[sq.as_usize()] = piece;
         self.hash ^= zobrist_psq(piece, sq);
     }
+
     pub fn remove_piece(&mut self, sq: Square, piece: Piece) {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
-        self.mailbox[sq.as_usize()] = Piece(Types::None as u8);
         self.hash ^= zobrist_psq(piece, sq);
     }
+
     pub fn move_piece(&mut self, from: Square, piece: Piece, to: Square, victim: Piece) {
         if victim.piece() != Types::None as u8 {
             self.remove_piece(to, victim);
@@ -112,21 +110,50 @@ impl Position {
         self.remove_piece(from, piece);
         self.add_piece(to, piece);
     }
+
     #[must_use]
-    pub const fn piece_on_square(&self, sq: Square) -> Piece {
-        self.mailbox[sq.as_usize()]
+    pub fn piece_on_square(&self, sq: Square) -> Piece {
+        let square_bb = Bitboard::from_square(sq);
+        if (self.colors[0].0 | self.colors[1].0) & square_bb.0 == 0 {
+            return Piece::NONE
+        }
+
+        let color = if self.colors[0].0 & square_bb.0 != 0 {
+            0
+        } else {
+            1
+        };
+        let piece_type = if self.pieces[0].0 & square_bb.0 != 0 {
+            0
+        } else if self.pieces[1].0 & square_bb.0 != 0 {
+            1
+        } else if self.pieces[2].0 & square_bb.0 != 0 {
+            2
+        } else if self.pieces[3].0 & square_bb.0 != 0 {
+            3
+        } else if self.pieces[4].0 & square_bb.0 != 0 {
+            4
+        } else {
+            5
+        };
+
+        Piece::new_unchecked(piece_type, color) // Assuming you have a constructor like this
     }
+
     #[must_use]
     pub fn occupied(&self) -> Bitboard {
         self.colors[0] | self.colors[1]
     }
+
     #[must_use]
     pub fn colored_piece(&self, piece: u8, color: u8) -> Bitboard {
         self.colors[color as usize] & self.pieces[piece as usize]
     }
+
     pub fn switch_color(&mut self) {
         self.hash ^= zobrist_ctm();
     }
+
     pub fn bb(&self) -> [u64; 8] {
         let mut thing = [0; 8];
         thing[0] = self.colors[1].0;
@@ -139,6 +166,7 @@ impl Position {
         thing[7] = self.pieces[5].0;
         thing
     }
+
     pub fn rights(&self) -> u8 {
         let rights = self.castling;
         let mut lefts = 0;
@@ -197,7 +225,7 @@ impl Board {
 
         for i in (0..8).rev() {
             for j in 0..8 {
-                print!("│ {} ", state.mailbox[i * 8 + j]);
+                print!("│ {} ", state.piece_on_square(Square(i * 8 + j)));
             }
             println!("│");
             // line
