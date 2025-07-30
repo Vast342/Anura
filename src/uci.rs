@@ -137,7 +137,7 @@ impl Manager {
     }
 
     pub fn get_fen(&self) {
-        println!("{}", self.board.get_fen());
+        println!("{}", self.board.get_fen(false));
     }
 
     pub fn uci_interpret_command(&mut self, command_text: &str) -> bool {
