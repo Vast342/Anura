@@ -5,13 +5,9 @@ ifeq ($(OS),Windows_NT)
     override EXE := $(EXE).exe
 endif
 
-TARGET_TUPLE := $(shell rustc --print host-tuple)
-
-ifeq ($(OS),Windows_NT)
-	PGO_MOVE := move /Y "target/$(TARGET_TUPLE)/release/$(EXE)" "$(EXE)"
-else
-	PGO_MOVE := mv "target/$(TARGET_TUPLE)/release/$(EXE)" "$(EXE)"
-endif
+define get_target
+$(shell rustc --print target-spec-json | grep -o '"llvm-target": *"[^"]*"' | cut -d'"' -f4)
+endef
 
 all:
 	cargo rustc --release -- -C target-cpu=native --emit link=$(EXE)
@@ -26,7 +22,7 @@ perftsuite:
 	cargo rustc --release --features "perftsuite" -- -C target-cpu=native --emit link=$(EXE)
 	./$(EXE) perftsuite
 
-clean: 
+clean:
 	rm -rf $(EXE) target
 
 run: all
@@ -42,4 +38,10 @@ pgo:
 	cargo pgo instrument
 	cargo pgo run -- bench
 	cargo pgo optimize
-	$(PGO_MOVE)
+ifeq ($(OS),Windows_NT)
+	$(eval TARGET := $(call get_target))
+	move /Y "target/$(TARGET)/release/$(EXE)" "$(EXE)"
+else
+	$(eval TARGET := $(call get_target))
+	mv "target/$(TARGET)/release/$(EXE)" "$(EXE)"
+endif
