@@ -92,7 +92,9 @@ const PIECE_STRIDE: usize = 64;
 
 impl PolicyAccumulator {
     fn new() -> Self {
-        Self { l1: POLICY_NET.l1_biases }
+        Self {
+            l1: POLICY_NET.l1_biases,
+        }
     }
 
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {

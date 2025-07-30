@@ -19,7 +19,7 @@
     clippy::missing_panics_doc,
     clippy::cargo_common_metadata,
     clippy::cast_possible_truncation,
-    clippy::single_match,
+    clippy::single_match
 )]
 
 pub mod board;
