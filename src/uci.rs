@@ -29,6 +29,9 @@ use crate::{
     types::{moves::Move, MoveList},
 };
 
+#[cfg(feature = "datagen")]
+const BENCH_DEPTH: u32 = 5;
+#[cfg(not(feature = "datagen"))]
 const BENCH_DEPTH: u32 = 6;
 
 pub enum CommandTypes {

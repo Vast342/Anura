@@ -258,7 +258,19 @@ fn dump_to_file(
 }
 
 // genfens, since I will be using OB for anura's datagen
-fn get_opening(start_fen: &str) -> Option<String> {
+/*
+Things to do:
+    CLD
+    actually seed it
+
+    book support
+    stuff to go from pgn to data
+    minimal uci
+ */
+use rand::rngs::StdRng;
+use rand::SeedableRng;
+
+fn get_opening<R: Rng>(start_fen: &str, rng: &mut R) -> Option<String> {
     let mut board = Board::default();
     board.load_fen(start_fen);
     // 8 random moves
@@ -272,8 +284,14 @@ fn get_opening(start_fen: &str) -> Option<String> {
             return None;
         }
 
-        let index = rand::rng().random_range(0..list.len());
+        let index = rng.random_range(0..list.len());
         board.make_move(list[index]);
+    }
+    // final checkmate check
+    let mut list: MoveList = MoveList::new();
+    board.get_moves(&mut list);
+    if list.len() == 0 {
+        return None;
     }
     Some(board.get_fen(true))
 }
@@ -286,9 +304,14 @@ pub fn gen_fens(args: Vec<String>) {
         .collect::<Vec<&str>>();
     let max_fens = command_segments[0].parse::<u64>().expect("Invalid number");
     let seed = command_segments[2].parse::<u64>().expect("Invalid Seed");
+    let mut rng = StdRng::seed_from_u64(seed);
+
     let mut written_fens = 0;
     while written_fens < max_fens {
-        let fen_option = get_opening("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let fen_option = get_opening(
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            &mut rng,
+        );
         match fen_option {
             Some(fen) => {
                 written_fens += 1;
