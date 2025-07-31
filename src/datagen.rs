@@ -260,12 +260,9 @@ fn dump_to_file(
 // genfens, since I will be using OB for anura's datagen
 /*
 Things to do:
-    CLD
-    actually seed it
-
+    KLD (if distribution divergence drops below a threshold, stop, and eyeball threshold to get some average iter count)
     book support
-    stuff to go from pgn to data
-    minimal uci
+    stuff to go from pgn to data (& filter)
  */
 use rand::rngs::StdRng;
 use rand::SeedableRng;

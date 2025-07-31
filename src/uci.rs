@@ -61,6 +61,7 @@ pub struct UciOptions {
     pub tree_size: u64,
     pub thread_count: u64,
     pub move_overhead: u128,
+    pub minimal: bool,
 }
 
 impl UciOptions {
@@ -70,6 +71,7 @@ impl UciOptions {
             tree_size: u64::MAX,
             thread_count: 1,
             move_overhead: 10,
+            minimal: false,
         }
     }
 }
@@ -192,6 +194,11 @@ impl Manager {
             }
             "MoreInfo" => {
                 self.options.more_info = command_sections[4]
+                    .parse::<bool>()
+                    .expect("not a parsable bool");
+            }
+            "Minimal" => {
+                self.options.minimal = command_sections[4]
                     .parse::<bool>()
                     .expect("not a parsable bool");
             }
@@ -475,6 +482,7 @@ impl Manager {
     pub fn uci_uci(&self) {
         println!("id name Anura {}", env!("CARGO_PKG_VERSION"));
         println!("id author Vast");
+        println!("option name Minimal type check default false");
         println!("option name Hash type spin default 32 min 1 max 1048576");
         println!("option name Threads type spin default 1 min 1 max 1");
         println!("option name MoveOverhead type spin default 10 min 1 max 1048576");

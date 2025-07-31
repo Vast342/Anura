@@ -354,7 +354,7 @@ impl Engine {
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
             if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 3.0 {
                 let duration = self.start.elapsed().as_millis();
-                if info {
+                if info && !options.minimal {
                     self.print_info(
                         self.tree.root_node(),
                         avg_depth - 1,
