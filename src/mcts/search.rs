@@ -332,12 +332,12 @@ impl Engine {
             }
         };
 
-        while limiters.check(
-            self.start.elapsed().as_millis(),
-            self.nodes,
-            avg_depth,
-            tunables,
-        ) {
+        #[cfg(feature = "datagen")]
+        let mut prev_visit_distribution = vec![];
+        #[cfg(feature = "datagen")]
+        let mut curr_visit_distribution;
+
+        loop {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
@@ -370,6 +370,32 @@ impl Engine {
 
             if result.is_none() {
                 self.tree.switch_halves();
+            }
+
+            #[cfg(feature = "datagen")]
+            {
+                curr_visit_distribution = vec![0; self.tree[self.tree.root_node()].child_count as usize];
+                for (idx, child) in self.tree[self.tree.root_node()].children_range().enumerate() {
+                    curr_visit_distribution[idx] = self.tree[child].visits;
+                }
+            }
+
+            if !limiters.check(
+                self.start.elapsed().as_millis(),
+                self.nodes,
+                avg_depth,
+                tunables,
+                #[cfg(feature = "datagen")]
+                &*curr_visit_distribution,
+                #[cfg(feature = "datagen")]
+                &*prev_visit_distribution,
+            ) {
+                break;
+            }
+
+            #[cfg(feature = "datagen")]
+            {
+                prev_visit_distribution = curr_visit_distribution.clone();
             }
         }
         if !limiters.use_depth {

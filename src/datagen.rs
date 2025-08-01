@@ -35,6 +35,7 @@ use crate::{
 };
 use montyformat::{chess::Castling, MontyFormat, SearchData};
 use rand::Rng;
+use std::io::{BufRead, BufReader};
 use std::{
     fs::File,
     io::{BufWriter, Write},
@@ -293,6 +294,12 @@ fn get_opening<R: Rng>(start_fen: &str, rng: &mut R) -> Option<String> {
     Some(board.get_fen(true))
 }
 
+fn rand_from_vector<R: Rng>(book: &Vec<String>, rng: &mut R) -> String {
+    let len = book.len();
+    let idx = rng.random_range(0..len);
+    book[idx].clone()
+}
+
 pub fn gen_fens(args: Vec<String>) {
     // command is like ./engine "genfens N seed S book <None|Books/my_book.epd> <?extra>" "quit"
     let command_segments = args[1]
@@ -302,13 +309,19 @@ pub fn gen_fens(args: Vec<String>) {
     let max_fens = command_segments[0].parse::<u64>().expect("Invalid number");
     let seed = command_segments[2].parse::<u64>().expect("Invalid Seed");
     let mut rng = StdRng::seed_from_u64(seed);
+    let book_token = command_segments[4];
+    let book: Vec<String> = if book_token == "None" {
+        vec!["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()]
+    } else {
+        BufReader::new(File::open(book_token).expect("Failed to open file"))
+            .lines()
+            .collect::<Result<Vec<String>, _>>()
+            .expect("Failed to read lines")
+    };
 
     let mut written_fens = 0;
     while written_fens < max_fens {
-        let fen_option = get_opening(
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            &mut rng,
-        );
+        let fen_option = get_opening(&rand_from_vector(&book, &mut rng), &mut rng);
         match fen_option {
             Some(fen) => {
                 written_fens += 1;
@@ -318,3 +331,6 @@ pub fn gen_fens(args: Vec<String>) {
         }
     }
 }
+
+// idk
+pub const MIN_KLD: f64 = 0.0000013;

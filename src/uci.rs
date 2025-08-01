@@ -28,6 +28,7 @@ use crate::{
     tunable::Tunables,
     types::{moves::Move, MoveList},
 };
+use crate::datagen::MIN_KLD;
 
 #[cfg(feature = "datagen")]
 const BENCH_DEPTH: u32 = 5;
@@ -263,7 +264,10 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::default();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, BENCH_DEPTH, 0);
+        #[cfg(feature = "datagen")]
+        limiters.load_values(0, 0, 0, BENCH_DEPTH, 0, 0.0);
+        #[cfg(not(feature = "datagen"))]
+        limiters.load_values(0, 0, 0, crate::uci::BENCH_DEPTH, 0);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine.search(
@@ -285,6 +289,9 @@ impl Manager {
 
     pub fn go(&mut self, command_text: &str) {
         let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
+        #[cfg(feature = "datagen")]
+        self.limiter.load_values(0, 0, 0, 0, 0, 0.0);
+        #[cfg(not(feature = "datagen"))]
         self.limiter.load_values(0, 0, 0, 0, 0);
         let mut i: usize = 1;
         let mut time: u128 = 0;
@@ -366,6 +373,9 @@ impl Manager {
             inc = winc;
         }
         time -= self.options.move_overhead;
+        #[cfg(feature = "datagen")]
+        self.limiter.load_values(0, 0, 0, 0, 0, MIN_KLD);
+        #[cfg(not(feature = "datagen"))]
         self.limiter.load_values(time, inc, nodes, depth, movetime);
         let best_move = self.engine.search(
             self.board.clone(),
