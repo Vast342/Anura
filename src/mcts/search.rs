@@ -312,7 +312,7 @@ impl Engine {
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
         let mut prev_avg_depth = 1;
-        let mut avg_depth = 0;
+        let mut avg_depth;
         self.start = Instant::now();
         let mut last_print = Instant::now();
 

@@ -28,6 +28,7 @@ use crate::{
     tunable::Tunables,
     types::{moves::Move, MoveList},
 };
+#[cfg(feature = "datagen")]
 use crate::datagen::MIN_KLD;
 
 #[cfg(feature = "datagen")]

@@ -107,6 +107,7 @@ impl Limiters {
     }
 }
 
+#[cfg(feature = "datagen")]
 fn calc_kld(new_visit_distribution: &[u32], old_visit_distribution: &[u32]) -> Option<f64> {
     let new_visits_sum = new_visit_distribution.iter().sum::<u32>();
     let old_visits_sum = old_visit_distribution.iter().sum::<u32>();
