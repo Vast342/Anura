@@ -29,9 +29,13 @@ use crate::{
     board::Position,
     types::{moves::Move, square::Square},
 };
+
 const INPUT_SIZE: usize = 768;
 const HL_SIZE: usize = 256;
 const OUTPUT_SIZE: usize = 1880;
+
+const QA: i16 = 128;
+const QB: f32 = 128.0;
 
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
@@ -88,11 +92,9 @@ const PIECE_STRIDE: usize = 64;
 
 impl PolicyAccumulator {
     fn new() -> Self {
-        let mut l1 = [0; HL_SIZE];
-        for i in 0..HL_SIZE {
-            l1[i] = POLICY_NET.l1_biases[i] as i16;
+        Self {
+            l1: POLICY_NET.l1_biases,
         }
-        Self { l1 }
     }
 
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {
@@ -109,15 +111,13 @@ impl PolicyAccumulator {
                 + this_piece.piece() as usize * PIECE_STRIDE
                 + (piece_index as usize ^ flipper ^ hm);
             for hl_node in 0..HL_SIZE {
-                self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node] as i16;
+                self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
             }
         }
     }
 
     pub fn clear(&mut self) {
-        for i in 0..HL_SIZE {
-            self.l1[i] = POLICY_NET.l1_biases[i] as i16;
-        }
+        self.l1 = POLICY_NET.l1_biases;
     }
 
     pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
@@ -128,11 +128,11 @@ impl PolicyAccumulator {
             output += (POLICY_NET.l2_weights[move_index][hl_node] as i32)
                 * (activation(self.l1[hl_node]) as i32);
         }
-        (output as f32 / 128.0 + POLICY_NET.l2_biases[move_index] as f32) / (128.0 * 128.0)
+        (output as f32 / QA as f32 + POLICY_NET.l2_biases[move_index] as f32) / (QA as f32 * QB)
     }
 }
 
 // SCReLU
 pub fn activation(x: i16) -> i16 {
-    x.clamp(0, 128).pow(2)
+    x.clamp(0, QA).pow(2)
 }

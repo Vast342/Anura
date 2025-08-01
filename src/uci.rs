@@ -28,7 +28,12 @@ use crate::{
     tunable::Tunables,
     types::{moves::Move, MoveList},
 };
+#[cfg(feature = "datagen")]
+use crate::datagen::MIN_KLD;
 
+#[cfg(feature = "datagen")]
+const BENCH_DEPTH: u32 = 5;
+#[cfg(not(feature = "datagen"))]
 const BENCH_DEPTH: u32 = 6;
 
 pub enum CommandTypes {
@@ -58,6 +63,7 @@ pub struct UciOptions {
     pub tree_size: u64,
     pub thread_count: u64,
     pub move_overhead: u128,
+    pub minimal: bool,
 }
 
 impl UciOptions {
@@ -67,6 +73,7 @@ impl UciOptions {
             tree_size: u64::MAX,
             thread_count: 1,
             move_overhead: 10,
+            minimal: false,
         }
     }
 }
@@ -137,7 +144,7 @@ impl Manager {
     }
 
     pub fn get_fen(&self) {
-        println!("{}", self.board.get_fen());
+        println!("{}", self.board.get_fen(false));
     }
 
     pub fn uci_interpret_command(&mut self, command_text: &str) -> bool {
@@ -189,6 +196,11 @@ impl Manager {
             }
             "MoreInfo" => {
                 self.options.more_info = command_sections[4]
+                    .parse::<bool>()
+                    .expect("not a parsable bool");
+            }
+            "Minimal" => {
+                self.options.minimal = command_sections[4]
                     .parse::<bool>()
                     .expect("not a parsable bool");
             }
@@ -253,7 +265,10 @@ impl Manager {
         let start = Instant::now();
         let mut board: Board = Board::default();
         let mut limiters = Limiters::new();
-        limiters.load_values(0, 0, 0, BENCH_DEPTH, 0);
+        #[cfg(feature = "datagen")]
+        limiters.load_values(0, 0, 0, BENCH_DEPTH, 0, 0.0);
+        #[cfg(not(feature = "datagen"))]
+        limiters.load_values(0, 0, 0, crate::uci::BENCH_DEPTH, 0);
         for string in BENCH_FENS {
             board.load_fen(string);
             self.engine.search(
@@ -275,6 +290,9 @@ impl Manager {
 
     pub fn go(&mut self, command_text: &str) {
         let command_sections: Vec<&str> = command_text.split_ascii_whitespace().collect();
+        #[cfg(feature = "datagen")]
+        self.limiter.load_values(0, 0, 0, 0, 0, 0.0);
+        #[cfg(not(feature = "datagen"))]
         self.limiter.load_values(0, 0, 0, 0, 0);
         let mut i: usize = 1;
         let mut time: u128 = 0;
@@ -356,6 +374,9 @@ impl Manager {
             inc = winc;
         }
         time -= self.options.move_overhead;
+        #[cfg(feature = "datagen")]
+        self.limiter.load_values(0, 0, 0, 0, 0, MIN_KLD);
+        #[cfg(not(feature = "datagen"))]
         self.limiter.load_values(time, inc, nodes, depth, movetime);
         let best_move = self.engine.search(
             self.board.clone(),
@@ -472,6 +493,7 @@ impl Manager {
     pub fn uci_uci(&self) {
         println!("id name Anura {}", env!("CARGO_PKG_VERSION"));
         println!("id author Vast");
+        println!("option name Minimal type check default false");
         println!("option name Hash type spin default 32 min 1 max 1048576");
         println!("option name Threads type spin default 1 min 1 max 1");
         println!("option name MoveOverhead type spin default 10 min 1 max 1048576");

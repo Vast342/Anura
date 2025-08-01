@@ -16,33 +16,29 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-// make datagen TYPE=value or policy
+/*
+   HOW TO MAKE A DATAGEN BUILD (so i don't forget)
+   1: set `go nodes` to use proper datagen tm (nothing to do yet because i'm just using fixed nodes)
+   2: set makefile to add `--features datagen`
+*/
+
+// make datagen
 // ./anura datagen 12 ../AnuraData/Text/ 124598902
 // fix yo dang draw detection, `5R2/5Qp1/P6k/7p/8/2P4P/5PP1/6K1 w - - | 1033 | 0.5` is bad
 
-#[cfg(feature = "policy")]
 use crate::{
     board::{Board, Position},
     mcts::search::Engine,
+    mcts::search::EVAL_SCALE,
     tunable::Tunables,
-    types::{bitboard::Bitboard, moves::Move, piece::Piece, square::Square, MoveList},
+    types::MoveList,
 };
-
-#[cfg(feature = "value")]
-use crate::{
-    board::{Board, Position},
-    mcts::search::Engine,
-    tunable::Tunables,
-    types::{piece::Piece, square::Square, MoveList},
-};
-#[cfg(feature = "policy")]
 use montyformat::{chess::Castling, MontyFormat, SearchData};
 use rand::Rng;
-#[allow(unused_imports)]
+use std::io::{BufRead, BufReader};
 use std::{
     fs::File,
     io::{BufWriter, Write},
-    ops::AddAssign,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc,
@@ -50,22 +46,11 @@ use std::{
     thread::{self},
     time::Instant,
 };
+
 pub const NODE_LIMIT: u128 = 1000;
 
 // policy net datapoint, montyformat now
-#[cfg(feature = "policy")]
 pub type Datapoint = MontyFormat;
-
-// value net datapoint, just text rn
-#[cfg(feature = "value")]
-struct Datapoint(pub String);
-
-#[cfg(feature = "value")]
-impl AddAssign for Datapoint {
-    fn add_assign(&mut self, rhs: Self) {
-        self.0 += &rhs.0;
-    }
-}
 
 pub fn datagen_main(args: Vec<String>) {
     let thread_count: usize = args[2].parse().expect("invalid thread count");
@@ -110,7 +95,7 @@ fn thread_function(
 ) {
     let mut board: Board = Board::default();
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    let this_directory = directory + "thread" + &thread_id.to_string() + ".txt";
+    let this_directory = directory + "thread" + &thread_id.to_string() + ".bin";
     let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));
     loop {
         let mut data: Vec<Datapoint> = vec![];
@@ -129,11 +114,9 @@ fn thread_function(
     }
 }
 
-#[allow(unused_assignments)]
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
-fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> u8 {
+fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> u8 {
     // 8 random moves
-    use crate::{mcts::search::EVAL_SCALE, types::moves::Move};
     for _ in 0..8 {
         // generate the moves
         let mut list: MoveList = MoveList::new();
@@ -141,16 +124,14 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunable
         // checkmate or stalemate, doesn't matter which
         // reset
         if list.len() == 0 {
-            println!("hit a checkmate or stalemate in opening generation");
             return 3;
         }
 
-        let index = rand::thread_rng().gen_range(0..list.len());
+        let index = rand::rng().random_range(0..list.len());
         board.make_move(list[index]);
     }
 
     let board_state = board.current_state();
-    #[cfg(feature = "policy")]
     let starting_position = montyformat::chess::Position::from_raw(
         board_state.bb(),
         board.ctm == 0,
@@ -163,17 +144,14 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunable
         board_state.hm_clock,
         board.ply as u16,
     );
-    #[cfg(feature = "policy")]
     let castling = Castling::default();
-    #[cfg(feature = "policy")]
     let mut game = MontyFormat::new(starting_position, castling);
 
     let mut engine: Engine = Engine::new();
     // the rest of the moves
     for _ in 0..1000 {
         if board.is_drawn() {
-            #[cfg(feature = "policy")]
-            _datapoints.push(game);
+            datapoints.push(game);
             return 1;
         }
         // checkmate check
@@ -184,21 +162,19 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunable
 
         // checkmate or stalemate
         if list.len() == 0 {
-            #[cfg(feature = "policy")]
-            _datapoints.push(game);
-            if board.in_check() {
+            datapoints.push(game);
+            return if board.in_check() {
                 // checkmate opponnent wins
-                return 2 - 2 * board.ctm;
+                2 - 2 * board.ctm
             } else {
-                return 1;
-            }
+                1
+            };
         }
-        #[allow(unused_variables)]
+
         let (mov, score, mut visit_points) = engine.datagen_search(board.clone(), params);
         board.make_move(mov);
         if board.is_drawn() {
-            #[cfg(feature = "policy")]
-            _datapoints.push(game);
+            datapoints.push(game);
             return 1;
         }
         // checkmate check
@@ -209,55 +185,39 @@ fn run_game(_datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunable
 
         // checkmate or stalemate
         if list.len() == 0 {
-            #[cfg(feature = "policy")]
-            _datapoints.push(game);
-            if board.in_check() {
+            datapoints.push(game);
+            return if board.in_check() {
                 // checkmate opponnent wins
-                return 2 - 2 * board.ctm;
+                2 - 2 * board.ctm
             } else {
-                return 1;
-            }
+                1
+            };
         }
         board.undo_move();
-        if cfg!(feature = "policy") {
-            let state: &Position = board.states.last().expect("bruh");
-            #[cfg(feature = "policy")]
-            let best_move = montyformat::chess::Move::from(mov.to_mf(state));
-            // convert to montyformat move
-            #[cfg(feature = "policy")]
-            let mut thing = vec![];
-            for point in &mut visit_points {
-                #[cfg(feature = "policy")]
-                thing.push((
-                    montyformat::chess::Move::from(point.0.to_mf(state)),
-                    point.1 as u32,
-                ));
-            }
-            let sigmoided_score = 1.0 / (1.0 + (-score as f32 / EVAL_SCALE as f32).exp());
-            #[cfg(feature = "policy")]
-            let data = SearchData::new(best_move, sigmoided_score, Some(thing));
-            #[cfg(feature = "policy")]
-            game.push(data);
-        } else if cfg!(feature = "value") {
-            #[cfg(feature = "value")]
-            _datapoints.push(Datapoint(format!(
-                "{} | {} | ",
-                board.get_fen(),
-                score * (-1 + i32::from(board.ctm) * 2)
-            )));
+        let state: &Position = board.states.last().expect("bruh");
+        let best_move = montyformat::chess::Move::from(mov.to_mf(state));
+        // convert to montyformat move
+        let mut thing = vec![];
+        for point in &mut visit_points {
+            thing.push((
+                montyformat::chess::Move::from(point.0.to_mf(state)),
+                point.1 as u32,
+            ));
         }
+        let sigmoided_score = 1.0 / (1.0 + (-score as f32 / EVAL_SCALE as f32).exp());
+        let data = SearchData::new(best_move, sigmoided_score, Some(thing));
+        game.push(data);
         board.make_move(mov);
     }
     let score = board.evaluate_non_stm();
-    #[cfg(feature = "policy")]
-    _datapoints.push(game);
-    if score < -100 {
-        return 0;
+    datapoints.push(game);
+    return if score < -100 {
+        0
     } else if score > 100 {
-        return 2;
+        2
     } else {
-        return 1;
-    }
+        1
+    };
 }
 
 fn dump_to_file(
@@ -273,9 +233,6 @@ fn dump_to_file(
     if result == 1 {
         draw_count.fetch_add(1, Ordering::Relaxed);
     }
-    #[cfg(feature = "value")]
-    position_count.fetch_add(datapoints.len() as u64, Ordering::Relaxed);
-    #[cfg(feature = "policy")]
     position_count.fetch_add(datapoints[0].moves.len() as u64, Ordering::Relaxed);
     // check stuff in game_count and print stuff if necessary
     let games = game_count.load(Ordering::Relaxed);
@@ -293,22 +250,87 @@ fn dump_to_file(
     }
 
     // push it to a file
-    #[allow(unused_mut)]
-    for mut point in datapoints {
-        #[cfg(feature = "value")]
-        {
-            point += Datapoint((result as f64 / 2.0).to_string());
-            point += Datapoint("\n".to_string());
-            writer
-                .write_all(point.0.as_bytes())
-                .expect("failed to write to file");
+    for point in &datapoints {
+        let mut stuff = vec![];
+        point.serialise_into_buffer(&mut stuff).unwrap();
+        writer.write_all(&stuff).expect("failed to write to file");
+        stuff.clear();
+    }
+}
+
+// genfens, since I will be using OB for anura's datagen
+/*
+Things to do:
+    KLD (if distribution divergence drops below a threshold, stop, and eyeball threshold to get some average iter count)
+    book support
+    stuff to go from pgn to data (& filter)
+ */
+use rand::rngs::StdRng;
+use rand::SeedableRng;
+
+fn get_opening<R: Rng>(start_fen: &str, rng: &mut R) -> Option<String> {
+    let mut board = Board::default();
+    board.load_fen(start_fen);
+    // 8 random moves
+    for _ in 0..8 {
+        // generate the moves
+        let mut list: MoveList = MoveList::new();
+        board.get_moves(&mut list);
+        // checkmate or stalemate, doesn't matter which
+        // reset
+        if list.len() == 0 {
+            return None;
         }
-        #[cfg(feature = "policy")]
-        {
-            let mut stuff = vec![];
-            point.serialise_into_buffer(&mut stuff).unwrap();
-            writer.write_all(&stuff).expect("failed to write to file");
-            stuff.clear();
+
+        let index = rng.random_range(0..list.len());
+        board.make_move(list[index]);
+    }
+    // final checkmate check
+    let mut list: MoveList = MoveList::new();
+    board.get_moves(&mut list);
+    if list.len() == 0 {
+        return None;
+    }
+    Some(board.get_fen(true))
+}
+
+fn rand_from_vector<R: Rng>(book: &Vec<String>, rng: &mut R) -> String {
+    let len = book.len();
+    let idx = rng.random_range(0..len);
+    book[idx].clone()
+}
+
+pub fn gen_fens(args: Vec<String>) {
+    // command is like ./engine "genfens N seed S book <None|Books/my_book.epd> <?extra>" "quit"
+    let command_segments = args[1]
+        .split_ascii_whitespace()
+        .skip(1)
+        .collect::<Vec<&str>>();
+    let max_fens = command_segments[0].parse::<u64>().expect("Invalid number");
+    let seed = command_segments[2].parse::<u64>().expect("Invalid Seed");
+    let mut rng = StdRng::seed_from_u64(seed);
+    let book_token = command_segments[4];
+    let book: Vec<String> = if book_token == "None" {
+        vec!["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1".to_string()]
+    } else {
+        BufReader::new(File::open(book_token).expect("Failed to open file"))
+            .lines()
+            .collect::<Result<Vec<String>, _>>()
+            .expect("Failed to read lines")
+    };
+
+    let mut written_fens = 0;
+    while written_fens < max_fens {
+        let fen_option = get_opening(&rand_from_vector(&book, &mut rng), &mut rng);
+        match fen_option {
+            Some(fen) => {
+                written_fens += 1;
+                println!("info string genfens {fen}");
+            }
+            None => {}
         }
     }
 }
+
+// idk
+pub const MIN_KLD: f64 = 0.0000013;

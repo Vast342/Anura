@@ -18,7 +18,8 @@
 #![allow(
     clippy::missing_panics_doc,
     clippy::cargo_common_metadata,
-    clippy::cast_possible_truncation
+    clippy::cast_possible_truncation,
+    clippy::single_match
 )]
 
 pub mod board;
@@ -37,6 +38,8 @@ pub mod uci;
 
 #[cfg(feature = "datagen")]
 use datagen::datagen_main;
+#[cfg(feature = "datagen")]
+use datagen::gen_fens;
 use movegen::lookups::initialize;
 
 use crate::uci::Manager;
@@ -54,6 +57,9 @@ fn main() {
             datagen_main(args);
         } else if args[1] == "perftsuite" && cfg!(feature = "perftsuite") {
             manager.perft_suite();
+        } else if args[1].split_ascii_whitespace().collect::<Vec<&str>>()[0] == "genfens" {
+            #[cfg(feature = "datagen")]
+            gen_fens(args);
         }
     } else {
         loop {

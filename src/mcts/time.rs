@@ -28,6 +28,10 @@ pub struct Limiters {
     depth_limit: u32,
     use_move_time: bool,
     move_time: u128,
+    #[cfg(feature = "datagen")]
+    min_kld: f64,
+    #[cfg(feature = "datagen")]
+    use_kld: bool,
 }
 
 impl Limiters {
@@ -35,7 +39,15 @@ impl Limiters {
         Self::default()
     }
 
-    pub fn load_values(&mut self, tim: u128, inc: u128, nodes: u128, depth: u32, movetime: u128) {
+    pub fn load_values(
+        &mut self,
+        tim: u128,
+        inc: u128,
+        nodes: u128,
+        depth: u32,
+        movetime: u128,
+        #[cfg(feature = "datagen")] kld: f64,
+    ) {
         self.use_time = tim != 0;
         self.use_nodes = nodes != 0;
         self.use_depth = depth != 0;
@@ -45,6 +57,11 @@ impl Limiters {
         self.node_lim = nodes;
         self.depth_limit = depth;
         self.move_time = movetime;
+        #[cfg(feature = "datagen")]
+        {
+            self.min_kld = kld;
+            self.use_kld = kld != 0.0;
+        }
     }
 
     // maybe gainer idea, give slightly less for the min part
@@ -54,7 +71,17 @@ impl Limiters {
             .min(self.time)
     }
 
-    pub fn check(&self, tim: u128, nodes: u128, depth: u32, tunables: &Tunables) -> bool {
+    pub fn check(
+        &self,
+        tim: u128,
+        nodes: u128,
+        depth: u32,
+        tunables: &Tunables,
+        #[cfg(feature = "datagen")]
+        new_visit_distribution: &[u32],
+        #[cfg(feature = "datagen")]
+        old_visit_distribution: &[u32],
+    ) -> bool {
         if self.use_time && tim >= self.time_allocated(tunables) {
             return false;
         }
@@ -67,6 +94,43 @@ impl Limiters {
         if self.use_move_time && tim >= self.move_time {
             return false;
         }
+        #[cfg(feature = "datagen")]
+        if self.use_kld {
+            // calculate kld
+            let kld = calc_kld(new_visit_distribution, old_visit_distribution);
+
+            if kld.is_some() && kld.unwrap() <= self.min_kld {
+                return false;
+            }
+        }
         true
     }
+}
+
+#[cfg(feature = "datagen")]
+fn calc_kld(new_visit_distribution: &[u32], old_visit_distribution: &[u32]) -> Option<f64> {
+    let new_visits_sum = new_visit_distribution.iter().sum::<u32>();
+    let old_visits_sum = old_visit_distribution.iter().sum::<u32>();
+
+    if old_visits_sum == 0 {
+        return None;
+    }
+
+    let mut kld = 0.0;
+
+    for i in 0..new_visit_distribution.len() {
+        let new_visits = new_visit_distribution[i];
+        let old_visits = old_visit_distribution[i];
+
+        if old_visits == 0 {
+            return None;
+        }
+
+        let q = new_visits as f64 / new_visits_sum as f64;
+        let p = old_visits as f64 / old_visits_sum as f64;
+
+        kld += p * (p / q).ln();
+    }
+
+    Some(kld / (new_visits_sum / old_visits_sum) as f64)
 }

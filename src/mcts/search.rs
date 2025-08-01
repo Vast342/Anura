@@ -312,7 +312,7 @@ impl Engine {
         let mut seldepth = 0;
         let mut total_depth: usize = 0;
         let mut prev_avg_depth = 1;
-        let mut avg_depth = 0;
+        let mut avg_depth;
         self.start = Instant::now();
         let mut last_print = Instant::now();
 
@@ -332,12 +332,12 @@ impl Engine {
             }
         };
 
-        while limiters.check(
-            self.start.elapsed().as_millis(),
-            self.nodes,
-            avg_depth,
-            tunables,
-        ) {
+        #[cfg(feature = "datagen")]
+        let mut prev_visit_distribution = vec![];
+        #[cfg(feature = "datagen")]
+        let mut curr_visit_distribution;
+
+        loop {
             self.board.load_state(root_state, root_ctm);
             self.depth = 1;
 
@@ -354,7 +354,7 @@ impl Engine {
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
             if avg_depth > prev_avg_depth || last_print.elapsed().as_secs_f32() > 3.0 {
                 let duration = self.start.elapsed().as_millis();
-                if info {
+                if info && !options.minimal {
                     self.print_info(
                         self.tree.root_node(),
                         avg_depth - 1,
@@ -370,6 +370,32 @@ impl Engine {
 
             if result.is_none() {
                 self.tree.switch_halves();
+            }
+
+            #[cfg(feature = "datagen")]
+            {
+                curr_visit_distribution = vec![0; self.tree[self.tree.root_node()].child_count as usize];
+                for (idx, child) in self.tree[self.tree.root_node()].children_range().enumerate() {
+                    curr_visit_distribution[idx] = self.tree[child].visits;
+                }
+            }
+
+            if !limiters.check(
+                self.start.elapsed().as_millis(),
+                self.nodes,
+                avg_depth,
+                tunables,
+                #[cfg(feature = "datagen")]
+                &*curr_visit_distribution,
+                #[cfg(feature = "datagen")]
+                &*prev_visit_distribution,
+            ) {
+                break;
+            }
+
+            #[cfg(feature = "datagen")]
+            {
+                prev_visit_distribution = curr_visit_distribution.clone();
             }
         }
         if !limiters.use_depth {

@@ -869,7 +869,7 @@ impl Board {
     }
 
     #[must_use]
-    pub fn get_fen(&self) -> String {
+    pub fn get_fen(&self, complete: bool) -> String {
         let mut fen: String = String::new();
         let state = self.current_state();
         for rank in (0..8).rev() {
@@ -946,6 +946,13 @@ impl Board {
             fen += SQUARE_NAMES[state.ep_index.0 as usize];
         }
         // nobody cares about 50mr or the other thing right???
+        // nevermind i do now
+        if complete {
+            fen += " ";
+            fen += &(state.hm_clock / 2).to_string();
+            fen += " ";
+            fen += &self.ply.to_string();
+        }
         fen
     }
 
