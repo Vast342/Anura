@@ -38,7 +38,7 @@ impl SearchTree {
     pub fn new() -> Self {
         let size_mb = DEFAULT_HASH_SIZE;
         let size_b = size_mb * 1024 * 1024;
-        let size_entries = (size_b / std::mem::size_of::<Node>()) / 2;
+        let size_entries = (size_b / size_of::<Node>()) / 2;
         Self {
             halves: [TreeHalf::new(size_entries), TreeHalf::new(size_entries)],
             current_half: 0,
@@ -49,7 +49,7 @@ impl SearchTree {
     pub fn resize(&mut self, new_size: usize) {
         let size_mb = new_size;
         let size_b = size_mb * 1024 * 1024;
-        let size_entries = (size_b / std::mem::size_of::<Node>()) / 2;
+        let size_entries = (size_b / size_of::<Node>()) / 2;
         self.halves = [TreeHalf::new(size_entries), TreeHalf::new(size_entries)];
         self.current_half = 0;
         self.half_size = size_entries;
@@ -75,6 +75,7 @@ impl SearchTree {
     pub fn reset(&mut self) {
         self.halves[0].clear();
         self.halves[1].clear();
+        self.current_half = 0;
     }
 
     pub fn push(&mut self, node: Node) -> Option<()> {
@@ -109,9 +110,10 @@ impl SearchTree {
         // switch halves
         self.current_half = 1 - self.current_half;
         self.halves[self.current_half].clear();
+        self.dereference();
         // ensure root node is first in the new entry
         self.halves[self.current_half].push(self.halves[1 - self.current_half][0]);
-        self.dereference();
+        //self.dereference();
     }
 
     pub fn dereference(&mut self) {
@@ -121,6 +123,10 @@ impl SearchTree {
                 self.halves[1 - self.current_half][i].child_count = 0;
             }
         }
+    }
+
+    pub fn hashfull(&self) -> u16 {
+        ((self.halves[self.current_half].len() as f32 / self.halves[self.current_half].size() as f32) * 1000.0) as u16
     }
 }
 
