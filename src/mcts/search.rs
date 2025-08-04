@@ -332,8 +332,6 @@ impl Engine {
             }
         };
 
-        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
-
         #[cfg(feature = "datagen")]
         let mut prev_visit_distribution = vec![];
         #[cfg(feature = "datagen")]
@@ -419,7 +417,6 @@ impl Engine {
         let best_move = self.tree[index].mov;
 
         self.board.load_state(root_state, root_ctm);
-        //self.tree.reset();
 
         best_move
     }

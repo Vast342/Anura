@@ -38,7 +38,7 @@ impl SearchTree {
     pub fn new() -> Self {
         let size_mb = DEFAULT_HASH_SIZE;
         let size_b = size_mb * 1024 * 1024;
-        let size_entries = (size_b / size_of::<Node>()) / 2;
+        let size_entries = (size_b / std::mem::size_of::<Node>()) / 2;
         Self {
             halves: [TreeHalf::new(size_entries), TreeHalf::new(size_entries)],
             current_half: 0,
@@ -49,7 +49,7 @@ impl SearchTree {
     pub fn resize(&mut self, new_size: usize) {
         let size_mb = new_size;
         let size_b = size_mb * 1024 * 1024;
-        let size_entries = (size_b / size_of::<Node>()) / 2;
+        let size_entries = (size_b / std::mem::size_of::<Node>()) / 2;
         self.halves = [TreeHalf::new(size_entries), TreeHalf::new(size_entries)];
         self.current_half = 0;
         self.half_size = size_entries;
