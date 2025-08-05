@@ -30,8 +30,8 @@ fn main() {
         panic!("policy.txt contains no network name");
     }
 
-    let value_path = PathBuf::from("src/nets/value/net.vn".to_string());
-    let policy_path = PathBuf::from("src/nets/policy/net.pn".to_string());
+    let value_path = PathBuf::from("src/nets/avn.vn".to_string());
+    let policy_path = PathBuf::from("src/nets/apn.pn".to_string());
 
     // Print full paths for debugging
     println!("Value network path: {}", value_path.display());

@@ -22,9 +22,7 @@
 // l1 SCReLU
 // quantised
 
-mod outs;
-use outs::move_index;
-
+use crate::nets::policy_outs::move_index;
 use crate::{
     board::Position,
     types::{moves::Move, square::Square},
@@ -74,7 +72,7 @@ pub const fn transpose_output_weights(net: PolicyNetwork) -> PolicyNetwork {
 }
 
 pub static POLICY_NET: PolicyNetwork =
-    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("net.pn")) });
+    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("apn.pn")) });
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {

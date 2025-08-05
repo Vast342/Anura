@@ -298,8 +298,7 @@ impl Engine {
         (1 << 31) - 1
     }
 
-    // todo 1: Tree Reuse
-    // todo 2: SMP
+    // todo: SMP (after first release)
     pub fn search(
         &mut self,
         board: Board,
@@ -318,6 +317,8 @@ impl Engine {
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
+        let root_ply = board.ply;
+
         // attempt to reuse tree
         if self.tree.is_empty() {
             self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
@@ -339,6 +340,7 @@ impl Engine {
 
         loop {
             self.board.load_state(root_state, root_ctm);
+            self.board.ply = root_ply;
             self.depth = 1;
 
             let result = self.mcts(self.tree.root_node(), true, tunables);

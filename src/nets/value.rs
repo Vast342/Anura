@@ -47,7 +47,7 @@ pub struct ValueNetwork {
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
-pub static VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("net.vn")) };
+pub static VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("avn.vn")) };
 
 const OUTPUT_BUCKET_DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKET_COUNT);
 
@@ -63,8 +63,8 @@ pub struct ValueNetworkState {
 pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square) -> usize {
     let c = (piece.color() != ctm) as usize;
     if ctm == 0 {
-        sq.flip();
-        king.flip();
+        sq.flip_rank();
+        king.flip_rank();
     }
     if king.file() > 3 {
         sq.flip_file();

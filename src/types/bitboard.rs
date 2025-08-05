@@ -57,7 +57,7 @@ impl Bitboard {
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn msb(&self) -> u8 {
-        debug_assert!(self.0 != 0, "tried to lsb an empty bitboard");
+        debug_assert!(self.0 != 0, "tried to msb an empty bitboard");
         self.0.leading_zeros() as u8
     }
 

@@ -113,7 +113,6 @@ impl SearchTree {
         self.dereference();
         // ensure root node is first in the new entry
         self.halves[self.current_half].push(self.halves[1 - self.current_half][0]);
-        //self.dereference();
     }
 
     pub fn dereference(&mut self) {
