@@ -27,6 +27,10 @@ impl Square {
         self.0 ^= 56;
     }
 
+    pub fn flip_file(&mut self) {
+        self.0 ^= 7;
+    }
+
     #[must_use]
     pub const fn rank(&self) -> u8 /* i refuse to write a rank wrapper */ {
         self.0 / 8

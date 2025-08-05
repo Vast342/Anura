@@ -126,7 +126,9 @@ impl SearchTree {
     }
 
     pub fn hashfull(&self) -> u16 {
-        ((self.halves[self.current_half].len() as f32 / self.halves[self.current_half].size() as f32) * 1000.0) as u16
+        ((self.halves[self.current_half].len() as f32
+            / self.halves[self.current_half].size() as f32)
+            * 1000.0) as u16
     }
 }
 

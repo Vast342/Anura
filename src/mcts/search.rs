@@ -374,8 +374,12 @@ impl Engine {
 
             #[cfg(feature = "datagen")]
             {
-                curr_visit_distribution = vec![0; self.tree[self.tree.root_node()].child_count as usize];
-                for (idx, child) in self.tree[self.tree.root_node()].children_range().enumerate() {
+                curr_visit_distribution =
+                    vec![0; self.tree[self.tree.root_node()].child_count as usize];
+                for (idx, child) in self.tree[self.tree.root_node()]
+                    .children_range()
+                    .enumerate()
+                {
                     curr_visit_distribution[idx] = self.tree[child].visits;
                 }
             }
@@ -507,7 +511,12 @@ impl Engine {
         };
         print!(
             "info depth {} seldepth {} nodes {} time {} nps {} hashfull {} ",
-            depth, seldepth, self.nodes, duration, nps, self.tree.hashfull()
+            depth,
+            seldepth,
+            self.nodes,
+            duration,
+            nps,
+            self.tree.hashfull()
         );
         if ends_in_mate {
             print!("score mate {} ", pv.len() / 2);

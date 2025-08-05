@@ -77,10 +77,8 @@ impl Limiters {
         nodes: u128,
         depth: u32,
         tunables: &Tunables,
-        #[cfg(feature = "datagen")]
-        new_visit_distribution: &[u32],
-        #[cfg(feature = "datagen")]
-        old_visit_distribution: &[u32],
+        #[cfg(feature = "datagen")] new_visit_distribution: &[u32],
+        #[cfg(feature = "datagen")] old_visit_distribution: &[u32],
     ) -> bool {
         if self.use_time && tim >= self.time_allocated(tunables) {
             return false;

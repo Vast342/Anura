@@ -58,30 +58,7 @@ pub struct ValueNetwork {
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
-pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
-    let mut output_weights = [0; HL_SIZE * OUTPUT_BUCKET_COUNT];
-    let mut weight = 0;
-    while weight < HL_SIZE {
-        let mut bucket = 0;
-        while bucket < OUTPUT_BUCKET_COUNT {
-            let src = weight * OUTPUT_BUCKET_COUNT + bucket;
-            let dst = bucket * HL_SIZE + weight;
-            output_weights[dst] = net.output_weights[src];
-            bucket += 1;
-        }
-        weight += 1;
-    }
-    ValueNetwork {
-        feature_weights: net.feature_weights,
-        feature_biases: net.feature_biases,
-        output_weights,
-        output_bias: net.output_bias,
-    }
-}
-
-pub static VALUE_NET: ValueNetwork = transpose_output_weights(unsafe {
-    std::mem::transmute::<[u8; 1205824], ValueNetwork>(*include_bytes!("net.vn"))
-});
+pub static VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("net.vn")) };
 
 const OUTPUT_BUCKET_DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKET_COUNT);
 
@@ -99,6 +76,10 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
     if ctm == 0 {
         sq.flip();
         king.flip();
+    }
+    if king.file() > 3 {
+        sq.flip_file();
+        king.flip_file()
     }
     let p = piece.piece() as usize;
     INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE
