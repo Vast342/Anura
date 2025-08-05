@@ -26,21 +26,8 @@ use crate::{
 // 768->768->1x16
 // l1 SCReLU
 const INPUT_SIZE: usize = 768;
-const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 768;
 const OUTPUT_BUCKET_COUNT: usize = 16;
-
-#[rustfmt::skip]
-const INPUT_BUCKET_SCHEME: [usize; 64] = [
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-];
 
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
@@ -52,7 +39,7 @@ const QAB: i32 = QA * _QB;
 #[repr(C)]
 #[repr(align(64))]
 pub struct ValueNetwork {
-    feature_weights: [i16; INPUT_SIZE * HL_SIZE * INPUT_BUCKET_COUNT],
+    feature_weights: [i16; INPUT_SIZE * HL_SIZE],
     feature_biases: [i16; HL_SIZE],
     output_weights: [i16; HL_SIZE * OUTPUT_BUCKET_COUNT],
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
@@ -82,10 +69,7 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
         king.flip_file()
     }
     let p = piece.piece() as usize;
-    INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE
-        + c * COLOR_STRIDE
-        + p * PIECE_STRIDE
-        + sq.0 as usize
+    c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize
 }
 
 pub fn activation(x: i16) -> i32 {
