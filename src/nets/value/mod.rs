@@ -22,25 +22,14 @@ use crate::{
     types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
 // value net:
-// avn_008.vn
+// avn_009.vn
 // 768->768->1x16
 // l1 SCReLU
+// horizontally mirrored inputs
+
 const INPUT_SIZE: usize = 768;
-const INPUT_BUCKET_COUNT: usize = 1;
 const HL_SIZE: usize = 768;
 const OUTPUT_BUCKET_COUNT: usize = 16;
-
-#[rustfmt::skip]
-const INPUT_BUCKET_SCHEME: [usize; 64] = [
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-];
 
 const COLOR_STRIDE: usize = 64 * 6;
 const PIECE_STRIDE: usize = 64;
@@ -52,36 +41,13 @@ const QAB: i32 = QA * _QB;
 #[repr(C)]
 #[repr(align(64))]
 pub struct ValueNetwork {
-    feature_weights: [i16; INPUT_SIZE * HL_SIZE * INPUT_BUCKET_COUNT],
+    feature_weights: [i16; INPUT_SIZE * HL_SIZE],
     feature_biases: [i16; HL_SIZE],
     output_weights: [i16; HL_SIZE * OUTPUT_BUCKET_COUNT],
     output_bias: [i16; OUTPUT_BUCKET_COUNT],
 }
 
-pub const fn transpose_output_weights(net: ValueNetwork) -> ValueNetwork {
-    let mut output_weights = [0; HL_SIZE * OUTPUT_BUCKET_COUNT];
-    let mut weight = 0;
-    while weight < HL_SIZE {
-        let mut bucket = 0;
-        while bucket < OUTPUT_BUCKET_COUNT {
-            let src = weight * OUTPUT_BUCKET_COUNT + bucket;
-            let dst = bucket * HL_SIZE + weight;
-            output_weights[dst] = net.output_weights[src];
-            bucket += 1;
-        }
-        weight += 1;
-    }
-    ValueNetwork {
-        feature_weights: net.feature_weights,
-        feature_biases: net.feature_biases,
-        output_weights,
-        output_bias: net.output_bias,
-    }
-}
-
-pub static VALUE_NET: ValueNetwork = transpose_output_weights(unsafe {
-    std::mem::transmute::<[u8; 1205824], ValueNetwork>(*include_bytes!("net.vn"))
-});
+pub static VALUE_NET: ValueNetwork = unsafe { std::mem::transmute(*include_bytes!("net.vn")) };
 
 const OUTPUT_BUCKET_DIVISOR: usize = 32_usize.div_ceil(OUTPUT_BUCKET_COUNT);
 
@@ -100,11 +66,12 @@ pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square
         sq.flip();
         king.flip();
     }
+    if king.file() > 3 {
+        sq.flip_file();
+        king.flip_file()
+    }
     let p = piece.piece() as usize;
-    INPUT_BUCKET_SCHEME[king.0 as usize] * INPUT_SIZE
-        + c * COLOR_STRIDE
-        + p * PIECE_STRIDE
-        + sq.0 as usize
+    c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize
 }
 
 pub fn activation(x: i16) -> i32 {

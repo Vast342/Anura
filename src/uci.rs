@@ -19,6 +19,8 @@
 use std::io;
 use std::time::Instant;
 
+#[cfg(feature = "datagen")]
+use crate::datagen::MIN_KLD;
 use crate::{
     board::Board,
     mcts::{search::Engine, time::Limiters},
@@ -28,8 +30,6 @@ use crate::{
     tunable::Tunables,
     types::{moves::Move, MoveList},
 };
-#[cfg(feature = "datagen")]
-use crate::datagen::MIN_KLD;
 
 #[cfg(feature = "datagen")]
 const BENCH_DEPTH: u32 = 5;
