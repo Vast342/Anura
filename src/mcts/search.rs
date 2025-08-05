@@ -506,8 +506,8 @@ impl Engine {
             self.nodes * 1000 / duration
         };
         print!(
-            "info depth {} seldepth {} nodes {} time {} nps {} ",
-            depth, seldepth, self.nodes, duration, nps,
+            "info depth {} seldepth {} nodes {} time {} nps {} hashfull {} ",
+            depth, seldepth, self.nodes, duration, nps, self.tree.hashfull()
         );
         if ends_in_mate {
             print!("score mate {} ", pv.len() / 2);

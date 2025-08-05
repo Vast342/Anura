@@ -75,6 +75,7 @@ impl SearchTree {
     pub fn reset(&mut self) {
         self.halves[0].clear();
         self.halves[1].clear();
+        self.current_half = 0;
     }
 
     pub fn push(&mut self, node: Node) -> Option<()> {
@@ -109,9 +110,10 @@ impl SearchTree {
         // switch halves
         self.current_half = 1 - self.current_half;
         self.halves[self.current_half].clear();
+        self.dereference();
         // ensure root node is first in the new entry
         self.halves[self.current_half].push(self.halves[1 - self.current_half][0]);
-        self.dereference();
+        //self.dereference();
     }
 
     pub fn dereference(&mut self) {
@@ -121,6 +123,10 @@ impl SearchTree {
                 self.halves[1 - self.current_half][i].child_count = 0;
             }
         }
+    }
+
+    pub fn hashfull(&self) -> u16 {
+        ((self.halves[self.current_half].len() as f32 / self.halves[self.current_half].size() as f32) * 1000.0) as u16
     }
 }
 
