@@ -24,6 +24,9 @@ use super::lookups::{BISHOP_MASKS, ROOK_MASKS};
 
 // slidey pieces
 
+// todo: magic bitboards backup
+// would prefer to generate my own magics instead of using c#larity's again
+
 pub const MAX_ROOK_ENTRIES: usize = 4096;
 pub const MAX_BISHOP_ENTRIES: usize = 512;
 pub const ROOK_TABLE_SIZE: usize = 2097152;

@@ -23,8 +23,12 @@ pub struct Square(pub u8);
 impl Square {
     pub const INVALID: Self = Self(64);
 
-    pub fn flip(&mut self) {
+    pub fn flip_rank(&mut self) {
         self.0 ^= 56;
+    }
+
+    pub fn flip_file(&mut self) {
+        self.0 ^= 7;
     }
 
     #[must_use]

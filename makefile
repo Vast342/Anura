@@ -4,6 +4,8 @@ ifeq ($(OS),Windows_NT)
     override EXE := $(EXE).exe
 endif
 
+# todo: release build target which builds x86-64-v1 through v4
+
 define get_target
 $(shell rustc --print target-spec-json | grep -o '"llvm-target": *"[^"]*"' | cut -d'"' -f4)
 endef
