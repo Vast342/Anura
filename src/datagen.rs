@@ -327,4 +327,4 @@ pub fn gen_fens(args: Vec<String>) {
 }
 
 // idk
-pub const MIN_KLD: f64 = 0.0000013;
+pub const MIN_KLD: f64 = 0.000001;
