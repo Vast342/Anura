@@ -22,13 +22,13 @@ use crate::{
     types::{bitboard::Bitboard, piece::Piece, square::Square},
 };
 // value net:
-// avn_009.vn
-// 768->768->1x16
+// avn_011_1024.vn
+// 768->1024->1x16
 // l1 SCReLU
 // horizontally mirrored inputs
 
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 768;
+const HL_SIZE: usize = 1024;
 const OUTPUT_BUCKET_COUNT: usize = 16;
 
 const COLOR_STRIDE: usize = 64 * 6;
