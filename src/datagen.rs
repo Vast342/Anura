@@ -295,7 +295,7 @@ fn rand_from_vector<R: Rng>(book: &Vec<String>, rng: &mut R) -> String {
 }
 
 pub fn gen_fens(args: Vec<String>) {
-    // command is like ./engine "genfens N seed S book <None|Books/my_book.epd> <?extra>" "quit"
+    // command is like ./engine "genfens N seed S book <None|Books/my_book.epd> <?extra (not currently supported)>" "quit"
     let command_segments = args[1]
         .split_ascii_whitespace()
         .skip(1)
