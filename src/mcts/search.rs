@@ -171,6 +171,49 @@ impl Engine {
         Some(())
     }
 
+    fn relabel_root_policy(&mut self, node_idx: usize, tunables: &Tunables) {
+        let node = &self.tree[node_idx];
+
+        if node.child_count == 0 {
+            return;
+        }
+
+        let first_child = node.first_child as usize;
+        let child_count = node.child_count as usize;
+
+        let mut moves = Vec::with_capacity(child_count);
+        for i in 0..child_count {
+            let child_idx = first_child + i;
+            moves.push(self.tree[child_idx].mov);
+        }
+
+        self.board.policy_load(&mut self.policy);
+        let mut policy: Vec<f32> = vec![0.0; child_count];
+        let mut policy_sum: f32 = 0.0;
+
+        // initial policy values
+        for i in 0..child_count {
+            let unscaled = self.board.get_policy(moves[i], &mut self.policy);
+            policy[i] = (unscaled / (tunables.default_pst() + tunables.root_pst_bonus())).exp();
+            policy_sum += policy[i];
+        }
+
+        // normalize
+        let mut sum_of_squares: f32 = 0.0;
+        for i in 0..child_count {
+            policy[i] /= policy_sum;
+            sum_of_squares += policy[i] * policy[i];
+        }
+
+        let root_node = &mut self.tree[node_idx];
+        root_node.gini_impurity = (1.0 - sum_of_squares).clamp(0.0, 1.0);
+
+        for i in 0..child_count {
+            let child_idx = first_child + i;
+            self.tree[child_idx].policy = policy[i];
+        }
+    }
+
     // not an actual simulation, but for nomenclature consistent with normal mcts, i decided to call it that.
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
@@ -327,6 +370,8 @@ impl Engine {
             let found = self.find(root, root_state, 2);
             if found != (1 << 31) - 1 && self.tree[found].child_count != 0 {
                 self.tree[root] = self.tree[found];
+                // relabel root node policy (so it has the PST)
+                self.relabel_root_policy(root, &tunables);
             } else {
                 self.tree.reset();
                 self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
