@@ -424,6 +424,11 @@ impl Engine {
 
         self.board.load_state(root_state, root_ctm);
 
+        #[cfg(feature = "datagen")]
+        {
+            self.tree.reset();
+        }
+
         best_move
     }
     #[cfg(feature = "datagen")]
