@@ -15,47 +15,73 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use std::arch::x86_64::_pext_u64;
 
-use crate::types::bitboard::Bitboard;
-use crate::types::square::Square;
+use crate::types::{bitboard::Bitboard, square::Square};
 
-use super::lookups::{BISHOP_MASKS, ROOK_MASKS};
+#[repr(C)]
+#[derive(Clone, Copy)]
+struct Mask {
+    diagonal: u64,
+    antidiagonal: u64,
+    vertical: u64,
+}
 
-// slidey pieces
-
-// todo: magic bitboards backup
-// would prefer to generate my own magics instead of using c#larity's again
-
-pub const MAX_ROOK_ENTRIES: usize = 4096;
-pub const MAX_BISHOP_ENTRIES: usize = 512;
-pub const ROOK_TABLE_SIZE: usize = 2097152;
-pub const BISHOP_TABLE_SIZE: usize = 262144;
-
-static ROOK_MOVES: [[u64; MAX_ROOK_ENTRIES]; 64] =
-    unsafe { std::mem::transmute(*include_bytes!("tables/rooks.bin")) };
-
-static BISHOP_MOVES: [[u64; MAX_BISHOP_ENTRIES]; 64] =
-    unsafe { std::mem::transmute(*include_bytes!("tables/bishops.bin")) };
-
-#[must_use]
-#[inline(always)]
-pub fn get_rook_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
-    Bitboard(ROOK_MOVES[sq.as_usize()][get_rook_index_pext(sq, occupied)])
+#[repr(C)]
+struct LookupTables {
+    masks: [Mask; 64],
+    rank_attack: [u8; 512],
 }
 
 #[inline(always)]
-fn get_rook_index_pext(sq: Square, occupied: Bitboard) -> usize {
-    unsafe { _pext_u64(occupied.as_u64(), ROOK_MASKS[sq.as_usize()]) as usize }
+const fn bit_bswap(b: u64) -> u64 {
+    b.swap_bytes()
 }
 
-#[must_use]
+static TABLES: LookupTables = unsafe { std::mem::transmute(*include_bytes!("hq_tables.bin")) };
+static MASKS: [Mask; 64] = TABLES.masks;
+static RANK_ATTACK: [u8; 512] = TABLES.rank_attack;
+
 #[inline(always)]
-pub fn get_bishop_attacks(sq: Square, occupied: Bitboard) -> Bitboard {
-    Bitboard(BISHOP_MOVES[sq.as_usize()][get_bishop_index_pext(sq, occupied)])
+fn attack(pieces: u64, x: u32, mask: u64) -> u64 {
+    let o = pieces & mask;
+    ((o.wrapping_sub(1u64 << x)) ^ bit_bswap(bit_bswap(o).wrapping_sub(0x8000_0000_0000_0000u64 >> x))) & mask
 }
 
 #[inline(always)]
-fn get_bishop_index_pext(sq: Square, occupied: Bitboard) -> usize {
-    unsafe { _pext_u64(occupied.as_u64(), BISHOP_MASKS[sq.as_usize()]) as usize }
+fn horizontal_attack(pieces: u64, x: u32) -> u64 {
+    let file_mask = x & 7;
+    let rank_mask = x & 56;
+    let o = (pieces >> rank_mask) & 126;
+    (RANK_ATTACK[(o * 4 + file_mask as u64) as usize] as u64) << rank_mask
+}
+
+#[inline(always)]
+fn vertical_attack(occ: u64, sq: u32) -> u64 {
+    attack(occ, sq, MASKS[sq as usize].vertical)
+}
+
+#[inline(always)]
+fn diagonal_attack(occ: u64, sq: u32) -> u64 {
+    attack(occ, sq, MASKS[sq as usize].diagonal)
+}
+
+#[inline(always)]
+fn antidiagonal_attack(occ: u64, sq: u32) -> u64 {
+    attack(occ, sq, MASKS[sq as usize].antidiagonal)
+}
+
+#[inline(always)]
+pub fn get_bishop_attacks(sq: Square, occ: Bitboard) -> Bitboard {
+    Bitboard(
+        diagonal_attack(occ.0, sq.0 as u32) |
+        antidiagonal_attack(occ.0, sq.0 as u32)
+    )
+}
+
+#[inline(always)]
+pub fn get_rook_attacks(sq: Square, occ: Bitboard) -> Bitboard {
+    Bitboard(
+        vertical_attack(occ.0, sq.0 as u32) |
+        horizontal_attack(occ.0, sq.0 as u32)
+    )
 }

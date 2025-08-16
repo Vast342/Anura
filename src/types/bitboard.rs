@@ -101,6 +101,11 @@ impl Bitboard {
     pub const fn contains_one(self) -> bool {
         !self.is_empty() && !self.contains_multiple()
     }
+
+    #[inline(always)]
+    pub fn bswap(self) -> Self {
+        Bitboard(self.0.swap_bytes())
+    }
 }
 
 impl BitXorAssign for Bitboard {
