@@ -102,7 +102,7 @@ impl PolicyAccumulator {
             output += (POLICY_NET.l2_weights[move_index][hl_node] as i32)
                 * (activation(self.l1[hl_node]) as i32);
         }
-        (output as f32 / QA as f32 + POLICY_NET.l2_biases[move_index] as f32) / (QA as f32 * QB)
+        (output as f32 / (QA as f32 * QB) + POLICY_NET.l2_biases[move_index] as f32) / QB
     }
 }
 
