@@ -38,41 +38,13 @@ const QB: f32 = 128.0;
 #[derive(Clone, Copy, Debug)]
 #[repr(C)]
 pub struct PolicyNetwork {
-    pub l1_weights: [[i16; HL_SIZE]; INPUT_SIZE], // [input][hl]
-    pub l1_biases: [i16; HL_SIZE],                // [hl]
-    pub l2_weights: [[i16; HL_SIZE]; OUTPUT_SIZE], // [output][hl]
-    pub l2_biases: [i32; OUTPUT_SIZE],            // [output]
+    pub l1_weights: [[i8; HL_SIZE]; INPUT_SIZE], // [input][hl]
+    pub l1_biases: [i8; HL_SIZE],                // [hl]
+    pub l2_weights: [[i8; HL_SIZE]; OUTPUT_SIZE], // [output][hl]
+    pub l2_biases: [i8; OUTPUT_SIZE],            // [output]
 }
 
-pub const fn transpose_output_weights(net: PolicyNetwork) -> PolicyNetwork {
-    let mut transposed_l2_weights = [[0; HL_SIZE]; OUTPUT_SIZE];
-    let mut output_idx = 0;
-    while output_idx < OUTPUT_SIZE {
-        let mut hl_idx = 0;
-        while hl_idx < HL_SIZE {
-            let linear_idx = hl_idx * OUTPUT_SIZE + output_idx;
-            let struct_output_idx = linear_idx / HL_SIZE;
-            let struct_hl_idx = linear_idx % HL_SIZE;
-
-            if struct_output_idx < OUTPUT_SIZE && struct_hl_idx < HL_SIZE {
-                transposed_l2_weights[output_idx][hl_idx] =
-                    net.l2_weights[struct_output_idx][struct_hl_idx];
-            }
-            hl_idx += 1;
-        }
-        output_idx += 1;
-    }
-
-    PolicyNetwork {
-        l1_weights: net.l1_weights,
-        l1_biases: net.l1_biases,
-        l2_weights: transposed_l2_weights,
-        l2_biases: net.l2_biases,
-    }
-}
-
-pub static POLICY_NET: PolicyNetwork =
-    transpose_output_weights(unsafe { std::mem::transmute(*include_bytes!("apn.pn")) });
+pub static POLICY_NET: PolicyNetwork = unsafe { std::mem::transmute(*include_bytes!("apn.pn")) };
 
 #[derive(Debug, Clone)]
 pub struct PolicyAccumulator {
@@ -90,9 +62,11 @@ const PIECE_STRIDE: usize = 64;
 
 impl PolicyAccumulator {
     fn new() -> Self {
-        Self {
-            l1: POLICY_NET.l1_biases,
+        let mut l1 = [0; HL_SIZE];
+        for i in 0..HL_SIZE {
+            l1[i] = POLICY_NET.l1_biases[i] as i16;
         }
+        Self { l1 }
     }
 
     pub fn load_position(&mut self, pos: &Position, ctm: u8) {
@@ -109,13 +83,15 @@ impl PolicyAccumulator {
                 + this_piece.piece() as usize * PIECE_STRIDE
                 + (piece_index as usize ^ flipper ^ hm);
             for hl_node in 0..HL_SIZE {
-                self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node];
+                self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node] as i16;
             }
         }
     }
 
     pub fn clear(&mut self) {
-        self.l1 = POLICY_NET.l1_biases;
+        for i in 0..HL_SIZE {
+            self.l1[i] = POLICY_NET.l1_biases[i] as i16;
+        }
     }
 
     pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
