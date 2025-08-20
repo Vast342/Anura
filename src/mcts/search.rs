@@ -435,34 +435,63 @@ impl Engine {
     pub fn datagen_search(
         &mut self,
         board: Board,
-        params: &Tunables,
+        tunables: &Tunables,
+        limiters: Limiters,
     ) -> (Move, i32, Vec<(Move, u16)>) {
         self.nodes = 0;
         self.start = Instant::now();
+        let mut avg_depth;
+        let mut total_depth: usize = 0;
 
         let root_state = board.states.last().expect("bruh you gave an empty board");
         let root_ctm = board.ctm;
+        let root_ply = board.ply;
 
         // attempt to reuse tree
-        if self.tree.is_empty() {
-            self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
-        } else {
-            let root = self.tree.root_node();
-            let found = self.find(root, root_state, 2);
-            if found != (1 << 31) - 1 && self.tree[found].child_count != 0 {
-                self.tree[root] = self.tree[found];
-            } else {
-                self.tree.reset();
-                self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
-            }
-        };
+        self.tree.push(Node::new(Move::NULL_MOVE, 0.0));
 
-        while self.nodes < NODE_LIMIT {
+        let mut prev_visit_distribution = vec![];
+        let mut curr_visit_distribution;
+
+        loop {
             self.board.load_state(root_state, root_ctm);
+            self.board.ply = root_ply;
+            self.depth = 1;
 
-            self.mcts(self.tree.root_node(), true, &params);
+            let result = self.mcts(self.tree.root_node(), true, tunables);
 
             self.nodes += 1;
+            total_depth += self.depth as usize;
+
+
+            // info
+            avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
+
+            if result.is_none() {
+                self.tree.switch_halves();
+            }
+
+            curr_visit_distribution =
+                vec![0; self.tree[self.tree.root_node()].child_count as usize];
+            for (idx, child) in self.tree[self.tree.root_node()]
+                .children_range()
+                .enumerate()
+            {
+                curr_visit_distribution[idx] = self.tree[child].visits;
+            }
+
+            if !limiters.check(
+                self.start.elapsed().as_millis(),
+                self.nodes,
+                avg_depth,
+                tunables,
+                &*curr_visit_distribution,
+                &*prev_visit_distribution,
+            ) {
+                break;
+            }
+
+            prev_visit_distribution = curr_visit_distribution.clone();
         }
 
         let (best_node_idx, best_score) = self.get_best_move(self.tree.root_node());
@@ -477,6 +506,8 @@ impl Engine {
         }
 
         self.board.load_state(root_state, root_ctm);
+        self.tree.reset();
+
         (best_move, to_cp(best_score), visit_points)
     }
     fn print_info(

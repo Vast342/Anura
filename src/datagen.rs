@@ -30,6 +30,7 @@ use crate::{
     board::{Board, Position},
     mcts::search::Engine,
     mcts::search::EVAL_SCALE,
+    mcts::time::Limiters,
     tunable::Tunables,
     types::MoveList,
 };
@@ -58,6 +59,8 @@ pub fn datagen_main(args: Vec<String>) {
     let draw_count = Arc::new(AtomicU64::new(0));
     let game_count = Arc::new(AtomicU64::new(0));
     let pos_count = Arc::new(AtomicU64::new(0));
+    let total_nodes = Arc::new(AtomicU64::new(0));
+    let search_count = Arc::new(AtomicU64::new(0));
     let start = Instant::now();
     let tunables = Tunables::new();
     let mut threads = Vec::new();
@@ -65,6 +68,8 @@ pub fn datagen_main(args: Vec<String>) {
         let game_count_clone = Arc::clone(&game_count);
         let pos_count_clone = Arc::clone(&pos_count);
         let draw_count_clone = Arc::clone(&draw_count);
+        let total_nodes_clone = Arc::clone(&total_nodes);
+        let search_count_clone = Arc::clone(&search_count);
         let tunables_clone = tunables.clone();
         let value = args[3].clone();
         threads.push(thread::spawn(move || {
@@ -74,6 +79,8 @@ pub fn datagen_main(args: Vec<String>) {
                 &game_count_clone,
                 &pos_count_clone,
                 &draw_count_clone,
+                &total_nodes_clone,
+                &search_count_clone,
                 start,
                 &tunables_clone,
             )
@@ -90,6 +97,8 @@ fn thread_function(
     game_count: &AtomicU64,
     position_count: &AtomicU64,
     draw_count: &AtomicU64,
+    total_nodes: &AtomicU64,
+    search_count: &AtomicU64,
     start: Instant,
     tunables: &Tunables,
 ) {
@@ -99,7 +108,7 @@ fn thread_function(
     let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));
     loop {
         let mut data: Vec<Datapoint> = vec![];
-        let result = run_game(&mut data, board.clone(), tunables);
+        let (result, game_nodes, game_searches) = run_game(&mut data, board.clone(), tunables);
         if result != 3 {
             dump_to_file(
                 data,
@@ -107,15 +116,24 @@ fn thread_function(
                 game_count,
                 position_count,
                 draw_count,
+                total_nodes,
+                search_count,
                 start,
                 result,
+                game_nodes,
+                game_searches,
             );
         }
     }
 }
 
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
-fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> u8 {
+fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> (u8, u64, u64) {
+    let mut limiters = Limiters::default();
+    limiters.load_values(0, 0, 0, 0, 0, MIN_KLD);
+    let mut game_nodes = 0u64;
+    let mut game_searches = 0u64;
+
     // 8 random moves
     for _ in 0..8 {
         // generate the moves
@@ -124,7 +142,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
         // checkmate or stalemate, doesn't matter which
         // reset
         if list.len() == 0 {
-            return 3;
+            return (3, game_nodes, game_searches);
         }
 
         let index = rand::rng().random_range(0..list.len());
@@ -152,7 +170,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
     for _ in 0..1000 {
         if board.is_drawn() {
             datapoints.push(game);
-            return 1;
+            return (1, game_nodes, game_searches);
         }
         // checkmate check
         // this is more efficient than it is in clarity lol
@@ -163,19 +181,22 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
         // checkmate or stalemate
         if list.len() == 0 {
             datapoints.push(game);
-            return if board.in_check() {
+            return (if board.in_check() {
                 // checkmate opponnent wins
                 2 - 2 * board.ctm
             } else {
                 1
-            };
+            }, game_nodes, game_searches);
         }
 
-        let (mov, score, mut visit_points) = engine.datagen_search(board.clone(), params);
+        let (mov, score, mut visit_points) = engine.datagen_search(board.clone(), params, limiters);
+        game_nodes += engine.nodes as u64;
+        game_searches += 1;
+
         board.make_move(mov);
         if board.is_drawn() {
             datapoints.push(game);
-            return 1;
+            return (1, game_nodes, game_searches);
         }
         // checkmate check
         // this is more efficient than it is in clarity lol
@@ -186,12 +207,12 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
         // checkmate or stalemate
         if list.len() == 0 {
             datapoints.push(game);
-            return if board.in_check() {
+            return (if board.in_check() {
                 // checkmate opponnent wins
                 2 - 2 * board.ctm
             } else {
                 1
-            };
+            }, game_nodes, game_searches);
         }
         board.undo_move();
         let state: &Position = board.states.last().expect("bruh");
@@ -211,13 +232,13 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
     }
     let score = board.evaluate_non_stm();
     datapoints.push(game);
-    return if score < -100 {
+    return (if score < -100 {
         0
     } else if score > 100 {
         2
     } else {
         1
-    };
+    }, game_nodes, game_searches);
 }
 
 fn dump_to_file(
@@ -226,22 +247,34 @@ fn dump_to_file(
     game_count: &AtomicU64,
     position_count: &AtomicU64,
     draw_count: &AtomicU64,
+    total_nodes: &AtomicU64,
+    search_count: &AtomicU64,
     start: Instant,
     result: u8,
+    game_nodes: u64,
+    game_searches: u64,
 ) {
     game_count.fetch_add(1, Ordering::Relaxed);
     if result == 1 {
         draw_count.fetch_add(1, Ordering::Relaxed);
     }
     position_count.fetch_add(datapoints[0].moves.len() as u64, Ordering::Relaxed);
+    total_nodes.fetch_add(game_nodes, Ordering::Relaxed);
+    search_count.fetch_add(game_searches, Ordering::Relaxed);
+
     // check stuff in game_count and print stuff if necessary
     let games = game_count.load(Ordering::Relaxed);
     if games % 128 == 0 {
         if games % 1024 == 0 {
             let positions = position_count.load(Ordering::Relaxed);
+            let nodes = total_nodes.load(Ordering::Relaxed);
+            let searches = search_count.load(Ordering::Relaxed);
+            let avg_nodes_per_search = if searches > 0 { nodes as f64 / searches as f64 } else { 0.0 };
+
             println!("games: {games}");
             println!("draws: {}", draw_count.load(Ordering::Relaxed));
             println!("positions: {}", positions);
+            println!("avg nodes/search: {:.2}", avg_nodes_per_search);
             println!("pos/sec: {}", positions / start.elapsed().as_secs());
             println!("games/sec: {}", games / start.elapsed().as_secs());
             println!("pos/game: {}", positions / games);
@@ -258,7 +291,7 @@ fn dump_to_file(
     }
 }
 
-// genfens, since I will be using OB for anura's datagen
+// genfens, since I will be using OB for anura's value datagen
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 
