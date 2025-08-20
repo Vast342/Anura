@@ -28,7 +28,7 @@ use crate::{
 // horizontally mirrored inputs
 
 const INPUT_SIZE: usize = 768;
-const HL_SIZE: usize = 768;
+const HL_SIZE: usize = 1024;
 const OUTPUT_BUCKET_COUNT: usize = 16;
 
 const COLOR_STRIDE: usize = 64 * 6;
