@@ -16,11 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy net:
-// apn_008.pn
+// apn_010_temp.pn
 // 768->256->1x1880
 // notes:
 // l1 SCReLU
 // quantised
+// this net specifically is increased root policy temperature
 
 use crate::nets::policy_outs::move_index;
 use crate::{
