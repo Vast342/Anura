@@ -87,6 +87,21 @@ macro_rules! make_tunables {
     };
 }
 
+#[cfg(feature = "datagen")]
+make_tunables! {
+    default_cpuct = 0.549, 0.0, 10.0, 0.05, 0.002;
+    root_cpuct = 0.742, 0.0, 10.0, 0.05, 0.002;
+    gini_base = 0.352, 0.0, 2.0, 0.05, 0.002;
+    gini_log_mult = 1.689, 0.0, 3.0, 0.16, 0.002;
+    gini_min = 2.259, 0.0, 4.0, 0.20, 0.002;
+    default_pst = 1.06, 0.1, 2.0, 0.06, 0.002;
+    root_pst_bonus = 4.401, 0.1, 5.0, 0.25, 0.002;
+    time_divisor = 23.000, 1.0, 50.0, 2.25, 0.002;
+    inc_divisor = 1.200, 1.0, 5.0, 0.225, 0.002;
+    cpuct_visits_scale = 39.127, 1.0, 512.0, 3.2, 0.002;
+}
+
+#[cfg(not(feature = "datagen"))]
 make_tunables! {
     default_cpuct = 0.549, 0.0, 10.0, 0.05, 0.002;
     root_cpuct = 0.742, 0.0, 10.0, 0.05, 0.002;
