@@ -675,7 +675,7 @@ impl Board {
 
     pub fn make_move(&mut self, mov: Move) {
         self.states.push(*self.current_state());
-        //                         not using self.current_state_mut() because of borrowing shenanigans
+        // not using self.current_state_mut() because of borrowing shenanigans
         let state = self.states.last_mut().expect("no position");
 
         let from = mov.from();
