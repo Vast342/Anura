@@ -11,7 +11,7 @@ $(shell rustc --print target-spec-json | grep -o '"llvm-target": *"[^"]*"' | cut
 endef
 
 all:
-	cargo rustc --release --features "datagen" -- -C target-cpu=native --emit link=$(EXE)
+	cargo rustc --release -- -C target-cpu=native --emit link=$(EXE)
 
 debug:
 	cargo rustc -- -C target-cpu=native --emit link=$(EXE)
