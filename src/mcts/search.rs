@@ -524,16 +524,18 @@ impl Engine {
             for node_idx in self.tree[0].children_range() {
                 let this_node = self.tree[node_idx];
                 let score = this_node.average_score();
+                let result = this_node.result;
                 let pv = self.get_pv(node_idx).0;
-                results.push((this_node.mov, this_node.visits, score, pv));
+                results.push((this_node.mov, this_node.visits, score, result, pv));
             }
             results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
-            for (mov, visits, score, pv) in results {
+            for (mov, visits, score, result, pv) in results {
                 print!(
-                    "{:<6} visits: {:>8} | average score: {:>4} cp | pv",
+                    "{:<6} visits: {:>8} | average score: {:>4} cp | result: {:>8} | pv",
                     format!("{}:", mov),
                     visits,
                     to_cp(score),
+                    result.to_string(),
                 );
                 for pv_move in &pv {
                     print!(" {pv_move}");

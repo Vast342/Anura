@@ -39,6 +39,15 @@ impl GameResult {
     pub fn is_terminal(self) -> bool {
         self != Self::Ongoing
     }
+
+    pub fn to_string(&self) -> &str {
+        match self {
+            Self::Win => "Win",
+            Self::Draw => "Draw",
+            Self::Loss => "Loss",
+            Self::Ongoing => "Ongoing",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
