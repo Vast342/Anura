@@ -16,21 +16,21 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy net:
-// apn_010_temp.pn
-// 768->256->1x1880
+// apn_012_ti.pn
+// 768x4->256->1x1880
 // notes:
 // l1 SCReLU
 // quantised
-// this net specifically is increased root policy temperature
-// comment so I can throw away a commit
+// threat inputs!
 
 use crate::nets::policy_outs::move_index;
 use crate::{
     board::Position,
     types::{moves::Move, square::Square},
 };
+use crate::types::bitboard::Bitboard;
 
-const INPUT_SIZE: usize = 768;
+const INPUT_SIZE: usize = 768 * 4;
 const HL_SIZE: usize = 256;
 const OUTPUT_SIZE: usize = 1880;
 
@@ -75,15 +75,26 @@ impl PolicyAccumulator {
         self.clear();
         let king = pos.king_sqs[ctm as usize];
         let hm = if king.0 % 8 > 3 { 7 } else { 0 };
+        // threats & defenses!
+        let threats = pos.threats_by(ctm ^ 1);
+        let defences = pos.threats_by(ctm);
         // pos -> hl
         let mut occ = pos.occupied();
         while !occ.is_empty() {
             let piece_index = occ.pop_lsb();
             let flipper = if ctm == 0 { 56 } else { 0 };
             let this_piece = pos.piece_on_square(Square(piece_index));
-            let input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
+            let mut input = (this_piece.color() != ctm) as usize * COLOR_STRIDE
                 + this_piece.piece() as usize * PIECE_STRIDE
                 + (piece_index as usize ^ flipper ^ hm);
+            let bit = Bitboard::from_square(Square(piece_index));
+            if threats & bit != Bitboard::EMPTY {
+                input += 768;
+            }
+
+            if defences & bit != Bitboard::EMPTY {
+                input += 768 * 2;
+            }
             for hl_node in 0..HL_SIZE {
                 self.l1[hl_node] += POLICY_NET.l1_weights[input][hl_node] as i16;
             }

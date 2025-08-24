@@ -174,6 +174,47 @@ impl Position {
 
         lefts
     }
+
+    pub fn threats_by(&self, ctm: u8) -> Bitboard {
+        let mut threats = Bitboard::EMPTY;
+
+        let opponent_king = self.colored_piece(Types::King as u8, ctm ^ 1);
+        let occ = self.occupied() ^ opponent_king;
+
+        let attacking_pieces = self.colors[ctm as usize];
+
+        let queens = self.pieces[Types::Queen as usize];
+
+        let mut rooks = attacking_pieces & (self.pieces[Types::Rook as usize] | queens);
+        while rooks != Bitboard::EMPTY {
+            let sq = rooks.pop_lsb();
+            threats |= get_rook_attacks(Square(sq), occ);
+        }
+        
+        let mut bishops = attacking_pieces & (self.pieces[Types::Bishop as usize] | queens);
+        while bishops != Bitboard::EMPTY {
+            let sq = bishops.pop_lsb();
+            threats |= get_bishop_attacks(Square(sq), occ);
+        }
+        
+        let mut knights = attacking_pieces & self.pieces[Types::Knight as usize];
+        while knights != Bitboard::EMPTY {
+            let sq = knights.pop_lsb();
+            threats |= get_knight_attacks(Square(sq));
+        }
+        
+        let mut kings = attacking_pieces & self.pieces[Types::King as usize];
+        while kings != Bitboard::EMPTY {
+            let sq = kings.pop_lsb();
+            threats |= get_king_attacks(Square(sq));
+        }
+        
+        let pawns = attacking_pieces & self.pieces[Types::Pawn as usize];
+        let (left, right) = get_pawn_attacks_setwise(pawns, !Bitboard::EMPTY, ctm, Bitboard(0), Bitboard(0));
+        threats |= left | right;
+        
+        threats
+    }
 }
 
 #[derive(Debug, Clone)]
