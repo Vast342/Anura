@@ -65,8 +65,8 @@ const PIECE_STRIDE: usize = 64;
 impl PolicyAccumulator {
     fn new() -> Self {
         let mut l1 = [0; HL_SIZE];
-        for i in 0..HL_SIZE {
-            l1[i] = POLICY_NET.l1_biases[i] as i16;
+        for (i, item) in l1.iter_mut().enumerate().take(HL_SIZE) {
+            *item = POLICY_NET.l1_biases[i] as i16;
         }
         Self { l1 }
     }

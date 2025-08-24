@@ -106,9 +106,11 @@ fn thread_function(
     board.load_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     let this_directory = directory + "thread" + &thread_id.to_string() + ".bin";
     let mut writer = BufWriter::new(File::create(this_directory).expect("couldn't create file"));
+    let mut engine = Engine::new();
     loop {
+        engine.new_game();
         let mut data: Vec<Datapoint> = vec![];
-        let (result, game_nodes, game_searches) = run_game(&mut data, board.clone(), tunables);
+        let (result, game_nodes, game_searches) = run_game(&mut data, board.clone(), tunables, &mut engine);
         if result != 3 {
             dump_to_file(
                 data,
@@ -128,25 +130,22 @@ fn thread_function(
 }
 
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
-fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> (u8, u64, u64) {
+fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables, engine: &mut Engine) -> (u8, u64, u64) {
     let mut limiters = Limiters::default();
     limiters.load_values(0, 0, 0, 0, 0, MIN_KLD);
     let mut game_nodes = 0u64;
     let mut game_searches = 0u64;
 
-    // 8 random moves
-    for _ in 0..8 {
-        // generate the moves
-        let mut list: MoveList = MoveList::new();
-        board.get_moves(&mut list);
-        // checkmate or stalemate, doesn't matter which
-        // reset
-        if list.len() == 0 {
+    // get opening
+    let mut rng = rand::rng();
+    let starting_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    match get_opening(starting_fen, &mut rng) {
+        Some(opening_fen) => {
+            board.load_fen(&opening_fen);
+        }
+        None => {
             return (3, game_nodes, game_searches);
         }
-
-        let index = rand::rng().random_range(0..list.len());
-        board.make_move(list[index]);
     }
 
     let board_state = board.current_state();
@@ -164,8 +163,7 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
     );
     let castling = Castling::default();
     let mut game = MontyFormat::new(starting_position, castling);
-
-    let mut engine: Engine = Engine::new();
+    
     // the rest of the moves
     for _ in 0..1000 {
         if board.is_drawn() {
