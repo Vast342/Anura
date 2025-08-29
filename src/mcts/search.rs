@@ -78,7 +78,7 @@ impl Engine {
             scale *= (tunables.gini_base()
                 - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln())
             .min(tunables.gini_min());
-            scale *= 1.0 - (node.eval - node.average_score()).abs() * tunables.eval_diff_scale();
+            scale *= 1.0 + (node.eval - node.average_score()).abs() * tunables.eval_diff_scale();
             scale
         };
 

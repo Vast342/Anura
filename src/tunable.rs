@@ -113,5 +113,5 @@ make_tunables! {
     time_divisor = 23.000, 1.0, 50.0, 2.25, 0.002;
     inc_divisor = 1.200, 1.0, 5.0, 0.225, 0.002;
     cpuct_visits_scale = 39.127, 1.0, 512.0, 3.2, 0.002;
-    eval_diff_scale = 1.0, 0.1, 5.0, 0.25, 0.002;
+    eval_diff_scale = 0.75, 0.1, 2.0, 0.1, 0.002;
 }

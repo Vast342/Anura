@@ -34,7 +34,7 @@ use crate::{
 #[cfg(feature = "datagen")]
 const BENCH_DEPTH: u32 = 5;
 #[cfg(not(feature = "datagen"))]
-const BENCH_DEPTH: u32 = 7;
+const BENCH_DEPTH: u32 = 6;
 
 pub enum CommandTypes {
     Uci,
