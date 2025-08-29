@@ -78,6 +78,7 @@ impl Engine {
             scale *= (tunables.gini_base()
                 - tunables.gini_log_mult() * (node.gini_impurity + 0.001).ln())
             .min(tunables.gini_min());
+            scale *= 1.0 + (node.eval - node.average_score()).abs() * tunables.eval_diff_scale();
             scale
         };
 
@@ -173,10 +174,11 @@ impl Engine {
 
     // not an actual simulation, but for nomenclature consistent with normal mcts, i decided to call it that.
     fn simulate(&mut self, node_idx: usize) -> f32 {
-        let node = self.tree[node_idx];
-        node.result.score().unwrap_or_else(|| {
+        let node = &mut self.tree[node_idx];
+        node.eval = node.result.score().unwrap_or_else(|| {
             1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
-        })
+        });
+        node.eval
     }
 
     fn mcts(&mut self, current_node: usize, root: bool, tunables: &Tunables) -> Option<f32> {

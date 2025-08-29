@@ -51,6 +51,7 @@ pub struct Node {
     pub result: GameResult,
     pub policy: f32,
     pub gini_impurity: f32,
+    pub eval: f32,
 }
 impl Node {
     pub fn new(mov: Move, policy: f32) -> Self {
@@ -63,6 +64,7 @@ impl Node {
             result: GameResult::Ongoing,
             policy,
             gini_impurity: 0.0,
+            eval: 0.0,
         }
     }
 
