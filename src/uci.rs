@@ -30,6 +30,7 @@ use crate::{
     tunable::Tunables,
     types::{moves::Move, MoveList},
 };
+use crate::nets::value::ValueNetworkState;
 
 #[cfg(feature = "datagen")]
 const BENCH_DEPTH: u32 = 5;
@@ -158,7 +159,7 @@ impl Manager {
             CommandTypes::NewGame => self.new_game(),
             CommandTypes::Invalid => println!("invalid or unsupported (for now) command"),
             CommandTypes::PrintState => self.board.print_state(),
-            CommandTypes::Value => println!("evaluation {}", self.board.evaluate()),
+            CommandTypes::Value => println!("evaluation {}", self.board.evaluate(&mut ValueNetworkState::default())),
             CommandTypes::Perft => self.perft(command_text),
             CommandTypes::SplitPerft => self.split_perft(command_text),
             CommandTypes::MakeMove => self.make_move(command_text),
