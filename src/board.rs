@@ -885,8 +885,7 @@ impl Board {
     }
 
     #[must_use]
-    pub fn evaluate(&self) -> i32 {
-        let mut net = ValueNetworkState::new();
+    pub fn evaluate(&self, net: &mut ValueNetworkState) -> i32 {
         net.evaluate(self.current_state(), self.ctm)
     }
 

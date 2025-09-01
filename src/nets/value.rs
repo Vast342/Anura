@@ -90,12 +90,12 @@ impl ValueNetworkState {
     }
 
     pub fn evaluate(&mut self, position: &Position, ctm: u8) -> i32 {
+        self.reset();
         self.load_position(position, ctm);
         self.forward(position.occupied().popcount() as usize)
     }
 
     pub fn load_position(&mut self, position: &Position, ctm: u8) {
-        self.reset();
         let king = position.king_sqs[ctm as usize];
         let mut occ = position.occupied();
         while occ != Bitboard::EMPTY {

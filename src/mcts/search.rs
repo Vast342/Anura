@@ -26,7 +26,7 @@ use crate::{
     uci::UciOptions,
 };
 use std::time::Instant;
-
+use crate::nets::value::ValueNetworkState;
 use super::{
     node::{GameResult, Node},
     tree::{SearchTree, IND_MASK},
@@ -52,6 +52,7 @@ pub struct Engine {
     pub nodes: u128,
     start: Instant,
     policy: PolicyAccumulator,
+    value: ValueNetworkState,
 }
 
 impl Engine {
@@ -64,6 +65,7 @@ impl Engine {
             nodes: 0,
             start: Instant::now(),
             policy: PolicyAccumulator::default(),
+            value: ValueNetworkState::default(),
         }
     }
     fn select(&mut self, current: usize, tunables: &Tunables, root: bool) -> usize {
@@ -175,7 +177,7 @@ impl Engine {
     fn simulate(&mut self, node_idx: usize) -> f32 {
         let node = self.tree[node_idx];
         node.result.score().unwrap_or_else(|| {
-            1.0 / (1.0 + (-self.board.evaluate() as f32 / EVAL_SCALE as f32).exp())
+            1.0 / (1.0 + (-self.board.evaluate(&mut self.value) as f32 / EVAL_SCALE as f32).exp())
         })
     }
 
