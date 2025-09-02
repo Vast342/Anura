@@ -31,7 +31,7 @@ use crate::{
 use crate::types::bitboard::Bitboard;
 
 const INPUT_SIZE: usize = 768 * 4;
-const HL_SIZE: usize = 256;
+const HL_SIZE: usize = 512;
 const OUTPUT_SIZE: usize = 1880;
 
 const QA: i16 = 128;
