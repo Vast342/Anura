@@ -27,7 +27,7 @@ use crate::{
 // l1 SCReLU
 // horizontally mirrored inputs
 
-const INPUT_SIZE: usize = 768;
+const INPUT_SIZE: usize = 768 * 4;
 const HL_SIZE: usize = 1024;
 const OUTPUT_BUCKET_COUNT: usize = 16;
 
@@ -60,18 +60,34 @@ pub struct ValueNetworkState {
     state: [i16; HL_SIZE],
 }
 
-pub fn get_feature_index(piece: Piece, mut sq: Square, ctm: u8, mut king: Square) -> usize {
+pub fn get_feature_index(
+    piece: Piece,
+    mut sq: Square,
+    ctm: u8,
+    mut king: Square,
+    defences: Bitboard,
+    threats: Bitboard,
+) -> usize {
     let c = (piece.color() != ctm) as usize;
+    let orig_sq = sq;
     if ctm == 0 {
         sq.flip_rank();
         king.flip_rank();
     }
     if king.file() > 3 {
         sq.flip_file();
-        king.flip_file()
+        king.flip_file();
     }
-    let p = piece.piece() as usize;
-    c * COLOR_STRIDE + p * PIECE_STRIDE + sq.0 as usize
+    let mut idx = c * COLOR_STRIDE + piece.piece() as usize * PIECE_STRIDE + sq.0 as usize;
+    let bit = Bitboard::from_square(orig_sq);
+    if defences & bit != Bitboard::EMPTY {
+        idx += 768;
+    }
+    if threats & bit != Bitboard::EMPTY {
+        idx += 768 * 2;
+    }
+
+    idx
 }
 
 pub fn activation(x: i16) -> i32 {
@@ -97,20 +113,24 @@ impl ValueNetworkState {
 
     pub fn load_position(&mut self, position: &Position, ctm: u8) {
         let king = position.king_sqs[ctm as usize];
+        let defences = position.threats_by(ctm);
+        let threats = position.threats_by(ctm ^ 1);
+
         let mut occ = position.occupied();
         while occ != Bitboard::EMPTY {
             let idx = Square(occ.pop_lsb());
             let piece = position.piece_on_square(idx);
-            self.activate_feature(piece, idx, ctm, king);
+            self.activate_feature(piece, idx, ctm, king, defences, threats);
         }
     }
 
-    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8, king: Square) {
-        let idx = get_feature_index(piece, sq, ctm, king);
+    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8, king: Square, defences: Bitboard, threats: Bitboard) {
+        let idx = get_feature_index(piece, sq, ctm, king, defences, threats);
         for hl_node in 0..HL_SIZE {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
     }
+
 
     pub fn forward(&self, piece_count: usize) -> i32 {
         let mut sum = 0;
