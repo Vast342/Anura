@@ -124,13 +124,20 @@ impl ValueNetworkState {
         }
     }
 
-    pub fn activate_feature(&mut self, piece: Piece, sq: Square, ctm: u8, king: Square, defences: Bitboard, threats: Bitboard) {
+    pub fn activate_feature(
+        &mut self,
+        piece: Piece,
+        sq: Square,
+        ctm: u8,
+        king: Square,
+        defences: Bitboard,
+        threats: Bitboard,
+    ) {
         let idx = get_feature_index(piece, sq, ctm, king, defences, threats);
         for hl_node in 0..HL_SIZE {
             self.state[hl_node] += VALUE_NET.feature_weights[idx * HL_SIZE + hl_node];
         }
     }
-
 
     pub fn forward(&self, piece_count: usize) -> i32 {
         let mut sum = 0;

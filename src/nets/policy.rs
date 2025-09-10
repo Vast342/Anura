@@ -24,15 +24,16 @@
 // threat inputs!
 
 use crate::nets::policy_outs::move_index;
+use crate::types::bitboard::Bitboard;
 use crate::{
     board::Position,
     types::{moves::Move, square::Square},
 };
-use crate::types::bitboard::Bitboard;
+use crate::types::piece::Piece;
 
 const INPUT_SIZE: usize = 768 * 4;
 const HL_SIZE: usize = 512;
-const OUTPUT_SIZE: usize = 1880;
+const OUTPUT_SIZE: usize = 3800;
 
 const QA: i16 = 128;
 const QB: f32 = 128.0;
@@ -107,8 +108,8 @@ impl PolicyAccumulator {
         }
     }
 
-    pub fn get_score(&self, mov: Move, ctm: u8, king: Square) -> f32 {
-        let move_index = move_index(ctm, mov, king);
+    pub fn get_score(&self, piece: Piece, mov: Move) -> f32 {
+        let move_index = move_index(piece.piece(), mov.from(), mov.to());
         let mut output: i32 = 0;
         // hl -> output
         for hl_node in 0..HL_SIZE {

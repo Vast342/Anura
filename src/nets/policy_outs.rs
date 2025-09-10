@@ -1,53 +1,28 @@
-use crate::{
-    movegen::lookups::{A_FILE, DIAGONALS, KING_ATTACKS, KNIGHT_ATTACKS},
-    types::{
-        moves::{Flag, Move},
-        square::Square,
-    },
-};
+/*
+    Anura
+    Copyright (C) 2025 Joseph Pasfield
 
-pub fn move_index(ctm: u8, mov: Move, king: Square) -> usize {
-    let hm = if king.0 % 8 > 3 { 7 } else { 0 };
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    if mov.is_promotion() {
-        let ffile = (mov.from() ^ hm) % 8;
-        let tfile = (mov.to() ^ hm) % 8;
-        let promo_id = 2 * ffile + tfile;
-        OFFSETS[64] + 22 * (mov.flag() as usize - Flag::KnightPromo as usize) + promo_id as usize
-    } else {
-        let flipper = if ctm == 0 { 56 } else { 0 };
-        let from = (mov.from() ^ flipper ^ hm) as usize;
-        let to = (mov.to() ^ flipper ^ hm) as usize;
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-        let below = ALL_DESTINATIONS[from] & ((1 << to) - 1);
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
-        OFFSETS[from] + below.count_ones() as usize
-    }
+use crate::movegen::lookups::{DESTINATIONS, OFFSET_TABLE};
+
+pub fn move_index(piece: u8, from: u8, to: u8) -> usize {
+    let to_bb = 1u64 << to as u64;
+    let mask = DESTINATIONS[from as usize][piece as usize];
+
+    let res = (mask & (to_bb - 1)).count_ones() as usize;
+
+    OFFSET_TABLE[from as usize][piece as usize] + res
 }
-
-const OFFSETS: [usize; 65] = {
-    let mut offsets = [0; 65];
-    let mut curr = 0;
-    let mut square = 0;
-    while square < 64 {
-        offsets[square] = curr;
-        curr += ALL_DESTINATIONS[square].count_ones() as usize;
-        square += 1;
-    }
-    offsets[64] = curr;
-    offsets
-};
-
-const ALL_DESTINATIONS: [u64; 64] = {
-    let mut thing = [0; 64];
-    let mut square = 0;
-    while square < 64 {
-        let rank = square / 8;
-        let file = square % 8;
-        let rooks = (0xFF << (rank * 8)) ^ (A_FILE << file);
-        let bishops = DIAGONALS[file + rank].swap_bytes() ^ DIAGONALS[7 + file - rank];
-        thing[square] = rooks | bishops | KNIGHT_ATTACKS[square] | KING_ATTACKS[square];
-        square += 1;
-    }
-    thing
-};

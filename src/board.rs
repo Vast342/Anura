@@ -190,29 +190,30 @@ impl Position {
             let sq = rooks.pop_lsb();
             threats |= get_rook_attacks(Square(sq), occ);
         }
-        
+
         let mut bishops = attacking_pieces & (self.pieces[Types::Bishop as usize] | queens);
         while bishops != Bitboard::EMPTY {
             let sq = bishops.pop_lsb();
             threats |= get_bishop_attacks(Square(sq), occ);
         }
-        
+
         let mut knights = attacking_pieces & self.pieces[Types::Knight as usize];
         while knights != Bitboard::EMPTY {
             let sq = knights.pop_lsb();
             threats |= get_knight_attacks(Square(sq));
         }
-        
+
         let mut kings = attacking_pieces & self.pieces[Types::King as usize];
         while kings != Bitboard::EMPTY {
             let sq = kings.pop_lsb();
             threats |= get_king_attacks(Square(sq));
         }
-        
+
         let pawns = attacking_pieces & self.pieces[Types::Pawn as usize];
-        let (left, right) = get_pawn_attacks_setwise(pawns, !Bitboard::EMPTY, ctm, Bitboard(0), Bitboard(0));
+        let (left, right) =
+            get_pawn_attacks_setwise(pawns, !Bitboard::EMPTY, ctm, Bitboard(0), Bitboard(0));
         threats |= left | right;
-        
+
         threats
     }
 }
@@ -902,9 +903,8 @@ impl Board {
 
     pub fn get_policy(&self, mov: Move, policy: &mut PolicyAccumulator) -> f32 {
         policy.get_score(
-            mov,
-            self.ctm,
-            self.current_state().king_sqs[self.ctm as usize],
+            self.current_state().piece_on_square(Square(mov.from())),
+            mov
         )
     }
 

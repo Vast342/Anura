@@ -128,7 +128,11 @@ fn thread_function(
 }
 
 // 0 if black won, 1 if draw, 2 if white won, 3 if error
-fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables) -> (u8, u64, u64) {
+fn run_game(
+    datapoints: &mut Vec<Datapoint>,
+    mut board: Board,
+    params: &Tunables,
+) -> (u8, u64, u64) {
     let mut limiters = Limiters::default();
     limiters.load_values(0, 0, 0, 0, 0, MIN_KLD);
     let mut game_nodes = 0u64;
@@ -181,12 +185,16 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
         // checkmate or stalemate
         if list.len() == 0 {
             datapoints.push(game);
-            return (if board.in_check() {
-                // checkmate opponnent wins
-                2 - 2 * board.ctm
-            } else {
-                1
-            }, game_nodes, game_searches);
+            return (
+                if board.in_check() {
+                    // checkmate opponnent wins
+                    2 - 2 * board.ctm
+                } else {
+                    1
+                },
+                game_nodes,
+                game_searches,
+            );
         }
 
         let (mov, score, mut visit_points) = engine.datagen_search(board.clone(), params, limiters);
@@ -207,12 +215,16 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
         // checkmate or stalemate
         if list.len() == 0 {
             datapoints.push(game);
-            return (if board.in_check() {
-                // checkmate opponnent wins
-                2 - 2 * board.ctm
-            } else {
-                1
-            }, game_nodes, game_searches);
+            return (
+                if board.in_check() {
+                    // checkmate opponnent wins
+                    2 - 2 * board.ctm
+                } else {
+                    1
+                },
+                game_nodes,
+                game_searches,
+            );
         }
         board.undo_move();
         let state: &Position = board.states.last().expect("bruh");
@@ -232,13 +244,17 @@ fn run_game(datapoints: &mut Vec<Datapoint>, mut board: Board, params: &Tunables
     }
     let score = board.evaluate_non_stm();
     datapoints.push(game);
-    return (if score < -100 {
-        0
-    } else if score > 100 {
-        2
-    } else {
-        1
-    }, game_nodes, game_searches);
+    return (
+        if score < -100 {
+            0
+        } else if score > 100 {
+            2
+        } else {
+            1
+        },
+        game_nodes,
+        game_searches,
+    );
 }
 
 fn dump_to_file(
@@ -269,7 +285,11 @@ fn dump_to_file(
             let positions = position_count.load(Ordering::Relaxed);
             let nodes = total_nodes.load(Ordering::Relaxed);
             let searches = search_count.load(Ordering::Relaxed);
-            let avg_nodes_per_search = if searches > 0 { nodes as f64 / searches as f64 } else { 0.0 };
+            let avg_nodes_per_search = if searches > 0 {
+                nodes as f64 / searches as f64
+            } else {
+                0.0
+            };
 
             println!("games: {games}");
             println!("draws: {}", draw_count.load(Ordering::Relaxed));

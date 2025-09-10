@@ -15,8 +15,13 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
+use super::{
+    node::{GameResult, Node},
+    tree::{SearchTree, IND_MASK},
+};
 #[cfg(feature = "datagen")]
 use crate::datagen::NODE_LIMIT;
+use crate::nets::value::ValueNetworkState;
 use crate::{
     board::{Board, Position},
     mcts::time::Limiters,
@@ -26,11 +31,6 @@ use crate::{
     uci::UciOptions,
 };
 use std::time::Instant;
-use crate::nets::value::ValueNetworkState;
-use super::{
-    node::{GameResult, Node},
-    tree::{SearchTree, IND_MASK},
-};
 
 const MATE_SCORE: i32 = 32000;
 pub const EVAL_SCALE: u16 = 400;
@@ -464,7 +464,6 @@ impl Engine {
 
             self.nodes += 1;
             total_depth += self.depth as usize;
-
 
             // info
             avg_depth = (total_depth as f64 / self.nodes as f64).round() as u32;
