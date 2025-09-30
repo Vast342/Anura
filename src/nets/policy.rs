@@ -16,8 +16,8 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 // policy net:
-// apn_012_ti.pn
-// 768x4->256->1x1880
+// apn_019_1024.pn
+// 768x4->1024->1x1880
 // notes:
 // l1 SCReLU
 // quantised
@@ -31,7 +31,7 @@ use crate::{
 use crate::types::bitboard::Bitboard;
 
 const INPUT_SIZE: usize = 768 * 4;
-const HL_SIZE: usize = 512;
+const HL_SIZE: usize = 1024;
 const OUTPUT_SIZE: usize = 1880;
 
 const QA: i16 = 128;
