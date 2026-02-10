@@ -55,6 +55,7 @@ use crate::{
 pub struct Position {
     colors: [Bitboard; 2],
     pieces: [Bitboard; 6],
+    mailbox: [Piece; 64],
     pub king_sqs: [Square; 2],
     hash: u64,
     pub ep_index: Square,
@@ -78,6 +79,7 @@ impl Position {
         Self {
             colors: col,
             pieces: pcs,
+            mailbox: [Piece::NONE; 64],
             king_sqs: ksqs,
             ep_index: epsq,
             hm_clock: hmc,
@@ -93,6 +95,7 @@ impl Position {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
+        self.mailbox[sq.as_usize()] = piece;
         self.hash ^= zobrist_psq(piece, sq);
     }
 
@@ -100,6 +103,7 @@ impl Position {
         let bitboard_square: Bitboard = Bitboard::from_square(sq);
         self.colors[piece.color() as usize] ^= bitboard_square;
         self.pieces[piece.piece() as usize] ^= bitboard_square;
+        self.mailbox[sq.as_usize()] = Piece::NONE;
         self.hash ^= zobrist_psq(piece, sq);
     }
 
@@ -113,19 +117,7 @@ impl Position {
 
     #[must_use]
     pub fn piece_on_square(&self, sq: Square) -> Piece {
-        let sq_bb = Bitboard::from_square(sq);
-        for stm in 0..=1 {
-            if self.colors[stm] & sq_bb != Bitboard::EMPTY {
-                // potential fractional speedup: (0..=4).into_iter().rev() for checking checker piece
-                for piece in 0..=5 {
-                    if self.pieces[piece] & sq_bb != Bitboard::EMPTY {
-                        return Piece::new_unchecked(piece as u8, stm as u8);
-                    }
-                }
-            }
-        }
-
-        Piece::NONE
+        self.mailbox[sq.as_usize()]
     }
 
     #[must_use]
